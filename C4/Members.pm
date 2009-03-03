@@ -716,6 +716,36 @@ true on success, or false on failure
 =cut
 sub ModMember {
     my (%data) = @_;
+    my $dbh = C4::Context->dbh;
+    
+    my $member = GetMemberDetails( $data{'borrowernumber'} );
+    
+    if ( $member->{'cardnumber'} ne  $data{'cardnumber'} ) {
+      C4::Stats::UpdateStats( C4::Context->userenv->{branch}, 'card_replaced', '', $member->{'cardnumber'}, '', '', $data{'borrowernumber'} );
+    }
+
+    my $iso_re = C4::Dates->new()->regexp('iso');
+    foreach (qw(dateofbirth dateexpiry dateenrolled)) {
+        if (my $tempdate = $data{$_}) {                                 # assignment, not comparison
+            ($tempdate =~ /$iso_re/) and next;                          # Congatulations, you sent a valid ISO date.
+            warn "ModMember given $_ not in ISO format ($tempdate)";
+            my $tempdate2 = format_date_in_iso($tempdate);
+            if (!$tempdate2 or $tempdate2 eq '0000-00-00') {
+                warn "ModMember cannot convert '$tempdate' (from syspref to ISO)";
+                next;
+            }
+            $data{$_} = $tempdate2;
+        }
+    }
+    if (!$data{'dateofbirth'}){
+        delete $data{'dateofbirth'};
+    }
+    my @columns = &columns;
+    my %hashborrowerfields = (map {$_=>1} @columns);
+    my $query = "UPDATE borrowers SET \n";
+    my $sth;
+    my @parameters;  
+    
     # test to know if you must update or not the borrower password
     if (exists $data{password}) {
         if ($data{password} eq '****' or $data{password} eq '') {
