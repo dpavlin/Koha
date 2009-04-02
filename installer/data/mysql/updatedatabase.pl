@@ -2962,6 +2962,14 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     print "Upgrade to $DBversion done (Added primary keys to language tables)\n";
 }
 
+$DBversion = "3.00.99.022";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+
+   $dbh->do("ALTER TABLE `aqbudgets_planning` ADD COLUMN `display` tinyint(1) default 1"); 
+    print "Upgrade to $DBversion done adding display column to aqbudgets_planning\n";
+    SetVersion ($DBversion);
+}
+
 =item DropAllForeignKeys($table)
 
   Drop all foreign keys of the table $table
