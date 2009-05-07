@@ -32,6 +32,7 @@ use C4::Accounts;
 use C4::Stats;
 use C4::Dates;
 use C4::Calendar;
+use C4::Stats;
 
 # for _koha_notify_reserve
 use C4::Members::Messaging;
@@ -1080,7 +1081,7 @@ sub CancelReserve {
         # now fix the priority on the others....
         _FixPriority( $priority , $biblio );
     }
-
+    
     UpdateStats(
       $branchcode,
       my $type = 'reserve_canceled',
@@ -1093,6 +1094,7 @@ sub CancelReserve {
     );
     
 }
+
 
 =head2 ModReserve
 
