@@ -29,6 +29,7 @@ use C4::Items;
 use C4::Search;
 use C4::Circulation;
 use C4::Accounts;
+use C4::Stats;
 
 # for _koha_notify_reserve
 use C4::Members::Messaging;
@@ -216,6 +217,18 @@ sub AddReserve {
 
 
     #}
+    
+    UpdateStats(
+      $branch,
+      my $type = 'reserve',
+      my $amount,
+      my $other = $biblionumber,
+      my $itemnum,
+      my $itemtype,
+      $borrowernumber,
+      my $accountno
+    );
+    
     ($const eq "o" || $const eq "e") or return;   # FIXME: why not have a useful return value?
     $query = qq/
         INSERT INTO reserveconstraints
@@ -928,7 +941,11 @@ priorities of the other people who are waiting on the book.
 sub CancelReserve {
     my ( $biblio, $item, $borr ) = @_;
     my $dbh = C4::Context->dbh;
-        if ( $item and $borr ) {
+
+    my $branchcode;
+
+    if ( $item and $borr ) {
+
         # removing a waiting reserve record....
         # update the database...
         my $query = "
@@ -963,7 +980,7 @@ sub CancelReserve {
         # get the prioritiy on this record....
         my $priority;
         my $query = qq/
-            SELECT priority FROM reserves
+            SELECT priority, branchcode FROM reserves
             WHERE biblionumber   = ?
               AND borrowernumber = ?
               AND cancellationdate IS NULL
@@ -971,7 +988,7 @@ sub CancelReserve {
         /;
         my $sth = $dbh->prepare($query);
         $sth->execute( $biblio, $borr );
-        ($priority) = $sth->fetchrow_array;
+        ($priority, $branchcode) = $sth->fetchrow_array;
         $sth->finish;
         $query = qq/
             UPDATE reserves
@@ -1007,6 +1024,18 @@ sub CancelReserve {
         # now fix the priority on the others....
         _FixPriority( $priority, $biblio );
     }
+    
+    UpdateStats(
+      $branchcode,
+      my $type = 'reserve_canceled',
+      my $amount,
+      my $other = $biblio,
+      my $itemnum = $item,
+      my $itemtype,
+      my $borrowernumber = $borr,
+      my $accountno
+    );
+    
 }
 
 =head2 ModReserve
@@ -1836,6 +1865,7 @@ sub _ShiftPriorityByDateAndPriority {
 
     return $new_priority;  # so the caller knows what priority they wind up receiving
 }
+
 
 =head1 AUTHOR
 
