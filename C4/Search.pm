@@ -1521,6 +1521,7 @@ sub searchResults {
         my $itembinding_count     = 0;
         my $itemdamaged_count     = 0;
         my $item_in_transit_count = 0;
+        my $item_reserve_count    = 0;
         my $can_place_holds       = 0;
 	my $item_onhold_count     = 0;
         my $items_count           = scalar(@fields);
@@ -1606,6 +1607,8 @@ sub searchResults {
 		    ($reservestatus, $reserveitem) = C4::Reserves::CheckReserves($item->{itemnumber});
                 }
 
+                my ($restype,$reserves,$count) = C4::Reserves::CheckReserves($item->{itemnumber});
+                $restype = 0 if (($restype eq "Reserved") && ($item_reserve_count == $count));
                 # item is withdrawn, lost or damaged
                 if (   $item->{wthdrawn}
                     || $item->{itemlost}
@@ -1617,6 +1620,10 @@ sub searchResults {
                     $wthdrawn_count++        if $item->{wthdrawn};
                     $itemlost_count++        if $item->{itemlost};
                     $itemdamaged_count++     if $item->{damaged};
+                    $item_reserve_count++    if (($restype eq "Waiting") || ($restype eq "Reserved"));
+                    if (($restype eq "Waiting") || ($restype eq "Reserved")) {
+                      $can_place_holds = 1;
+                    }
                     $item_in_transit_count++ if $transfertwhen ne '';
 		    $item_onhold_count++     if $reservestatus eq 'Waiting';
                     $item->{status} = $item->{wthdrawn} . "-" . $item->{itemlost} . "-" . $item->{damaged} . "-" . $item->{notforloan};
@@ -1627,7 +1634,7 @@ sub searchResults {
                     	$other_items->{$key}->{$_} = $item->{$_};
 					}
                     $other_items->{$key}->{intransit} = ($transfertwhen ne '') ? 1 : 0;
-                    $other_items->{$key}->{onhold} = ($reservestatus) ? 1 : 0;
+                    $other_items->{$key}->{reserved} = (($restype eq "Waiting") || ($restype eq "Reserved")) ? 1 : 0;
 					$other_items->{$key}->{notforloan} = GetAuthorisedValueDesc('','',$item->{notforloan},'','',$notforloan_authorised_value) if $notforloan_authorised_value;
 					$other_items->{$key}->{count}++ if $item->{$hbranch};
 					$other_items->{$key}->{location} = $shelflocations->{ $item->{location} };
@@ -1702,6 +1709,7 @@ sub searchResults {
             if(not $hidelostitems
                or (($items_count > $itemlost_count )
                     && $hidelostitems));
+        $oldbiblio->{reservecount}         = $item_reserve_count;
     }
 
     return @newresults;
