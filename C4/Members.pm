@@ -251,7 +251,7 @@ sub SearchMember {
     $sth = $dbh->prepare( $query );
     $sth->execute( $searchstring );
     my $prevcards_data = $sth->fetchall_arrayref({});
-    my $data = [ @$prevcards_data, @$data ];
+    $data = [ @$prevcards_data, @$data ];
 
     return ( scalar(@$data), $data );
 }
