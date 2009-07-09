@@ -56,6 +56,7 @@ $(document).ready(function() {
             <!-- /TMPL_LOOP -->
             </select>
         </form>
+	<!-- TMPL_IF EXPR="branch ne '*'" --><form action="/cgi-bin/koha/admin/clone-rules.pl" method="post"><input type="hidden" name="frombranch" value="<!-- TMPL_VAR NAME="branch" -->" /><input type="submit" value="Clone these rules" /></form><!-- /TMPL_IF -->
 		<br />
 		<br />
         <form method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
