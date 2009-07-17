@@ -25,6 +25,8 @@ use Mail::Sendmail;
 use C4::Context;
 use C4::Output;
 use C4::Dates qw(format_date);
+use C4::Dates qw<format_date>;
+use C4::Letters;
 use List::MoreUtils;
 use base 'Exporter';  # parent would be better there
 our $VERSION = 3.01;
@@ -41,7 +43,6 @@ our @EXPORT  = qw<
     &SearchSuggestion
 >;
 use C4::Dates qw(format_date_in_iso);
->>>>>>> Suggestions.pm, probably useless & not working (check with hdl):C4/Suggestions.pm
 use vars qw($VERSION @ISA @EXPORT);
 
 BEGIN {
@@ -50,15 +51,15 @@ BEGIN {
 	require Exporter;
 	@ISA = qw(Exporter);
 	@EXPORT = qw(
-		&NewSuggestion
-		&SearchSuggestion
-		&GetSuggestion
-		&GetSuggestionByStatus
-		&DelSuggestion
-		&CountSuggestion
-		&ModStatus
-		&ConnectSuggestionAndBiblio
-		&GetSuggestionFromBiblionumber
+    &ConnectSuggestionAndBiblio
+    &CountSuggestion
+    &DelSuggestion
+    &GetSuggestion
+    &GetSuggestionByStatus
+    &GetSuggestionFromBiblionumber
+    &ModStatus
+    &ModSuggestion
+    &NewSuggestion
 	);
 }
 
@@ -390,37 +391,24 @@ sub ModStatus {
             UPDATE suggestions
             SET    status=?,managedby=?,biblionumber=?,reason=?
             WHERE  suggestionid=?
-        |;
-        $sth = $dbh->prepare($query);
-        $sth->execute($status,$managedby,$biblionumber,$reason,$suggestionid);
-        } else {
-            my $query = qq|
-                UPDATE suggestions
-                SET    status=?,managedby=?,reason=?
-                WHERE  suggestionid=?
-            |;
-            $sth = $dbh->prepare($query);
-            $sth->execute($status,$managedby,$reason,$suggestionid);
-        }
-   } else {
-        if ($biblionumber) {
-            my $query = qq|
-                UPDATE suggestions
-                SET    status=?,biblionumber=?,reason=?
-                WHERE  suggestionid=?
-            |;
-            $sth = $dbh->prepare($query);
-            $sth->execute($status,$biblionumber,$reason,$suggestionid);
-        }
-        else {
-            my $query = qq|
-                UPDATE suggestions
-                SET    status=?,reason=?
-                WHERE  suggestionid=?
-            |;
-            $sth = $dbh->prepare($query);
-            $sth->execute($status,$reason,$suggestionid);
-        }
+	    };
+    };
+
+	#warn $query;
+    $sth = $dbh->prepare($query);
+    my $result = $sth->execute(@values, $suggestionid);
+    # check mail sending.
+    if ($$suggestion{STATUS}){
+		my $letter=C4::Letters::getletter('suggestions',$$suggestion{STATUS});
+		if ($letter){
+        my $enqueued = C4::Letters::EnqueueLetter({
+			letter=>$letter,
+			borrowernumber=>$$suggestion{suggestedby},
+			suggestionid=>$$suggestion{suggestionid},
+			msg_transport_type=>'email'
+			});
+		if (!$enqueued){warn "can't enqueue letter $letter";}
+		}
     }
     # check mail sending.
     my $queryMail = "
