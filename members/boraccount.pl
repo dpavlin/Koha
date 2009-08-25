@@ -45,7 +45,7 @@ my ($template, $loggedinuser, $cookie)
 
 my $borrowernumber=$input->param('borrowernumber');
 #get borrower details
-my $data=GetMember($borrowernumber,'borrowernumber');
+my $data=GetMember('borrowernumber' => $borrowernumber);
 
 if ( $input->param('action') eq 'reverse' ) {
   ReversePayment( $borrowernumber, $input->param('accountno') );
