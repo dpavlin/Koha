@@ -4,6 +4,7 @@
 # script to execute issuing of books
 
 # Copyright 2000-2002 Katipo Communications
+#           2008-2009 TTLLP software.coop
 #
 # This file is part of Koha.
 #
@@ -43,6 +44,12 @@ use Date::Calc qw(
   Date_to_Days
 );
 
+BEGIN {
+	if (C4::Context->preference('RFIDEnabled')) {
+		require C4::RFID;
+		import C4::RFID qw/ReadBarcode CheckoutBarcode/;
+	}
+}
 
 #
 # PARAMETERS READING
@@ -112,6 +119,12 @@ if (C4::Context->preference("DisplayClearScreenButton")) {
 
 my $barcode        = $query->param('barcode') || '';
 $barcode =~  s/^\s*|\s*$//g; # remove leading/trailing whitespace
+
+my $rfid = 0;
+if (C4::Context->preference('RFIDEnabled') && $query->param('rfid')) {
+	$barcode = ReadBarcode(1);
+	$rfid = 1;
+}
 
 $barcode = barcodedecode($barcode) if( $barcode && C4::Context->preference('itemBarcodeInputFilter'));
 my $stickyduedate  = $query->param('stickyduedate') || $session->param('stickyduedate');
@@ -293,31 +306,48 @@ if ($barcode) {
             );
             $blocker = 1;
         }
-    if( !$blocker ){
-        my $confirm_required = 0;
-    	unless($issueconfirmed){
-            #  Get the item title for more information
-            my $getmessageiteminfo  = GetBiblioFromItemNumber(undef,$barcode);
-		    $template->param( itemhomebranch => $getmessageiteminfo->{'homebranch'} );
-
-		    # pass needsconfirmation to template if issuing is possible and user hasn't yet confirmed.
-       	    foreach my $needsconfirmation ( keys %$question ) {
-       	        $template->param(
-       	            $needsconfirmation => $$question{$needsconfirmation},
-       	            getTitleMessageIteminfo => $getmessageiteminfo->{'title'},
-       	            NEEDSCONFIRMATION  => 1
-       	        );
-       	        $confirm_required = 1;
-       	    }
-		}
-        unless($confirm_required) {
-            AddIssue( $borrower, $barcode, $datedue, $cancelreserve );
-			$inprocess = 1;
-            if($globalduedate && ! $stickyduedate && $duedatespec_allow ){
-                $duedatespec = $globalduedate->output();
-                $stickyduedate = 1;
-            }
-		}
+    
+  if ($issueconfirmed && $noerror) {
+    # we have no blockers for issuing and any issues needing confirmation have been resolved
+        AddIssue( $borrower, $barcode, $datedue, $cancelreserve );
+        $inprocess = 1;
+	if ($rfid) {
+		CheckoutBarcode();
+	}
+    }
+  elsif ($issueconfirmed){	# FIXME: Do something? Or is this to *intentionally* do nothing?
+  }
+  else {
+        my $noquestion = 1;
+#         Get the item title for more information
+    	my $getmessageiteminfo  = GetBiblioFromItemNumber(undef,$barcode);
+		if ($noerror) {
+			# only pass needsconfirmation to template if issuing is possible 
+        	foreach my $needsconfirmation ( keys %$question ) {
+        	    $template->param(
+        	        $needsconfirmation => $$question{$needsconfirmation},
+        	        getTitleMessageIteminfo => $getmessageiteminfo->{'title'},
+        	        NEEDSCONFIRMATION  => 1
+        	    );
+        	    $noquestion = 0;
+        	}
+			# Because of the weird conditional structure (empty elsif block),
+			# if we reached here, $issueconfirmed must be false.
+			# Also, since we moved inside the if ($noerror) conditional,
+			# this old chunky conditional can be simplified:
+   		    # if ( $noerror && ( $noquestion || $issueconfirmed ) ) {
+			if ($noquestion) {
+				AddIssue( $borrower, $barcode, $datedue );
+				$inprocess = 1;
+				if ($rfid) {
+					CheckoutBarcode();
+				}
+			}
+   	    }
+		$template->param(
+			 itemhomebranch => $getmessageiteminfo->{'homebranch'} ,	             
+			 duedatespec => $duedatespec,
+        );
     }
     
     # FIXME If the issue is confirmed, we launch another time GetMemberIssuesAndFines, now display the issue count after issue 
@@ -716,4 +746,6 @@ $template->param(
     dateformat                => C4::Context->preference("dateformat"),
     DHTMLcalendar_dateformat  => C4::Dates->DHTMLcalendar(),
 );
+$template->param(RFID => 1) if (C4::Context->preference('RFIDEnabled'));
+
 output_html_with_http_headers $query, $cookie, $template->output;

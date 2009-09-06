@@ -3,6 +3,7 @@
 # Copyright 2000-2002 Katipo Communications
 #           2006 SAN-OP
 #           2007 BibLibre, Paul POULAIN
+#           2008-2009 TTLLP software.coop
 #
 # This file is part of Koha.
 #
@@ -43,6 +44,12 @@ use C4::Items;
 use C4::Members;
 use C4::Branch; # GetBranches GetBranchName
 use C4::Koha;   # FIXME : is it still useful ?
+BEGIN {
+	if (C4::Context->preference('RFIDEnabled')) {
+		require C4::RFID;
+		import C4::RFID qw/ReadBarcode CheckinBarcode/;
+	}
+}
 
 my $query = new CGI;
 
@@ -163,7 +170,11 @@ my $exemptfine  = $query->param('exemptfine');
 my $dropboxmode = $query->param('dropboxmode');
 my $dotransfer  = $query->param('dotransfer');
 my $calendar    = C4::Calendar->new( branchcode => $userenv_branch );
-	#dropbox: get last open day (today - 1)
+
+if (C4::Context->preference('RFIDEnabled') && $query->param('rfid')) {
+	$barcode = ReadBarcode();
+}
+
 my $today       = C4::Dates->new();
 my $today_iso   = $today->output('iso');
 my $dropboxdate = $calendar->addDate($today, -1);
@@ -198,6 +209,9 @@ if ($barcode) {
 #
     ( $returned, $messages, $issueinformation, $borrower ) =
       AddReturn( $barcode, $userenv_branch, $exemptfine, $dropboxmode);     # do the return
+    if (C4::Context->preference('RFIDEnabled') && ($query->param('rfid')||ReadBarcode())) {
+	CheckinBarcode();
+    }
 
     # get biblio description
     my $biblio = GetBiblioFromItemNumber($itemnumber);
@@ -542,6 +556,7 @@ $template->param(
     dropboxdate	   => $dropboxdate->output(),
     overduecharges => $overduecharges,
 );
+$template->param(RFID => 1) if (C4::Context->preference('RFIDEnabled'));
 
 # actually print the page!
 output_html_with_http_headers $query, $cookie, $template->output;

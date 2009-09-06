@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright 2008-2009 TTLLP software.coop
-
+#
 # This file is part of Koha.
 #
 # Koha is free software; you can redistribute it and/or modify it under the
@@ -17,24 +17,15 @@
 # Koha; if not, write to the Free Software Foundation, Inc., 59 Temple Place,
 # Suite 330, Boston, MA  02111-1307 USA
 
+
 use strict;
-use warnings;
-
 use CGI;
-use C4::Auth;
-use C4::Output;
+use C4::Context;
+use C4::RFID qw(WriteBarcode);
 
-my $query = new CGI;
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-    {
-        template_name   => "tools/tools-home.tmpl",
-        query           => $query,
-        type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { tools => '*' },
-        debug           => 1,
-    }
-);
-$template->param(RFID => 1) if (C4::Context->preference('RFIDEnabled'));
+my $query=new CGI;
 
-output_html_with_http_headers $query, $cookie, $template->output;
+# Both of these calls are a bit unsafe and could be improved
+WriteBarcode($query->param('code'));
+print $query->redirect($query->referer());
+

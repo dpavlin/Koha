@@ -301,6 +301,7 @@ function Dopop(link) {
 			<input name="barcode" id="barcode" size="14" class="focus"/>
 			<!-- /TMPL_IF -->
             <input type="submit" class="submit" value="Submit" />
+            <!-- TMPL_IF NAME="RFID" --><input type="submit" class="submit" name="rfid" value="Scan RFID Tag" /><!-- /TMPL_IF -->
             <!-- TMPL_LOOP Name="inputloop" -->
                 <input type="hidden" name="ri-<!-- TMPL_VAR Name="counter" -->" value="<!-- TMPL_VAR Name="barcode" -->" />
                 <input type="hidden" name="dd-<!-- TMPL_VAR Name="counter" -->" value="<!-- TMPL_VAR Name="duedate" -->" />

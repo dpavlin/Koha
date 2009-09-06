@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright 2000-2002 Katipo Communications
+#           2008-2009 TTLLP software.coop
 #
 # This file is part of Koha.
 #
@@ -549,6 +550,7 @@ if (C4::Context->preference('TagsEnabled') and $tag_quantity = C4::Context->pref
 	$template->param(TagLoop => get_tags({biblionumber=>$biblionumber, approved=>1,
 								'sort'=>'-weight', limit=>$tag_quantity}));
 }
+$template->param(RFID => 1) if (C4::Context->preference('RFIDEnabled'));
 
 #Search for title in links
 if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){

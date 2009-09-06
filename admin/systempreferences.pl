@@ -183,6 +183,7 @@ $tabsysprefs{IntranetmainUserblock}   = "StaffClient";
 $tabsysprefs{viewMARC}                = "StaffClient";
 $tabsysprefs{viewLabeledMARC}         = "StaffClient";
 $tabsysprefs{viewISBD}                = "StaffClient";
+$tabsysprefs{RFIDEnabled}             = "StaffClient";
 
 # Patrons
 $tabsysprefs{autoMemberNum}                = "Patrons";

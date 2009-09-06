@@ -65,7 +65,11 @@
 
     <!-- TMPL_IF NAME="CAN_user_tools_inventory" -->
     <dt><a href="/cgi-bin/koha/tools/inventory.pl">Inventory/stocktaking</a></dt>
-    <dd>Perform inventory (stocktaking) of your catalog</dd>
+    <dd>Perform inventory (stocktaking) of your catalogue</dd>
+    <!-- TMPL_IF name="RFID" -->
+    <dt><a href="/cgi-bin/koha/tools/rfidtags.pl">RFID Bulk Tagger</a></dt>
+    <dd>Write barcodes to RFID tags quickly</dd>
+    <!-- /TMPL_IF -->
     <!-- /TMPL_IF -->
 	
 	</dl>

@@ -5,6 +5,7 @@
 # This script checks for required updates to the database.
 
 # Part of the Koha Library Software www.koha.org
+# Copyright 2008-2009 TTLLP software.coop
 # Licensed under the GPL.
 
 # Bugs/ToDo:
@@ -2642,6 +2643,13 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("ALTER TABLE `language_descriptions` ADD `id` INT( 11 ) NOT NULL AUTO_INCREMENT PRIMARY KEY;");
     SetVersion ($DBversion);
     print "Upgrade to $DBversion done (Added primary keys to language tables)\n";
+}
+
+$DBversion = 'XXX';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('RFIDEnabled','','If set, use that type of RFID::Reader on all circulation or cataloguing staff clients','|TRF7960-SSL','Choice');");
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (Add RFIDEnabled syspref)\n";
 }
 
 =item DropAllForeignKeys($table)

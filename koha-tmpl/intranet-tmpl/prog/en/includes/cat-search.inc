@@ -75,6 +75,7 @@ YAHOO.util.Event.onContentReady("header_search", function() {
     <form method="post" action="/cgi-bin/koha/circ/returns.pl">
         <input name="barcode" id="ret_barcode" size="40" />
         <input value="Submit" class="submit" type="submit" />
+        <!-- TMPL_IF NAME="RFID" --><input value="Scan RFID Tag" name="rfid" class="submit" type="submit" /><!-- /TMPL_IF -->
     </form>
 </div>
 	<!-- /TMPL_IF -->

@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright 2000-2003 Katipo Communications
+#           2008-2009 TTLLP software.coop
 #
 # This file is part of Koha.
 #
@@ -131,6 +132,7 @@ $template->param(biblioitemnumber => $bi);
 $template->param(itemnumber => $itemnumber);
 $template->param(ONLY_ONE => 1) if ( $itemnumber && $count != @items );
 $template->param(z3950_search_params => C4::Search::z3950_search_args(GetBiblioData($biblionumber)));
+$template->param(RFID => 1) if (C4::Context->preference('RFIDEnabled'));
 
 output_html_with_http_headers $query, $cookie, $template->output;
 

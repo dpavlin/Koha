@@ -346,6 +346,7 @@ No patron matched <span class="ex"><!-- TMPL_VAR name="message" --></span>
 	<div class="hint">Enter item barcode:</div>
 
 	<input type="text" name="barcode" id="barcode" class="barcode focus" size="14" /> <input type="submit" value="Check Out" />
+    <!-- TMPL_IF NAME="RFID" --><input type="submit" name="rfid" value="Check Out RFID Tag" /><!-- /TMPL_IF -->
 
     <!-- TMPL_IF NAME="SpecifyDueDate" --><div class="date-select">
         <div class="hint">Specify Due Date:</div>
