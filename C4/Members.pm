@@ -673,6 +673,9 @@ sub AddMember {
     my $dbh = C4::Context->dbh;
     $data{'userid'} = '' unless $data{'password'};
     $data{'password'} = md5_base64( $data{'password'} ) if $data{'password'};
+    if (!$data{'dateofbirth'}){
+        undef ($data{'dateofbirth'});
+    }
 	$data{'borrowernumber'}=InsertInTable("borrowers",\%data);	
     # mysql_insertid is probably bad.  not necessarily accurate and mysql-specific at best.
     logaction("MEMBERS", "CREATE", $data{'borrowernumber'}, "") if C4::Context->preference("BorrowersLog");
