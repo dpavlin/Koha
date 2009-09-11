@@ -2612,6 +2612,24 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("ALTER TABLE deletedborrowers ADD `altcontactcountry` text AFTER altcontactzipcode");
     SetVersion ($DBversion);
     print "Upgrade to $DBversion done (bug 1600, bug 3454: add altcontactcountry and B_address2 to borrowers and deletedborrowers)\n";
+
+$DBversion = "3.01.00.055";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("INSERT INTO permissions (module_bit, code, description) VALUES ( 13, 'batchmod', 'Perform batch modification of items')");
+    $dbh->do("INSERT INTO permissions (module_bit, code, description) VALUES ( 13, 'batchdel', 'Perform batch deletion of items')");
+    print "Upgrade to $DBversion done (added permissions for batch modification and deletion)\n";
+    $dbh->do("INSERT INTO permissions (module_bit, code, description) VALUES ( 13, 'manage_csv_profiles', 'Manage CSV export profiles')");
+    $dbh->do(q/
+	CREATE TABLE `export_format` (
+	  `export_format_id` int(11) NOT NULL auto_increment,
+	  `profile` varchar(255) NOT NULL,
+	  `description` mediumtext NOT NULL,
+	  `marcfields` mediumtext NOT NULL,
+	  PRIMARY KEY  (`export_format_id`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Used for CSV export';
+       /);
+    SetVersion ($DBversion);
+    print "Upgrade to $DBversion done (added csv export profiles)\n";
 }
 
 =item DropAllForeignKeys($table)
