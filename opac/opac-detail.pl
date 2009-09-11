@@ -36,7 +36,6 @@ use C4::XISBN qw(get_xisbns get_biblionumber_from_isbn);
 use C4::External::Amazon;
 use C4::External::Syndetics qw(get_syndetics_index get_syndetics_summary get_syndetics_toc get_syndetics_excerpt get_syndetics_reviews get_syndetics_anotes );
 use C4::Review;
-use C4::Serials;
 use C4::Members;
 use C4::VirtualShelves;
 use C4::XSLT;
@@ -105,7 +104,7 @@ my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
 my @subscriptions       = GetSubscriptions( $dat->{title}, $dat->{issn}, $biblionumber );
 
 my @subs;
-$dat->{'serial'}=1 if $subscriptionsnumber;
+$dat->{'serials'}=1 if $subscriptionsnumber;
 foreach my $subscription (@subscriptions) {
     my $serials_to_display;
     my %cell;
