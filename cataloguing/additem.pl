@@ -254,7 +254,7 @@ if ($op eq "additem") {
         my $items = &GetItemsByBiblioitemnumber($biblioitem->{biblioitemnumber});
 
         foreach my $item (@$items){
-            &DelItem($dbh,$biblionumber,$item->{itemnumber});
+            &DelItemCheck($dbh,$biblionumber,$item->{itemnumber});
         }
 	}
 #-------------------------------------------------------------------------------
