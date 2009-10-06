@@ -2,8 +2,6 @@
 
 # script to administer the systempref table
 # written 20/02/2002 by paul.poulain@free.fr
-# This software is placed under the gnu General Public License, v2 (http://www.gnu.org/licenses/gpl.html)
-
 #
 # This file is part of Koha.
 #
@@ -180,6 +178,9 @@ $tabsysprefs{AllowAllMessageDeletion}        = "Circulation";
 $tabsysprefs{OverdueNoticeBcc}               = "Circulation";
 $tabsysprefs{OverduesBlockCirc}              = "Circulation";
 
+$tabsysprefs{HoldButtonConfirm}              = "Circulation";
+$tabsysprefs{HoldButtonPrintConfirm}         = "Circulation";
+$tabsysprefs{HoldButtonIgnore}               = "Circulation";
 
 # Staff Client
 $tabsysprefs{TemplateEncoding}        = "StaffClient";

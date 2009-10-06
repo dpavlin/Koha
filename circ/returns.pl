@@ -75,6 +75,9 @@ my $printers = GetPrinters();
 
 my $printer = C4::Context->userenv ? C4::Context->userenv->{'branchprinter'} : "";
 my $overduecharges = (C4::Context->preference('finesMode') && C4::Context->preference('finesMode') ne 'off');
+my $HoldButtonConfirm = (C4::Context->preference('HoldButtonConfirm'));
+my $HoldButtonIgnore = (C4::Context->preference('HoldButtonIgnore'));
+my $HoldButtonPrintConfirm = (C4::Context->preference('HoldButtonPrintConfirm'));
 
 my $userenv_branch = C4::Context->userenv->{'branch'} || '';
 #
@@ -552,6 +555,9 @@ $template->param(
     dropboxdate    => $dropboxdate->output(),
     overduecharges => $overduecharges,
     soundon        => C4::Context->preference("SoundOn"),
+    HoldButtonConfirm => $HoldButtonConfirm,
+    HoldButtonIgnore => $HoldButtonIgnore,
+    HoldButtonPrintConfirm => $HoldButtonPrintConfirm,
 );
 
 my $itemnumber = GetItemnumberFromBarcode( $query->param('barcode') );
