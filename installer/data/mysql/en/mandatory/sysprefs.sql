@@ -287,3 +287,5 @@ INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('ILS-DI:Authorized_IPs','','.','Restricts usage of ILS-DI to some IPs','Free');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('OverduesBlockCirc','noblock','When checking out an item should overdues block checkout, generate a confirmation dialogue, or allow checkout','noblock|confirmation|block','Choice');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('DisplayMultiPlaceHold','1','Display the ability to place multiple holds or not','','YesNo');
+INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('opacbookbagName','Cart','Allows libraries to define a different name for the OPAC Cart feature, such as Bookbag or Personal Shelf. If no name is defined, it will default to Cart.','70|10','Textarea');
+

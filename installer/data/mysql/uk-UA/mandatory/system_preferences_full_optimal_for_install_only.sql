@@ -319,3 +319,6 @@ INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES (
 INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('OPACviewMARC','1','Allow display of MARC view of bibiographic records in OPAC','','YesNo');
 -- from 3.00.06.005
 
+INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES('AllowNotForLoanOverride', '0', 'if ON, enables the librarian to choose when they want to check out a notForLoan regular item',NULL,'YesNo');
+INSERT INTO systempreferences (variable,value,options,explanation,type)VALUES('DisplayOPACiconsXSLT', '1', '', 'If ON, displays the format, audience, type icons in XSLT MARC21 results and display pages.', 'YesNo');
+INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('opacbookbagName','Cart','Allows libraries to define a different name for the OPAC Cart feature, such as Bookbag or Personal Shelf. If no name is defined, it will default to Cart.','70|10','Textarea');
