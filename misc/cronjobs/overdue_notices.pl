@@ -317,7 +317,9 @@ if (@branchcodes) {
 }
 
 # these are the fields that will be substituted into <<item.content>>
-my @item_content_fields = split( /,/, $itemscontent );
+$itemscontent=~s/^\s*//;
+$itemscontent=~s/\s*$//;
+my @item_content_fields = split( /\s*,\s*/, $itemscontent );
 
 binmode( STDOUT, ":utf8" );
 
