@@ -30,6 +30,7 @@ use C4::Log;
 use C4::SMS;
 use C4::Debug;
 use Date::Calc qw( Add_Delta_Days );
+use C4::Dates qw/format_date/;
 use Encode;
 use Carp;
 
@@ -481,12 +482,16 @@ sub parseletter_sth {
         carp "ERROR: parseletter_sth() called without argument (table)";
         return;
     }
-    # check cache first
+    my $itemselect =
+    'SELECT barcode, itemcallnumber, location, holdingbranch, date_due, issuedate, author, title from items '
+    . 'left join issues on issues.itemnumber = items.itemnumber '
+    . 'LEFT JOIN biblio on items.biblionumber = biblio.biblionumber '
+    . 'WHERE items.itemnumber = ? ';
     (defined $handles{$table}) and return $handles{$table};
     my $query = 
     ($table eq 'biblio'       ) ? "SELECT * FROM $table WHERE   biblionumber = ?"                      :
     ($table eq 'biblioitems'  ) ? "SELECT * FROM $table WHERE   biblionumber = ?"                      :
-    ($table eq 'items'        ) ? "SELECT * FROM $table WHERE     itemnumber = ?"                      :
+    ($table eq 'items'        ) ? $itemselect                                                          :
     ($table eq 'suggestions'  ) ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?" :
     ($table eq 'reserves'     ) ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?" :
     ($table eq 'borrowers'    ) ? "SELECT * FROM $table WHERE borrowernumber = ?"                      :
@@ -538,16 +543,29 @@ sub parseletter {
 
 
     # and get all fields from the table
-    my $columns = C4::Context->dbh->prepare("SHOW COLUMNS FROM $table");
-    $columns->execute;
-    while ( ( my $field ) = $columns->fetchrow_array ) {
-        my $replacefield = "<<$table.$field>>";
-        $values->{$field} =~ s/\p{P}(?=$)//g if $values->{$field};
-        my $replacedby   = $values->{$field} || '';
-        ($letter->{title}  ) and $letter->{title}   =~ s/$replacefield/$replacedby/g;
-        ($letter->{content}) and $letter->{content} =~ s/$replacefield/$replacedby/g;
+    if ($table ne 'items' ) {
+        my $columns = C4::Context->dbh->prepare("SHOW COLUMNS FROM $table");
+        $columns->execute;
+        while ( ( my $field ) = $columns->fetchrow_array ) {
+            my $replacefield = "<<$table.$field>>";
+            my $replacedby   = $values->{$field} || '';
+            ($letter->{title}  ) and $letter->{title}   =~ s/$replacefield/$replacedby/g;
+            ($letter->{content}) and $letter->{content} =~ s/$replacefield/$replacedby/g;
+        }
     }
-    return $letter;
+    if ($table eq 'items') {
+        $values->{issuedate} = format_date($values->{issuedate});
+        $values->{date_due}  = format_date($values->{date_due});
+        $values->{content} = join "\t", $values->{issuedate}, $values->{title}, $values->{barcode}, $values->{author};
+        for my $field ( qw( issuedate date_due barcode holdingbranch location itemcallnumber content)) {
+            my $replacefield = "<<$table.$field>>";
+            my $replacedby   = $values->{$field} || '';
+            ($letter->{title}  ) and $letter->{title}   =~ s/$replacefield/$replacedby/g;
+            ($letter->{content}) and $letter->{content} =~ s/$replacefield/$replacedby/g;
+        }
+    }
+
+    return($letter);
 }
 
 =head2 EnqueueLetter
