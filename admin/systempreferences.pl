@@ -4,7 +4,6 @@
 # written 20/02/2002 by paul.poulain@free.fr
 # This software is placed under the gnu General Public License, v2 (http://www.gnu.org/licenses/gpl.html)
 
-# Copyright 2000-2002 Katipo Communications
 #
 # This file is part of Koha.
 #
@@ -243,6 +242,7 @@ $tabsysprefs{QueryAutoTruncate}       = "Searching";
 $tabsysprefs{QueryRemoveStopwords}    = "Searching";
 $tabsysprefs{AdvancedSearchTypes}     = "Searching";
 $tabsysprefs{DisplayMultiPlaceHold}   = "Searching";
+$tabsysprefs{OPACAdvancedSearchTypes} = "Searching";
 
 # EnhancedContent
 $tabsysprefs{AmazonEnabled}          = "EnhancedContent";
