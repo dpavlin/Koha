@@ -7,6 +7,7 @@
         <input type="hidden" name="op" value="do_search" />
         <input type="hidden" name="type" value="intranet" />
         <select name="authtypecode">
+        	<option value="">All Authority Types</option>
         <!-- TMPL_LOOP NAME="authtypesloop" -->
             <!-- TMPL_IF name="selected" -->
             <option value="<!-- TMPL_VAR NAME="value" -->" selected="selected"><!-- TMPL_VAR NAME="authtypetext" --></option>
