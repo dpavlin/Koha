@@ -393,7 +393,46 @@ sub ModSuggestion {
         if (!$enqueued){warn "can't enqueue letter $letter";}
         }
     }
-    return $status_update_table;
+    # check mail sending.
+    my $queryMail = "
+        SELECT suggestions.*,
+            boby.surname AS bysurname,
+            boby.firstname AS byfirstname,
+            boby.email AS byemail,
+            lib.surname AS libsurname,
+            lib.firstname AS libfirstname,
+            lib.email AS libemail
+        FROM suggestions
+            LEFT JOIN borrowers AS boby ON boby.borrowernumber=suggestedby
+            LEFT JOIN borrowers AS lib ON lib.borrowernumber=managedby
+        WHERE suggestionid=?
+    ";
+    $sth = $dbh->prepare($queryMail);
+    $sth->execute($suggestionid);
+    my $emailinfo = $sth->fetchrow_hashref;
+    my $template = gettemplate("suggestion/mail_suggestion_$status.tmpl", "intranet", CGI->new());
+
+    $template->param(
+        byemail => $emailinfo->{byemail},
+        libemail => $emailinfo->{libemail},
+        status => $emailinfo->{status},
+        title => $emailinfo->{title},
+        author =>$emailinfo->{author},
+        libsurname => $emailinfo->{libsurname},
+        libfirstname => $emailinfo->{libfirstname},
+        byfirstname => $emailinfo->{byfirstname},
+        bysurname => $emailinfo->{bysurname},
+        reason => $emailinfo->{reason},
+	LibraryName => C4::Context->preference("LibraryName")
+    );
+    my %mail = (
+        To => $emailinfo->{byemail},
+        From => $emailinfo->{libemail},
+        Subject => 'Koha suggestion',
+        Message => "".$template->output,
+        'Content-Type' => 'text/plain; charset="utf8"',
+    );
+    sendmail(%mail);
 }
 
 =head2 ConnectSuggestionAndBiblio
@@ -453,7 +492,7 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <info@koha.org>
+Koha Development Team <info@koha-community.org>
 
 =cut
 
