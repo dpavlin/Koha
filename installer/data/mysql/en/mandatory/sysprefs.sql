@@ -288,4 +288,6 @@ INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('OverduesBlockCirc','noblock','When checking out an item should overdues block checkout, generate a confirmation dialogue, or allow checkout','noblock|confirmation|block','Choice');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('DisplayMultiPlaceHold','1','Display the ability to place multiple holds or not','','YesNo');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('opacbookbagName','Cart','Allows libraries to define a different name for the OPAC Cart feature, such as Bookbag or Personal Shelf. If no name is defined, it will default to Cart.','70|10','Textarea');
+INSERT INTO systempreferences (variable,value,options,explanation,type)VALUES('PatronDisplayReturn', '1', '', 'If ON, allows items to be returned in the patron details display checkout list.', 'YesNo');
+
 
