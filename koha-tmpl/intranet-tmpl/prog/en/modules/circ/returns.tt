@@ -80,7 +80,7 @@ function Dopop(link) {
 </div>
 [% END %]
 <!-- case of a mistake in transfer loop -->
-[% IF ( WrongTransfer ) %]<div class="dialog message"><!-- WrongTransfer --><h3>Please return <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=[% itembiblionumber %]">[% title |html %]</a> to [% TransferWaitingAt %] or <a href="/cgi-bin/koha/circ/returns.pl?itemnumber=[% itemnumber %]&amp;canceltransfer=1">Cancel Transfer</a></h3>
+[% IF ( WrongTransfer ) %]<div class="dialog message"><!-- WrongTransfer --><h3>Please return <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=[% itembiblionumber %]">[% title |html %]</a> to [% TransferWaitingAt %]</h3>
 [% IF ( wborcnum ) %]<h5>Hold for:</h5>
         <ul><li><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber %]">
             [% borsurname %], [% borfirstname %]</a> ([% borcnum %])</li>
@@ -396,7 +396,7 @@ function Dopop(link) {
 [% IF ( riloop ) %]
     <h2>Checked-In items</h2>
     <table>
-	<tr><th>Due Date</th><th>Title</th>	<th>Author</th>	<th>Barcode</th><th>Shelving Location</th><th>Call Number</th><th>Type</th>	<th>Patron</th><th>Note</th></tr>
+	<tr><th>Due Date</th><th>Title</th>	<th>Author</th>	<th>Barcode</th><th>Call Number</th><th>Type</th>	<th>Patron</th><th>Note</th></tr>
 
         [% FOREACH riloo IN riloop %]
             <tr>
@@ -412,11 +412,10 @@ function Dopop(link) {
                     [% riloo.itemtitle |html %]</a></td>
 			<td>[% riloo.itemauthor %]</td>
             <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% riloo.itembiblionumber %]&amp;itemnumber=[% riloo.itemnumber %]#item[% riloo.itemnumber %]">[% riloo.barcode %]</a></td>
-            <td>[% riloo.location %]</td>
             <td>[% riloo.itemcallnumber %]</td>
             <td>[% riloo.itemtype %] [% riloo.ccode %]</td>
 			<td>[% IF ( riloo.duedate ) %]
-                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% riloo.borrowernumber %]">
+                <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% riloo.borrowernumber %]">
                     [% riloo.borsurname %], [% riloo.borfirstname %] ([% riloo.borcategorycode %])
                 </a>
             [% ELSE %]Not checked out[% END %]</td>

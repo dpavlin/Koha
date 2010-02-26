@@ -284,6 +284,7 @@ CREATE TABLE `borrower_attribute_types` (
   `password_allowed` tinyint(1) NOT NULL default 0,
   `staff_searchable` tinyint(1) NOT NULL default 0,
   `authorised_value_category` varchar(10) default NULL,
+  `display_checkout` tinyint(1) NOT NULL default 0,
   PRIMARY KEY  (`code`),
   KEY `auth_val_cat_idx` (`authorised_value_category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

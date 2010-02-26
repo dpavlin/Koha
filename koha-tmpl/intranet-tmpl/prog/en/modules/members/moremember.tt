@@ -179,7 +179,7 @@ function validate1(date) {
 
      [% UNLESS ( I ) %][% IF ( othernames ) %]&ldquo;[% othernames %]&rdquo;[% END %]
 
-<p class="address">[% streetnumber %]
+<p class="address">
         [% IF ( roaddetails ) %]
          [% roaddetails %],
         [% END %]
@@ -212,9 +212,7 @@ function validate1(date) {
     [% END %]
     <li><span class="label">Initials: </span>[% initials %]</li>
     <li><span class="label">Date of birth:</span>[% dateofbirth %]</li>
-    <li><span class="label">Gender:</span>
-    [% IF ( sex == 'F' ) %]Female[% ELSIF ( sex == 'M' ) %]Male[% ELSE %][% sex %][% END %]
-    </li>[% END %]
+    <li><span class="label">Sex:</span>[% sex %]</li>[% END %]
     [% IF ( printethnicityline ) %]
     <li><span class="label">Ethnicity:</span>[% ethnicity %]</li>
     <li><span class="label">Ethnicity notes: </span>[% ethnotes %]</li>
@@ -341,8 +339,8 @@ function validate1(date) {
     </li>[% END %]
     [% IF ( sort1 ) %]<li><span class="label">Sort field 1:</span>[% lib1 %]</li>[% END %]
     [% IF ( sort2 ) %]<li><span class="label">Sort field 2:</span>[% lib2 %]</li>[% END %]
-    <li><span class="label">Username: </span>[% userid %]</li>
-    <li><span class="label">Password: </span>
+    <li><span class="label">OPAC login: </span>[% userid %]</li>
+    <li><span class="label">OPAC password: </span>
     [% IF ( password ) %]
         *******
     [% ELSE %]
@@ -399,7 +397,7 @@ function validate1(date) {
 	<ul>
 		<li><a href="/cgi-bin/koha/members/moremember.pl#checkedout">[% issuecount %] Checkout(s)</a></li>
     [% IF ( relissuecount ) %]
-        <li><a href="/cgi-bin/koha/members/moremember.pl#relissues">Relatives' Checkouts</a></li>
+        <li><a href="/cgi-bin/koha/members/moremember.pl#relissues">Relatives issues</a></li>
     [% END %]
 		<li><a href="/cgi-bin/koha/members/moremember.pl#finesandcharges">Fines &amp; Charges</a></li>
 		<li>[% IF ( countreserv ) %]
@@ -495,13 +493,9 @@ function validate1(date) {
       [% IF ( issueloo.return_failed ) %]
             <td class="problem">Checkin Failed</td>
       [% ELSE %]
-        [% IF ( issueloo.norenew_reason_on_reserve ) %]
-            <td><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% issueloo.biblionumber %]">On Hold</a></td>
-        [% ELSE %]
             <td><input type="checkbox" name="barcodes[]"  value="[% issueloo.barcode %]" onclick="uncheck_sibling(this);" />
                 <input type="checkbox" name="all_barcodes[]" value="[% issueloo.barcode %]" checked="checked" style="display: none;" />
             </td>
-        [% END %]
       [% END %]
         </tr>
   [% END %]
@@ -524,17 +518,21 @@ function validate1(date) {
 
 [% IF ( relissuecount ) %]
 <div id="relissues">
+	<h2>Relatives issues</h2>
  <table id="relissuest">
     <thead>
 	<tr>
             <th scope="col">Due date</th>
             <th scope="col">Title</th>
+            <th scope="col">Collection</th>
+            <th scope="col">Stock number</th>
+            <th scope="col">Barcode</th>
             <th scope="col">Item Type</th>
             <th scope="col">Checked out on</th> 
-            <th scope="col">Call no</th>
+            <th scope="col">Borrower</th>
+	    <th scope="col">Call no</th>
             <th scope="col">Charge</th>
             <th scope="col">Price</th>
-            <th scope="col">Patron</th>
         </tr>
     </thead>
        <tbody>
@@ -553,13 +551,16 @@ function validate1(date) {
                                         <span class="dmg">[% relissueloo.itemdamaged %]</span>
                 [% END %]
 </td>
-            <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% relissueloo.biblionumber %]"><strong>[% relissueloo.title |html %]</strong></a>[% IF relissueloo.author %], by [% relissueloo.author %][% END %] [% IF relissueloo.publishercode %]; [% relissueloo.publishercode %] [% END %] [% IF relissueloo.publicationyear %], [% relissueloo.publicationyear %][% END %] <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% relissueloo.biblionumber %]&amp;itemnumber=[% relissueloo.itemnumber %]#item[% relissueloo.itemnumber %]">[% relissueloo.barcode %]</a></td>
+            <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% relissueloo.biblionumber %]"><strong>[% relissueloo.title |html %]</strong></a>[% IF ( relissueloo.author ) %], by [% relissueloo.author %][% END %] [% IF ( relissueloo.publishercode ) %]; [% relissueloo.publishercode %] [% END %] [% IF ( relissueloo.publicationyear ) %], [% relissueloo.publicationyear %][% END %]</td>
+            <td>[% relissueloo.collection %]</td>
+            <td>[% relissueloo.stocknumber %]</td>
+            <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% relissueloo.biblionumber %]&amp;itemnumber=[% relissueloo.itemnumber %]#item[% relissueloo.itemnumber %]">[% relissueloo.barcode %]</a></td>
 <td>[% UNLESS ( noItemTypeImages ) %] [% IF ( relissueloo.itemtype_image ) %]<img src="[% relissueloo.itemtype_image %]" alt="" />[% END %][% END %][% relissueloo.itemtype_description %]</td>
             <td>[% relissueloo.issuedate %]</td>
-        <td>[% relissueloo.itemcallnumber %]</td>
-        <td>[% relissueloo.charge %]</td>
-        <td>[% relissueloo.replacementprice %]</td>
-	    <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% relissueloo.borrowernumber %]">[% relissueloo.borrowername %] ([% relissueloo.cardnumber %])</a></td>
+	    <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% relissueloo.borrowernumber %]">[% relissueloo.borrowername %]</a></td>
+	    <td>[% relissueloo.itemcallnumber %]</td>
+            <td>[% relissueloo.charge %]</td>
+            <td>[% relissueloo.replacementprice %]</td>
         </tr>
   [% END %]
         </tbody>
@@ -609,15 +610,18 @@ function validate1(date) {
                     <option value="del">Yes</option>
                 </select>
                 <input type="hidden" name="biblionumber" value="[% reservloo.biblionumber %]" />
-                <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
+                <input type="hidden" name="borrowernumber" value="[% reservloo.borrowernumber %]" />
             </td>
         </tr>
 		[% END %]</tbody>
     </table>
 
-        <fieldset class="action"><input type="submit" class="cancel" name="submit" value="Cancel Marked Requests" /></fieldset>
-    </form>
-    [% ELSE %]<p>Patron has nothing on hold.</p>[% END %]
+        <fieldset class="action">
+        <input type="submit" name="renew_checked" value="Renew or Return checked items" />
+        <input type="submit" id="renew_all" name="renew_all" value="Renew all" />
+        </fieldset>
+    [% ELSE %]<p>Patron has nothing checked out.</p>[% END %]
+</form>
 	</div>
 
 </div>

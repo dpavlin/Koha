@@ -4,6 +4,19 @@
 <style type="tex/css">img { width: expression(this.width > 140 ? 140: true);
 }</style>
 <![endif]-->
+<script type="text/javascript">
+$(document).ready(function()
+{
+  //hide the all of the element with class msg_body
+  $("#collapsedaddress").hide();
+  //toggle the componenet with class msg_body
+  $("#toggleaddress").click(function()
+  {
+    $("#collapsedaddress").slideToggle("normal");
+    $("#toggleaddress").toggleClass("toggleaddress2");
+  });
+});
+</script>
 <ul>
 [% IF ( patronimages ) %]
 [% IF ( picture ) %]
@@ -12,45 +25,64 @@
 <li><img src="/intranet-tmpl/prog/img/patron-blank.png" alt="[% firstname %] [% surname %] ([% cardnumber %])" border="0" style="margin: .3em 0 .3em .3em; padding: .2em; border: 1px solid #CCCCCC;" /></li>
 [% END %]
 [% END %]
-    <li>[% IF ( address ) %]
-            [% address %]
-    [% ELSE %]
-            <span class="empty">No address stored.</span>
-    [% END %]</li>
-    [% IF ( address2 ) %]
-        <li>[% address2 %]</li>
-    [% END %]<li> 
-    [% IF ( city ) %]
-            [% city %][% IF ( state ) %], [% state %][% END %]
-	    [% zipcode %][% IF ( country ) %], [% country %][% END %]
-    [% ELSE %]
-        <span class="empty">No city stored.</span>
-    [% END %]</li>
-    <li>[% IF ( phone ) %]
-        [% phone %]
-    [% ELSE %]
-        [% IF ( mobile ) %]
-            [% mobile %]
-        [% ELSE %]
-            [% IF ( phonepro ) %]
-                [% phonepro %]
-            [% ELSE %]
-                <span class="empty">No phone stored.</span>    
-            [% END %]
-        [% END %]
-    [% END %]</li>
-    [% IF ( email ) %]
-        <li class="email"> <a href="mailto:[% email %]" title="[% email %]">[% email %]</a></li>
-    [% ELSE %]
-        [% IF ( emailpro ) %]
-            <li class="email"> <a href="mailto:[% emailpro %]" title="[% emailpro %]">[% emailpro %]</a></li>
-        [% ELSE %]
-            <li> <span class="empty">No email stored.</span>    </li>
-        [% END %]
+    <li>[% categoryname %] ([% categorycode %])</li>
+    <li>[% IF ( branchname ) %][% branchname %][% ELSE %][% branch %][% END %]</li>
+    [% FOREACH extendedattribute IN extendedattributes %]
+    	[% IF ( extendedattribute.display_checkout ) %]
+    		[% IF ( extendedattribute.value ) %]
+    			[% extendedattribute.description %] : [% IF ( extendedattribute.value_description ) %][% extendedattribute.value_description %][% ELSE %][% extendedattribute.value %][% END %]
+    		[% END %]
+    	[% END %]
     [% END %]
-    <li>Category: [% categoryname %] ([% categorycode %])</li>
-    <li>Home Library: [% IF ( branchname ) %][% branchname %][% ELSE %][% branch %][% END %]</li>
-</ul></div>
+    <li>
+		<div id="collapsedaddress">
+			<p>
+		    [% IF ( address ) %]
+		            [% address %]
+		    [% ELSE %]
+		            <span class="empty">No address stored.</span>
+		    [% END %]
+		    [% IF ( address2 ) %]
+		        [% address2 %]
+		    [% END %]
+		    [% IF ( city ) %]
+		            [% city %]
+			    [% zipcode %]
+			    [% IF ( country ) %], [% country %][% END %]
+		    [% ELSE %]
+		        <span class="empty">No city stored.</span>
+		    [% END %]
+		    </p>
+		    <p>
+		    [% IF ( phone ) %]
+		        [% phone %]
+		    [% ELSE %]
+		        [% IF ( mobile ) %]
+		            [% mobile %]
+		        [% ELSE %]
+		            [% IF ( phonepro ) %]
+		                [% phonepro %]
+		            [% ELSE %]
+		                <span class="empty">No phone stored.</span>    
+		            [% END %]
+		        [% END %]
+		    [% END %]
+		    </p><p>
+		    [% IF ( email ) %]
+		        <a href="mailto:[% email %]" title="[% email %]">[% email %]</a>
+		    [% ELSE %]
+		        [% IF ( emailpro ) %]
+		            <a href="mailto:[% emailpro %]" title="[% emailpro %]">[% emailpro %]</a>
+		        [% ELSE %]
+		            <span class="empty">No email stored.</span>
+		        [% END %]
+		    [% END %]
+		    </p>
+		</div>
+		<a id="toggleaddress" class="toggleaddress">View/Hide address</a>
+    </li>
+</ul>
+</div>
 <div id="menu">
 <ul>
 	[% IF ( circview ) %]<li class="active">[% ELSE %]<li>[% END %]<a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% borrowernumber %]">Check Out</a></li>

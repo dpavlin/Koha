@@ -1924,6 +1924,38 @@ ul.budget_hierarchy li:last-child:after {
 ul.budget_hierarchy li:first-child:after {
     content: "";
 }
+#cartmenulink img {
+	background-image : none;
+	display : inline;
+	padding : 3px 6px 0 0;
+}
+
+* html #cartmenulink {
+	border : 1px solid #336600;
+}
+
+* html #listsmenulink {
+	border : 1px solid #006699;
+}
+
+#collapsedaddress {
+    border: solid 1px #eee;
+    margin-right: 10px;
+    overflow: hidden;
+}
+#toggleaddress {
+    display: block;
+    padding: 2px 2px 2px 12px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+.toggleaddress {
+    background: #eee url(../../img/more-right-arrow.gif) 0 50% no-repeat;
+}
+.toggleaddress2 {
+    background: #eee url(../../img/more-up-arrow.gif) 0 50% no-repeat;
+}
+
 .holdcount { font-size : 105%; line-height : 200%; }
 .holdcount a { border : 1px solid #a4bedd; background-color : #e4ecf5; font-weight : bold; -moz-border-radius: 4px; padding : .1em .4em; text-decoration : none; }
 .holdcount a:hover { background-color : #ebeff7; }
@@ -2020,3 +2052,4 @@ fieldset.rows+h3 {clear:both;padding-top:.5em;}
 	padding : 0.3em 0.4em;
 }
 </style>
+

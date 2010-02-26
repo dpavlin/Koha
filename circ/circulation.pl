@@ -220,8 +220,8 @@ if ($borrowernumber) {
 
     # Warningdate is the date that the warning starts appearing
     my (  $today_year,   $today_month,   $today_day) = Today();
-    my ($warning_year, $warning_month, $warning_day) = split /-/, $borrower->{'dateexpiry'};
-    my (  $enrol_year,   $enrol_month,   $enrol_day) = split /-/, $borrower->{'dateenrolled'};
+    my ($warning_year, $warning_month, $warning_day) = split (/-/, $borrower->{'dateexpiry'});
+    my (  $enrol_year,   $enrol_month,   $enrol_day) = split (/-/, $borrower->{'dateenrolled'});
     # Renew day is calculated by adding the enrolment period to today
     my (  $renew_year,   $renew_month,   $renew_day);
     if ($enrol_year*$enrol_month*$enrol_day>0) {
@@ -622,10 +622,6 @@ if($lib_messages_loop){ $template->param(flagged => 1 ); }
 my $bor_messages_loop = GetMessages( $borrowernumber, 'B', $branch );
 if($bor_messages_loop){ $template->param(flagged => 1 ); }
 
-# Computes full borrower address
-my (undef, $roadttype_hashref) = &GetRoadTypes();
-my $address = $borrower->{'streetnumber'}.' '.$roadttype_hashref->{$borrower->{'streettype'}}.' '.$borrower->{'address'};
-
 my $fast_cataloging = 0;
     if (defined getframeworkinfo('FA')) {
     $fast_cataloging = 1 
@@ -646,9 +642,7 @@ $template->param(
     surname           => $borrower->{'surname'},
     dateexpiry        => format_date($newexpiry),
     expiry            => format_date($borrower->{'dateexpiry'}),
-    categorycode      => $borrower->{'categorycode'},
     categoryname      => $borrower->{description},
-    address           => $address,
     address2          => $borrower->{'address2'},
     email             => $borrower->{'email'},
     emailpro          => $borrower->{'emailpro'},
@@ -658,7 +652,6 @@ $template->param(
     zipcode           => $borrower->{'zipcode'},
     country           => $borrower->{'country'},
     phone             => $borrower->{'phone'} || $borrower->{'mobile'},
-    cardnumber        => $borrower->{'cardnumber'},
     amountold         => $amountold,
     barcode           => $barcode,
     stickyduedate     => $stickyduedate,
@@ -680,6 +673,8 @@ $template->param(
     soundon           => C4::Context->preference("SoundOn"),
     fast_cataloging   => $fast_cataloging,
 );
+
+SetMemberInfosInTemplate($borrowernumber, $template);
 
 # save stickyduedate to session
 if ($stickyduedate) {
