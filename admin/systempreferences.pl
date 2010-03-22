@@ -336,6 +336,7 @@ $tabsysprefs{DisplayOPACiconsXSLT}	 = "OPAC";
 $tabsysprefs{AutoSelfCheckAllowed}	 = "OPAC";
 $tabsysprefs{AutoSelfCheckID}		 = "OPAC";
 $tabsysprefs{AutoSelfCheckPass}		 = "OPAC";
+$tabsysprefs{opacmsgtab}	 = "OPAC";
 
 # OPAC
 $tabsysprefs{SearchMyLibraryFirst} = "OPAC";
