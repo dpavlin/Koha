@@ -1039,7 +1039,7 @@ sub CancelReserve {
         $sth->execute( $biblio, $borr );
 
         # get reserve information to place into old_reserves
-        my $query = qq/
+        $query = qq/
             SELECT * FROM reserves
             WHERE biblionumber   = ?
               AND borrowernumber = ?
@@ -1142,12 +1142,12 @@ sub ModReserve {
         my $sth = $dbh->prepare($query);
         $sth->execute( $biblio, $borrower );
         $sth->finish;
-        my $query = qq/
+        $query = qq/
             SELECT * FROM reserves
             WHERE biblionumber   = ?
               AND borrowernumber = ?
         /;
-        my $sth = $dbh->prepare($query);
+        $sth = $dbh->prepare($query);
         $sth->execute( $biblio, $borrower );
         my $holditem = $sth->fetchrow_hashref;
         my $insert_fields = '';
