@@ -54,6 +54,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 );
 
 my $OPACDisplayRequestPriority = (C4::Context->preference("OPACDisplayRequestPriority")) ? 1 : 0;
+my $OPACPatronDetails          = (C4::Context->preference("OPACPatronDetails")) ? 1 : 0;
 my $patronupdate = $query->param('patronupdate');
 
 # get borrower information ....
@@ -209,6 +210,7 @@ foreach my $res (@reserves) {
 $template->param( RESERVES       => \@reserves );
 $template->param( reserves_count => $#reserves+1 );
 $template->param( showpriority=>1 ) if $OPACDisplayRequestPriority;
+$template->param( OPACPatronDetails => 1 ) if $OPACPatronDetails;
 
 my @waiting;
 my $wcount = 0;
