@@ -72,32 +72,33 @@ if (C4::Context->preference("AddPatronLists")=~/code/){
     $categories[0]->{'first'}=1;
 }  
 
-my $member=$input->param('member');
-my $orderbyparams=$input->param('orderby');
-my @orderby;
-if ($orderbyparams){
-	my @orderbyelt=split(/,/,$orderbyparams);
-	push @orderby, {$orderbyelt[0]=>$orderbyelt[1]||0};
-}
-else {
-	@orderby = ({surname=>0},{firstname=>0});
-}
+my $member = $input->param('member');
+my $member_orig = $member;
+my $orderby = $input->param('orderby');
+my $searchfield = $input->param('searchfield');
 
+$orderby = "surname,firstname" unless $orderby;
 $member =~ s/,//g;   #remove any commas from search string
 $member =~ s/\*/%/g;
 
 my ($count,$results);
 
-my @searchpatron;
-push @searchpatron, $member if ($member);
-push @searchpatron, $patron if (keys %$patron);
-my $from= ($startfrom-1)*$resultsperpage;
-my $to=$from+$resultsperpage;
- #($results)=Search(\@searchpatron,{surname=>1,firstname=>1},[$from,$to],undef,["firstname","surname","email","othernames"]  ) if (@searchpatron);
- my $search_scope=($quicksearch?"field_start_with":"contain");
- ($results)=Search(\@searchpatron,\@orderby,undef,undef,["firstname","surname","email","othernames","cardnumber","userid"],$search_scope  ) if (@searchpatron);
-if ($results){
-	$count =scalar(@$results);
+my $search_sql;
+if ( $input->param('sqlsearch') ) {
+  $resultsperpage = '1000';
+  $search_sql = 'SELECT * FROM borrowers LEFT JOIN categories ON borrowers.categorycode = categories.categorycode WHERE ';
+  my @parts = split( /;/, $input->param('sqlsearch') );
+  $search_sql .= $parts[0];
+  $template->param( member => $search_sql );
+  ($count, $results) = SearchMemberBySQL( $search_sql );
+}
+elsif( $searchfield ) {
+    ($count, $results)=SearchMemberField( $member, $orderby, $searchfield );
+    $template->param( searchfield => $searchfield );
+}
+elsif(length($member) == 1)
+{
+    ($count,$results)=SearchMember($member,$orderby,"simple");
 }
 my @resultsdata;
 my $to=($count>$to?$to:$count);
@@ -139,7 +140,13 @@ my $base_url =
     'member.pl?&amp;'
   . join(
     '&amp;',
-    map { "$_=$parameters{$_}" } (keys %parameters)
+    map { $_->{term} . '=' . $_->{val} } (
+        { term => 'member', val => $member_orig},
+        { term => 'orderby', val => $orderby },
+        { term => 'resultsperpage', val => $resultsperpage },
+        { term => 'type',           val => 'intranet' },
+        { term => 'searchfield', val => $searchfield },
+    )
   );
 
 my @letters = map { {letter => $_} } ( 'A' .. 'Z');
@@ -164,10 +171,15 @@ $template->param(
 
 $template->param( 
         searching       => "1",
-		actionname		=>basename($0),
-		%$patron,
+        member          => $member_orig,
         numresults      => $count,
         resultsloop     => \@resultsdata,
             );
+
+$template->param( ShowPatronSearchBySQL => C4::Context->preference('ShowPatronSearchBySQL') );
+
+if ( $input->param('sqlsearch') ) {
+  $template->param( member => $search_sql );
+}
 
 output_html_with_http_headers $input, $cookie, $template->output;

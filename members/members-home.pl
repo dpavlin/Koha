@@ -62,4 +62,6 @@ $template->param(
 my @letters = map { {letter => $_} } ( 'A' .. 'Z');
 $template->param( letters => \@letters );
 
+$template->param( ShowPatronSearchBySQL => C4::Context->preference('ShowPatronSearchBySQL') );
+
 output_html_with_http_headers $query, $cookie, $template->output;
