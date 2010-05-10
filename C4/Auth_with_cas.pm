@@ -117,41 +117,40 @@ sub check_api_auth_cas {
     
     # If we have a Proxy Ticket
     if ($PT) {
-	my $r = $cas->proxy_validate( $url, $PT );
+        my $r = $cas->proxy_validate( $url, $PT );
 
-	# If the PT is valid
-	if( $r->is_success ) {
+        # If the PT is valid
+        if ( $r->is_success ) {
 
-	    # We've got a username ! 
-	    $debug and warn "User authenticated as: ", $r->user, "\n";
-	    $debug and warn "Proxied through:\n";
-	    $debug and warn "  $_\n"
-	      for $r->proxies;
+            # We've got a username !
+            $debug and warn "User authenticated as: ", $r->user, "\n";
+            $debug and warn "Proxied through:\n";
+            $debug and warn "  $_\n" for $r->proxies;
 
-	    my $userid = $r->user;
-	    
-	    # Does it match one of our users ?
-    	    my $sth = $dbh->prepare("select cardnumber from borrowers where userid=?");
-    	    $sth->execute($userid);
-    	    if ( $sth->rows ) {
-		$retnumber = $sth->fetchrow;
-		return (1, $retnumber, $userid);
-	    }
-	    my $sth = $dbh->prepare("select userid from borrowers where cardnumber=?");
-	    return $r->user;
-	    $sth->execute($userid);
-	    if ( $sth->rows ) {
-	    	$retnumber = $sth->fetchrow;
-		return (1, $retnumber, $userid);
-	    }
-	    
-	    # If we reach this point, then the user is a valid CAS user, but not a Koha user
-	    $debug and warn "User $userid is not a valid Koha user";
+            my $userid = $r->user;
 
-	} else {
-	    $debug and warn "Proxy Ticket authentication failed";
-	    return 0;
-	}
+            # Does it match one of our users ?
+            my $sth = $dbh->prepare("select cardnumber from borrowers where userid=?");
+            $sth->execute($userid);
+            if ( $sth->rows ) {
+                $retnumber = $sth->fetchrow;
+                return ( 1, $retnumber, $userid );
+            }
+            $sth = $dbh->prepare("select userid from borrowers where cardnumber=?");
+            return $r->user;
+            $sth->execute($userid);
+            if ( $sth->rows ) {
+                $retnumber = $sth->fetchrow;
+                return ( 1, $retnumber, $userid );
+            }
+
+            # If we reach this point, then the user is a valid CAS user, but not a Koha user
+            $debug and warn "User $userid is not a valid Koha user";
+
+        } else {
+            $debug and warn "Proxy Ticket authentication failed";
+            return 0;
+        }
     }
     return 0;
 }
