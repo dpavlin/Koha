@@ -241,6 +241,7 @@ $tabsysprefs{sortbynonfiling}         = "Searching";
 $tabsysprefs{QueryAutoTruncate}       = "Searching";
 $tabsysprefs{QueryRemoveStopwords}    = "Searching";
 $tabsysprefs{AdvancedSearchTypes}     = "Searching";
+$tabsysprefs{DisplayMultiPlaceHold}   = "Searching";
 
 # EnhancedContent
 $tabsysprefs{AmazonEnabled}          = "EnhancedContent";
@@ -290,7 +291,6 @@ $tabsysprefs{FRBRizeEditions}     = "EnhancedContent";
 $tabsysprefs{XISBN}               = "EnhancedContent";
 $tabsysprefs{OCLCAffiliateID}     = "EnhancedContent";
 $tabsysprefs{XISBNDailyLimit}     = "EnhancedContent";
-$tabsysprefs{PINESISBN}           = "EnhancedContent";
 $tabsysprefs{ThingISBN}           = "EnhancedContent";
 $tabsysprefs{OPACFRBRizeEditions} = "EnhancedContent";
 

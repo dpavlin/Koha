@@ -180,11 +180,13 @@ $(document).ready(function(){
     });
 <!-- TMPL_IF NAME="RequestOnOpac" -->
   <!-- TMPL_IF NAME="opacuserlogin" -->
+  <!-- TMPL_IF NAME="DisplayMultiPlaceHold" -->
     $("#placehold").html("<input class=\"submit\" type=\"submit\" value=\""+_("Place Hold")+"\"/>");
 	$("#placehold").find("input:submit").click(function(){
         holdMultiple();
 		return false;
 	});
+  <!-- /TMPL_IF -->
   <!-- /TMPL_IF -->
 <!-- /TMPL_IF -->
     $("#holdDetails").hide();
@@ -324,7 +326,7 @@ $(document).ready(function(){
 
         <!-- TABLE RESULTS START -->
         <table>
-		<tr><td colspan="5" class="resultscontrol" style="border : 1px solid #e8e8e8;">
+		<tr><td colspan="5" class="resultscontrol">
 		<div class="resort"> <select id="sort_by" name="sort_by"> <!--TMPL_INCLUDE NAME="resort_form.inc"--> </select> <input type="submit" class="submit clearfix" id="sortsubmit" value="Go" /></div>
 		<div class="cartlist">
             <!-- checkall, clearall are now needed for placehold -->
@@ -550,7 +552,7 @@ $(document).ready(function(){
 <script src="https://ltfl.librarything.com/forlibraries/widget.js?id=<!--TMPL_VAR NAME="LibraryThingForLibrariesID" -->&amp;systype=koha" type="text/javascript"></script>
 <!-- TMPL_ELSE -->
 <script src="http://ltfl.librarything.com/forlibraries/widget.js?id=<!--TMPL_VAR NAME="LibraryThingForLibrariesID" -->&amp;systype=koha" type="text/javascript"></script>
-<!-- TMPL_ELSE -->
+<!-- /TMPL_IF -->
 <!-- /TMPL_IF -->
 
 <!-- TMPL_INCLUDE NAME="opac-bottom.inc" -->

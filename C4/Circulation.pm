@@ -2242,6 +2242,7 @@ sub GetRenewCount {
     
     $renewsallowed = $issuingrule->{'renewalsallowed'};
     $renewsleft    = $renewsallowed - $renewcount;
+    if($renewsleft < 0){ $renewsleft = 0; }
     return ( $renewcount, $renewsallowed, $renewsleft );
 }
 
@@ -2287,7 +2288,7 @@ sub GetIssuingCharges {
         my $q2 = "SELECT rentaldiscount FROM borrowers
             LEFT JOIN issuingrules ON borrowers.categorycode = issuingrules.categorycode
             WHERE borrowers.borrowernumber = ?
-            AND issuingrules.itemtype = ?";
+            AND (issuingrules.itemtype = ? OR issuingrules.itemtype = '*')";
         my $sth2 = $dbh->prepare($q2);
         $sth2->execute( $borrowernumber, $item_type );
         if ( my $data2 = $sth2->fetchrow_hashref ) {

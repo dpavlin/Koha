@@ -2913,6 +2913,8 @@ BUDGETNAME
 SELECT MAX(aqbudgetid) from aqbudgets
 IDsBUDGET
 
+$$maxbudgetid[0] = 0 if !$$maxbudgetid[0];
+
     $dbh->do(<<BUDGETAUTOINCREMENT);
 ALTER TABLE `aqbudgets` AUTO_INCREMENT=$$maxbudgetid[0]
 BUDGETAUTOINCREMENT
@@ -3593,6 +3595,13 @@ $DBversion = '3.01.00.133';
 if (C4::Context->preference('Version') < TransformToNum($DBversion)){
     $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('OverduesBlockCirc','noblock','When checking out an item should overdues block checkout, generate a confirmation dialogue, or allow checkout','noblock|confirmation|block','Choice')");
     print "Upgrade to $DBversion done (bug 4405: added OverduesBlockCirc syspref to control whether circulation is blocked if a borrower has overdues)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.134';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do("INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('DisplayMultiPlaceHold','1','Display the ability to place multiple holds or not','','YesNo')");
+    print "Upgrade to $DBversion done adding syspref DisplayMultiPlaceHold to control whether multiple holds can be placed from the search results page";
     SetVersion ($DBversion);
 }
 
