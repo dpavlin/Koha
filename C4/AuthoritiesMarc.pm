@@ -1193,7 +1193,7 @@ sub BuildUnimarcHierarchy{
   my (@loopparents,@loopchildren);
   foreach my $field ($record->field('5..')){
 	my $subfauthid=_get_authid_subfield($field);
-    if ($field->subfield('5') && $field->subfield('a')){
+    if ($subfauthid && $field->subfield('5') && $field->subfield('a')){
       if ($field->subfield('5') eq 'h'){
         push @loopchildren, { "childauthid"=>$subfauthid,"childvalue"=>$field->subfield('a')};
       }elsif ($field->subfield('5') eq 'g'){
