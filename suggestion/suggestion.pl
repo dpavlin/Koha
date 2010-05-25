@@ -54,7 +54,7 @@ sub GetCriteriumDesc{
     return ($criteriumvalue eq 'ASKED'?"Pending":ucfirst(lc( $criteriumvalue))) if ($displayby =~/status/i);
     return (GetBranchName($criteriumvalue)) if ($displayby =~/branchcode/);
     return (GetSupportName($criteriumvalue)) if ($displayby =~/itemtype/);
-    if ($displayby =~/managedby/||$displayby =~/acceptedby/){
+    if ( $displayby =~ /managedby/ || $displayby =~ /acceptedby/ || $displayby =~ /suggestedby/) {
         my $borr=C4::Members::GetMember(borrowernumber=>$criteriumvalue);
         return "" unless $borr;
         return $$borr{firstname} . ", " . $$borr{surname};
@@ -123,6 +123,7 @@ elsif ($op=~/edit/) {
     #Edit suggestion  
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
     Init($suggestion_ref);
+<<<<<<< HEAD
     $op ='save';
 }  
 elsif ($op eq "change" ) {
@@ -144,6 +145,28 @@ elsif ($op eq "change" ) {
  	foreach (keys %$suggestion_ref){
 		delete $$suggestion_ref{$_} unless ($$suggestion_ref{$_});
 	}
+=======
+    $op = 'save';
+} elsif ( $op eq "change" ) {
+    if ( $$suggestion_ref{"STATUS"} ) {
+        if ( my $tmpstatus = lc( $$suggestion_ref{"STATUS"} ) =~ /ACCEPTED|REJECTED/i ) {
+            $$suggestion_ref{ lc( $$suggestion_ref{"STATUS"}) . "date" } = C4::Dates->today;
+            $$suggestion_ref{ lc( $$suggestion_ref{"STATUS"}) . "by" }   = C4::Context->userenv->{number};
+        }
+        $$suggestion_ref{"manageddate"} = C4::Dates->today;
+        $$suggestion_ref{"managedby"}   = C4::Context->userenv->{number};
+    }
+    if ( my $reason = $$suggestion_ref{"reason$tabcode"} ) {
+        if ( $reason eq "other" ) {
+            $reason = $$suggestion_ref{"other_reason$tabcode"};
+        }
+        $$suggestion_ref{'reason'} = $reason;
+    }
+    delete $$suggestion_ref{$_} foreach ( "reason$tabcode", "other_reason$tabcode" );
+    foreach ( keys %$suggestion_ref ) {
+        delete $$suggestion_ref{$_} unless ( $$suggestion_ref{$_} );
+    }
+>>>>>>> (BUG #4811) suggestion.pl: display borrowers name in suggestion information filters (Suggested By, Managed by, Accepted by)
     foreach my $suggestionid (@editsuggestions) {
         next unless $suggestionid;
         $$suggestion_ref{'suggestionid'}=$suggestionid;
