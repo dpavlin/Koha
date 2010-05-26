@@ -32,23 +32,30 @@ use C4::Koha;
 use C4::Branch; # GetBranches
 use C4::VirtualShelves;
 use POSIX qw/strftime/;
+use List::MoreUtils qw/ any /;
 
 # use utf8;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout);
 
 BEGIN {
-    $VERSION = 3.02;        # set version for version checking
-    $debug = $ENV{DEBUG};
-    @ISA   = qw(Exporter);
-    @EXPORT    = qw(&checkauth &get_template_and_user &haspermission &get_user_subpermissions);
-    @EXPORT_OK = qw(&check_api_auth &get_session &check_cookie_auth &checkpw &get_all_subpermissions &get_user_subpermissions);
-    %EXPORT_TAGS = (EditPermissions => [qw(get_all_subpermissions get_user_subpermissions)]);
-    $ldap = C4::Context->config('useldapserver') || 0;
-    $cas = C4::Context->preference('casAuthentication');
-    $caslogout = C4::Context->preference('casLogout');
+    sub psgi_env { any { /^psgi\./ } keys %ENV }
+    sub safe_exit {
+	if ( psgi_env ) { die 'psgi:exit' }
+	else { exit }
+    }
+
+    $VERSION     = 3.02;                                                                                                            # set version for version checking
+    $debug       = $ENV{DEBUG};
+    @ISA         = qw(Exporter);
+    @EXPORT      = qw(&checkauth &get_template_and_user &haspermission &get_user_subpermissions);
+    @EXPORT_OK   = qw(&check_api_auth &get_session &check_cookie_auth &checkpw &get_all_subpermissions &get_user_subpermissions);
+    %EXPORT_TAGS = ( EditPermissions => [qw(get_all_subpermissions get_user_subpermissions)] );
+    $ldap        = C4::Context->config('useldapserver') || 0;
+    $cas         = C4::Context->preference('casAuthentication');
+    $caslogout   = C4::Context->preference('casLogout');
     if ($ldap) {
-        require C4::Auth_with_ldap;             # no import
-        import  C4::Auth_with_ldap qw(checkpw_ldap);
+	require C4::Auth_with_ldap;
+	# no import import C4::Auth_with_ldap qw(checkpw_ldap);
     }
     if ($cas) {
         require C4::Auth_with_cas;             # no import
@@ -556,8 +563,16 @@ sub _version_check ($$) {
       else {
         warn "OPAC Install required, redirecting to maintenance";
         print $query->redirect("/cgi-bin/koha/maintenance.pl");
-      }
-      exit;
+    }
+    unless ( $version = C4::Context->preference('Version') ) {    # assignment, not comparison
+        if ( $type ne 'opac' ) {
+            warn "Install required, redirecting to Installer";
+            print $query->redirect("/cgi-bin/koha/installer/install.pl");
+        } else {
+            warn "OPAC Install required, redirecting to maintenance";
+            print $query->redirect("/cgi-bin/koha/maintenance.pl");
+        }
+        safe_exit;
     }
 
     # check that database and koha version are the same
@@ -577,7 +592,7 @@ sub _version_check ($$) {
             warn sprintf("OPAC: " . $warning, 'maintenance');
             print $query->redirect("/cgi-bin/koha/maintenance.pl");
         }
-        exit;
+        safe_exit;
     }
 }
 
@@ -968,7 +983,7 @@ sub checkauth {
         -cookie => $cookie
       ),
       $template->output;
-    exit;
+    safe_exit;
 }
 
 =head2 check_api_auth
