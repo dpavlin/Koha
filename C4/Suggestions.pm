@@ -157,17 +157,19 @@ sub SearchSuggestion  {
             }
     }
 
-    foreach my $field (grep { my $fieldname=$_;
-        any {$fieldname eq $_ } qw<
-    STATUS branchcode itemtype suggestedby managedby acceptedby
-    bookfundid biblionumber
-    >} keys %$suggestion
-    ) {
-        if ($$suggestion{$field}){
-            push @sql_params,$suggestion->{$field};
-            push @query, " and suggestions.$field=?";
-        } 
-        else {
+    foreach my $field (
+        grep {
+            my $fieldname = $_;
+            any { $fieldname eq $_ } qw<
+              STATUS branchcode itemtype suggestedby managedby acceptedby
+              budgetid biblionumber
+              >
+        } keys %$suggestion
+      ) {
+        if ( $$suggestion{$field} ) {
+            push @sql_params, $suggestion->{$field};
+            push @query,      " and suggestions.$field=?";
+        } else {
             push @query, " and (suggestions.$field='' OR suggestions.$field IS NULL)";
         }
     }
