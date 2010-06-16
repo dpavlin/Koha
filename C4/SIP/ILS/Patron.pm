@@ -38,21 +38,22 @@ sub new {
 	my ($class, $patron_id) = @_;
     my $type = ref($class) || $class;
     my $self;
-	$kp = GetMember(cardnumber=>$patron_id);
-	$debug and warn "new Patron (GetMember): " . Dumper($kp);
-    unless (defined $kp) {
-		syslog("LOG_DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
-		return undef;
-	}
-	$kp = GetMemberDetails(undef,$patron_id);
-	$debug and warn "new Patron (GetMemberDetails): " . Dumper($kp);
-	my $pw        = $kp->{password};  ### FIXME - md5hash -- deal with . 
-	my $flags     = $kp->{flags};     # or warn "Warning: No flags from patron object for '$patron_id'"; 
-	my $debarred  = $kp->{debarred};  # 1 if ($kp->{flags}->{DBARRED}->{noissues});
-	$debug and warn sprintf("Debarred = %s : ", ($debarred||'undef')) . Dumper(%{$kp->{flags}});
-    my ($day, $month, $year) = (localtime)[3,4,5];
-    my $today    = sprintf '%04d-%02d-%02d', $year+1900, $month+1, $day;
-    my $expired  = ($today gt $kp->{dateexpiry}) ? 1 : 0;
+    $kp = GetMember( cardnumber => $patron_id );
+    $debug and warn "new Patron (GetMember): " . Dumper($kp);
+    unless ( defined $kp ) {
+        syslog( "LOG_DEBUG", "new ILS::Patron(%s): no such patron", $patron_id );
+        return undef;
+    }
+    $kp = GetMemberDetails( undef, $patron_id );
+    $debug and warn "new Patron (GetMemberDetails): " . Dumper($kp);
+    my $pw       = $kp->{password};    ### FIXME - md5hash -- deal with .
+    my $flags    = $kp->{flags};       # or warn "Warning: No flags from patron object for '$patron_id'";
+	my $debarred  = defined($kp->{flags}->{DEBARRED});  # 1 if ($kp->{flags}->{DBARRED}->{noissues});
+    $debug and warn sprintf( "Debarred = %s : ", ( $debarred || 'undef' ) ) . Dumper( %{ $kp->{flags} } );
+    my ( $day, $month, $year ) = (localtime)[ 3, 4, 5 ];
+    my $today = sprintf '%04d-%02d-%02d', $year + 1900, $month + 1, $day;
+    my $expired = ( $today gt $kp->{dateexpiry} ) ? 1 : 0;
+
     if ($expired) {
         if ($kp->{opacnote} ) {
             $kp->{opacnote} .= q{ };
