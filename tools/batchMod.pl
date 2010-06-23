@@ -338,49 +338,69 @@ foreach my $tag (sort keys %{$tagslib}) {
             $authorised_lib{$itemtype} = $description;
             }
 
-          #---- "true" authorised value
-      }
-          elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "cn_source" ) {
-              push @authorised_values, "" unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
-                
-              my $class_sources = GetClassSources();
-              my $default_source = C4::Context->preference("DefaultClassificationSource");
-              
-              foreach my $class_source (sort keys %$class_sources) {
-                  next unless $class_sources->{$class_source}->{'used'} or
-                              ($value and $class_source eq $value)      or
-                              ($class_source eq $default_source);
-                  push @authorised_values, $class_source;
-                  $authorised_lib{$class_source} = $class_sources->{$class_source}->{'description'};
-              }
-              $value = $default_source unless ($value);
+            if ( $tagslib->{$tag}->{$subfield}->{authorised_value} ) {
+                my @authorised_values;
+                my %authorised_lib;
 
-              #---- "true" authorised value
-          }
-          else {
-              push @authorised_values, "" unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
-              $authorised_values_sth->execute( $tagslib->{$tag}->{$subfield}->{authorised_value} );
-              while ( my ( $value, $lib ) = $authorised_values_sth->fetchrow_array ) {
-                  push @authorised_values, $value;
-                  $authorised_lib{$value} = $lib;
-              }
-          }
-          $subfield_data{marc_value} =CGI::scrolling_list(      # FIXME: factor out scrolling_list
-              -name     => "field_value",
-              -values   => \@authorised_values,
-              -default  => $value,
-              -labels   => \%authorised_lib,
-              -override => 1,
-              -size     => 1,
-              -multiple => 0,
-              -tabindex => 1,
-              -id       => "tag_".$tag."_subfield_".$subfield."_".$index_subfield,
-              -class    => "input_marceditor",
-          );
-        # it's a thesaurus / authority field
-        }
-        elsif ( $tagslib->{$tag}->{$subfield}->{authtypecode} ) {
-            $subfield_data{marc_value} = "<input type=\"text\" $attributes />
+                # builds list, depending on authorised value...
+
+                if ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "branches" ) {
+                    foreach my $thisbranch (@$branches) {
+                        push @authorised_values, $thisbranch->{value};
+                        $authorised_lib{ $thisbranch->{value} } = $thisbranch->{branchname};
+                    }
+                    $value = "";
+                } elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
+                    push @authorised_values, "" unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
+                    my $sth = $dbh->prepare("select itemtype,description from itemtypes order by description");
+                    $sth->execute;
+                    while ( my ( $itemtype, $description ) = $sth->fetchrow_array ) {
+                        push @authorised_values, $itemtype;
+                        $authorised_lib{$itemtype} = $description;
+                    }
+
+                    #---- class_sources
+                } elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "cn_source" ) {
+                    push @authorised_values, "" unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
+
+                    my $class_sources  = GetClassSources();
+                    my $default_source = C4::Context->preference("DefaultClassificationSource");
+
+                    foreach my $class_source ( sort keys %$class_sources ) {
+                        next
+                          unless $class_sources->{$class_source}->{'used'}
+                              or ( $value and $class_source eq $value )
+                              or ( $class_source eq $default_source );
+                        push @authorised_values, $class_source;
+                        $authorised_lib{$class_source} = $class_sources->{$class_source}->{'description'};
+                    }
+                    $value = $default_source unless ($value);
+
+                    #---- "true" authorised value
+                } else {
+                    push @authorised_values, "" unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
+                    $authorised_values_sth->execute( $tagslib->{$tag}->{$subfield}->{authorised_value} );
+                    while ( my ( $value, $lib ) = $authorised_values_sth->fetchrow_array ) {
+                        push @authorised_values, $value;
+                        $authorised_lib{$value} = $lib;
+                    }
+                }
+                $subfield_data{marc_value} = CGI::scrolling_list(    # FIXME: factor out scrolling_list
+                    -name     => "field_value",
+                    -values   => \@authorised_values,
+                    -default  => $value,
+                    -labels   => \%authorised_lib,
+                    -override => 1,
+                    -size     => 1,
+                    -multiple => 0,
+                    -tabindex => 1,
+                    -id       => "tag_" . $tag . "_subfield_" . $subfield . "_" . $index_subfield,
+                    -class    => "input_marceditor",
+                );
+
+                # it's a thesaurus / authority field
+            } elsif ( $tagslib->{$tag}->{$subfield}->{authtypecode} ) {
+                $subfield_data{marc_value} = "<input type=\"text\" $attributes />
                 <a href=\"#\" class=\"buttonDot\"
                     onclick=\"Dopop('/cgi-bin/koha/authorities/auth_finder.pl?authtypecode=".$tagslib->{$tag}->{$subfield}->{authtypecode}."&index=$subfield_data{id}','$subfield_data{id}'); return false;\" title=\"Tag Editor\">...</a>
         ";
