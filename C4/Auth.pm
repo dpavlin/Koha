@@ -627,6 +627,10 @@ sub checkauth {
     my ( $userid, $cookie, $sessionID, $flags, $barshelves, $pubshelves );
     my $logout = $query->param('logout.x');
 
+    # This parameter is the name of the CAS server we want to authenticate against,
+    # when using authentication against multiple CAS servers, as configured in Auth_cas_servers.yaml
+    my $casparam = $query->param('cas');
+
     if ( $userid = $ENV{'REMOTE_USER'} ) {
         # Using Basic Authentication, no cookies required
         $cookie = $query->cookie(
@@ -964,10 +968,9 @@ sub checkauth {
 
     if ($cas) { 
 	$template->param(
-	    casServerUrl    => login_cas_url(),
+        casServerUrl    => login_cas_url($query),
 	    invalidCasLogin => $info{'invalidCasLogin'}
 	);
-    }
 
     my $self_url = $query->url( -absolute => 1 );
     $template->param(
