@@ -265,8 +265,8 @@ foreach my $subfield_code ( keys(%witness) ) {
     push( @header_value_loop, \%header_value );
 }
 
-if(C4::Context->preference("ISBD")) {
-	$template->param(ISBD => 1);
+if ( C4::Context->preference("OPACISBD") ) {
+    $template->param( ISBD => 1 );
 }
 
 #Search for title in links
