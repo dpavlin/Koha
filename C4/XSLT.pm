@@ -49,9 +49,9 @@ C4::XSLT - Functions for displaying XSLT-generated content
 
 =head1 FUNCTIONS
 
-=head1 transformMARCXML4XSLT
+=head2 transformMARCXML4XSLT
 
-=head2 replaces codes with authorized values in a MARC::Record object
+Replaces codes with authorized values in a MARC::Record object
 
 =cut
 
@@ -88,9 +88,9 @@ sub transformMARCXML4XSLT {
     return $record;
 }
 
-=head1 getAuthorisedValues4MARCSubfields
+=head2 getAuthorisedValues4MARCSubfields
 
-=head2 returns an ref of hash of ref of hash for tag -> letter controled bu authorised values
+Returns a ref of hash of ref of hash for tag -> letter controled by authorised values
 
 =cut
 
@@ -128,7 +128,7 @@ sub XSLTParse4Display {
     my $itemsxml  = buildKohaItemsNamespace($biblionumber);
     my $xmlrecord = $record->as_xml(C4::Context->preference('marcflavour'));
     my $sysxml = "<sysprefs>\n";
-    foreach my $syspref ( qw/OPACURLOpenInNewWindow DisplayOPACiconsXSLT URLLinkText viewISBD/ ) {
+    foreach my $syspref ( qw/OPACURLOpenInNewWindow DisplayOPACiconsXSLT URLLinkText viewISBD OPACBaseURL/ ) {
         $sysxml .= "<syspref name=\"$syspref\">" .
                    C4::Context->preference( $syspref ) .
                    "</syspref>\n";
@@ -229,6 +229,8 @@ sub buildKohaItemsNamespace {
 __END__
 
 =head1 NOTES
+
+=cut
 
 =head1 AUTHOR
 

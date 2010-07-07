@@ -263,6 +263,7 @@ delete the supplier identified by $booksellerid
 This sub can be called only if the supplier has no order.
 
 =cut
+
 sub DelBookseller {
     my ($id) = @_;
     my $dbh=C4::Context->dbh;
@@ -276,6 +277,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Developement team <info@koha.org>
+Koha Development Team <http://koha-community.org/>
 
 =cut

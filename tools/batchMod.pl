@@ -32,7 +32,6 @@ use C4::BackgroundJob;
 use C4::ClassSource;
 use C4::Dates;
 use C4::Debug;
-use YAML;
 use Switch;
 use MARC::File::XML;
 
@@ -227,8 +226,8 @@ my $authorised_values_sth = $dbh->prepare("SELECT authorised_value,lib FROM auth
 my $branches = GetBranchesLoop();  # build once ahead of time, instead of multiple times later.
 
 # Adding a default choice, in case the user does not want to modify the branch
-my @nochange_branch = { branchname => '', value => '', selected => 1 };
-unshift (@$branches, @nochange_branch);
+my $nochange_branch = { branchname => '', value => '', selected => 1 };
+unshift (@$branches, $nochange_branch);
 
 my $pref_itemcallnumber = C4::Context->preference('itemcallnumber');
 
@@ -281,17 +280,18 @@ foreach my $tag (sort keys %{$tagslib}) {
 	    foreach my $thisbranch (@$branches) {
 		push @authorised_values, $thisbranch->{value};
 		$authorised_lib{$thisbranch->{value}} = $thisbranch->{branchname};
-		$value = $thisbranch->{value} if $thisbranch->{selected};
 	    }
+        $value = "";
 	}
 	elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
-	    push @authorised_values, "" unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
+	    push @authorised_values, "";
 	    my $sth = $dbh->prepare("select itemtype,description from itemtypes order by description");
 	    $sth->execute;
 	    while ( my ( $itemtype, $description ) = $sth->fetchrow_array ) {
 		push @authorised_values, $itemtype;
 		$authorised_lib{$itemtype} = $description;
 	    }
+        $value = "";
 
           #---- class_sources
       }
@@ -308,7 +308,7 @@ foreach my $tag (sort keys %{$tagslib}) {
               push @authorised_values, $class_source;
               $authorised_lib{$class_source} = $class_sources->{$class_source}->{'description'};
           }
-		  $value = $default_source unless ($value);
+		  $value = '';
 
           #---- "true" authorised value
       }

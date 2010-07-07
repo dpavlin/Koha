@@ -50,7 +50,7 @@ my ( $template, $borrowernumber, $cookie, $staff_flags ) = get_template_and_user
         type            => "intranet",
         authnotrequired => 0,
         flagsrequired   => { acquisition => 'planning_manage' },
-        debug           => 1,
+        debug           => 0,
     }
 );
 
@@ -153,6 +153,7 @@ while ( my ($category) = $sth->fetchrow_array ) {
 push( @category_list, 'MONTHS' );
 push( @category_list, 'ITEMTYPES' );
 push( @category_list, 'BRANCHES' );
+push( @category_list, $$_{'authcat'} ) foreach @$auth_cats_loop;
 
 #reorder the list
 @category_list = sort { $a cmp $b } @category_list;
@@ -173,9 +174,7 @@ my $CGISort;
 my @authvals;
 my %labels;
 
-
-    my @names = $input->param();
-
+my @names = $input->param();
 # ------------------------------------------------------------
 if ( $op eq 'save' ) {
     #get budgets
@@ -289,6 +288,18 @@ elsif ( $authcat eq 'ITEMTYPES' ) {
             my $results = $sth->fetchrow_hashref;
             push @authvals, $results->{branchcode};
             $labels{ $results->{branchcode} } = $results->{branchname};
+        }
+    }
+    $sth->finish;
+} elsif ($authcat) {
+    my $query = qq{ SELECT * FROM authorised_values WHERE category=? order by lib };
+    my $sth   = $dbh->prepare($query);
+    $sth->execute($authcat);
+    if ( $sth->rows > 0 ) {
+        for ( my $i = 0 ; $i < $sth->rows ; $i++ ) {
+            my $results = $sth->fetchrow_hashref;
+            push @authvals, $results->{authorised_value};
+            $labels{ $results->{authorised_value} } = $results->{lib};
         }
     }
     $sth->finish;
@@ -455,6 +466,8 @@ output_html_with_http_headers $input, $cookie, $template->output;
 sub _print_to_csv {
     my ( $header, $results ) = @_;
 
+    binmode STDOUT, ":utf8";
+
     my $csv = Text::CSV_XS->new(
         {   sep_char     => $del,
             always_quote => 'TRUE',
@@ -477,7 +490,8 @@ sub _print_to_csv {
     print "$str\n";
 
     foreach my $row (@$results) {
-        my @col = ( $row->{'budget_name'}, $row->{'budget_amount'} );
+        $row->{'budget_name_indent'} =~ s/&nbsp;/ /g;
+        my @col = ( $row->{'budget_name_indent'}, $row->{'budget_amount'} );
         my $l = $row->{'lines'};
         foreach my $line (@$l) {
             push @col, $line->{'estimated_amount'};
