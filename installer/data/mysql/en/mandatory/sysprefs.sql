@@ -184,7 +184,6 @@ INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('OAI-PMH:ConfFile','','If empty, Koha OAI Server operates in normal mode, otherwise it operates in extended mode.',NULL,'File');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('OPACItemHolds','1','Allow OPAC users to place hold on specific items. If OFF, users can only request next available copy.','','YesNo');
 
-INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('GranularPermissions','0','Use detailed staff user permissions',NULL,'YesNo');
 INSERT INTO `systempreferences` (variable, value,options,type, explanation) VALUES ('AddPatronLists','categorycode','categorycode|category_type','Choice','Allow user to choose what list to pick up from when adding patrons');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('ExtendedPatronAttributes','0','Use extended patron IDs and attributes',NULL,'YesNo');
 
@@ -205,7 +204,7 @@ INSERT INTO `systempreferences` (variable,value,options,explanation,type) VALUES
 	('TagsExternalDictionary',NULL,'','Path on server to local ispell executable, used to set $Lingua::Ispell::path  This dictionary is used as a \"whitelist\" of pre-allowed tags.',''),
 	('TagsInputOnDetail','1','','Allow users to input tags from the detail page.',         'YesNo'),
 	('TagsInputOnList',  '0','','Allow users to input tags from the search results list.', 'YesNo'),
-	('TagsModeration',  NULL,'','Require tags from patrons to be approved before becoming visible.','YesNo'),
+	('TagsModeration',  '0','','Require tags from patrons to be approved before becoming visible.','YesNo'),
 	('TagsShowOnDetail','10','','Number of tags to display on detail page.  0 is off.',        'Integer'),
 	('TagsShowOnList',   '6','','Number of tags to display on search results list.  0 is off.','Integer');
 

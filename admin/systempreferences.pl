@@ -94,7 +94,6 @@ $tabsysprefs{DebugLevel}            = "Admin";
 $tabsysprefs{SessionStorage}        = "Admin";
 $tabsysprefs{noItemTypeImages}      = "Admin";
 $tabsysprefs{OPACBaseURL}           = "Admin";
-$tabsysprefs{GranularPermissions}   = "Admin";
 
 # Authorities
 $tabsysprefs{authoritysep}          = "Authorities";
