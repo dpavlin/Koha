@@ -48,9 +48,7 @@ The functions in this module handle sending text to a printer.
 
 =head1 FUNCTIONS
 
-=over 2
-
-=item remoteprint
+=head2 remoteprint
 
   &remoteprint($items, $borrower);
 
@@ -168,12 +166,12 @@ EOF
     return $slip;
 }
 
-=item printslip
+=head2 printslip
 
   &printslip($borrowernumber)
 
-  print a slip for the given $borrowernumber
-  
+print a slip for the given $borrowernumber
+
 =cut
 
 #'
@@ -193,11 +191,9 @@ END { }    # module clean-up code here (global destructor)
 1;
 __END__
 
-=back
-
 =head1 AUTHOR
 
-Koha Developement team <info@koha.org>
+Koha Development Team <http://koha-community.org/>
 
 =head1 SEE ALSO
 

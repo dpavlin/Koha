@@ -3,25 +3,116 @@ Maintainer: Lars Wirzenius <lars@catalyst.net.nz>
 Section: web
 Priority: optional
 Standards-Version: 3.8.4
-Build-Depends: koha-dev-env, debhelper (>= 7.0.50), gettext
+# NOTA BENE: Build dependencies end up as runtime dependencies as well.
+# See debian/rules, the override_dh_gencontrol rules. 
+# There are some exceptions.
+Build-Depends: libalgorithm-checkdigits-perl,
+ libauthen-cas-client-perl,
+ libbiblio-endnotestyle-perl,
+ libcgi-pm-perl | perl-modules,
+ libcgi-session-perl,
+ libcgi-session-serialize-yaml-perl,
+ libclass-accessor-perl,
+ libclass-factory-util-perl,
+ libdata-ical-perl,
+ libdate-calc-perl,
+ libdate-ical-perl,
+ libdate-manip-perl,
+ libdatetime-perl,
+ libdbd-mysql-perl,
+ libdbd-sqlite2-perl,
+ libdbi-perl,
+ libdigest-sha-perl | perl,
+ libemail-date-perl,
+ libfile-temp-perl | perl-modules,
+ libgd-barcode-perl,
+ libgd-gd2-noxpm-perl | libgd-gd2-perl,
+ libgraphics-magick-perl,
+ libhtml-scrubber-perl,
+ libhtml-template-pro-perl,
+ libhttp-oai-perl,
+ libjson-perl,
+ liblingua-stem-perl,
+ liblingua-stem-snowball-perl,
+ liblist-moreutils-perl,
+ liblocale-currency-format-perl,
+ liblocale-po-perl,
+ libmail-sendmail-perl,
+ libmarc-charset-perl,
+ libmarc-crosswalk-dublincore-perl,
+ libmarc-record-perl,
+ libmarc-xml-perl,
+ libmemoize-memcached-perl,
+ libmime-lite-perl,
+ libnet-ldap-perl,
+ libnet-z3950-zoom-perl,
+ libnumber-format-perl,
+ libpdf-api2-perl,
+ libpdf-api2-simple-perl,
+ libpdf-reuse-barcode-perl,
+ libpdf-reuse-perl,
+ libpdf-table-perl,
+ libpoe-perl,
+ libscalar-list-utils-perl,
+ libschedule-at-perl,
+ libsms-send-perl,
+ libtest-harness-perl | perl-modules,
+ libtest-simple-perl | perl-modules,
+ libtext-csv-encoded-perl,
+ libtext-csv-perl,
+ libtext-csv-xs-perl,
+ libtext-iconv-perl,
+ liburi-perl,
+ libwww-perl,
+ libxml-dumper-perl,
+ libxml-libxml-perl,
+ libxml-libxslt-perl,
+ libxml-rss-perl,
+ libxml-sax-perl,
+ libxml-sax-writer-perl,
+ libxml-simple-perl,
+ libyaml-perl,
+ libyaml-syck-perl,
+ perl,
+ perl-modules, 
+ debhelper (>= 7.0.50), gettext, python, python-debian
 
-Package: koha
+Package: koha-common
 Architecture: all
-Depends: ${shlib:Depends}, ${misc:Depends},
- dbconfig-common,
- koha-dev-env,
+Depends: ${misc:Depends}, ${koha:Depends},
  apache2,
- mysql-server,
- daemon,
+ apache2-mpm-itk,
  at,
+ daemon,
  idzebra-2.0,
- yaz,
  libjs-jquery,
+ libjs-yui,
+ mysql-client,
  tinymce2, 
- libjs-yui
-Recommends: mysql-client
+ yaz
+Suggests: mysql-server
 Homepage: http://koha-community.org/
 Description: integrated (physical) library management system
  Koha is an Integrated Library Managment system for real-world libraries
  (the kinds with books).
+ .
+ This package contains everything needed to run Koha, except the site
+ specific configuration files. See the package koha for the rest.
 
+Package: koha
+Architecture: all
+Depends: ${shlib:Depends}, ${misc:Depends},
+ koha-common,
+ dbconfig-common,
+ mysql-server
+Homepage: http://koha-community.org/
+Description: integrated (physical) library management system
+ Koha is an Integrated Library Managment system for real-world libraries
+ (the kinds with books).
+ .
+ This package contains site-specific configuration files and sets up
+ the MySQL database for Koha. For simplicity, the database server is
+ assumed to run on the same host as Koha.
+ .
+ Please see /usr/share/doc/koha/README.Debian for instructions on how to
+ configure things after installing this package.

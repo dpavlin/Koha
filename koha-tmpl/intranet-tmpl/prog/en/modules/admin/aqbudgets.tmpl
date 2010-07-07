@@ -21,15 +21,15 @@
         // var actTotal ="";
 
         if (!(isNotNull(f.budget_code,1))) {
-            _alertString += _("- Budget code cannot be blank\n");
+            _alertString += _("- Budget code cannot be blank") + "\n";
         }
 
         if (!(isNotNull(f.budget_name,1))) {
-            _alertString += _("- Budget name cannot be blank\n");
+            _alertString += _("- Budget name cannot be blank") + "\n";
         }
 
         if (!(isNotNull(f.budget_amount,1))) {
-            _alertString += _("- Budget amount cannot be blank\n");
+            _alertString += _("- Budget amount cannot be blank") + "\n";
         }
 
         var budgetId;
@@ -52,7 +52,7 @@
             if   (budgetId  > 0)  {  ; //its a mod ...
                 // if parent eq curent-budget, fail...
                 if ( newBudgetParent  ==  budgetId     ) {
-                        _alertString += _("- Budget parent is current budget\n");
+                        _alertString += _("- Budget parent is current budget") + "\n";
                 }
 
                 else if (newBudgetParent) {
@@ -74,8 +74,8 @@
         if (_alertString.length==0) {
             document.Aform.submit();
         } else {
-            alertString2 = _("Form not submitted because of the following problem(s)\n");
-            alertString2 += "------------------------------------------------------------------------------------\n\n";
+            alertString2 = _("Form not submitted because of the following problem(s)");
+            alertString2 += "\n------------------------------------------------------------------------------------\n\n";
             alertString2 += _alertString;
             alert(alertString2);
         }
@@ -129,6 +129,11 @@
         <!-- TMPL_ELSE -->
         $("#budgeth").treeTable();
         <!-- /TMPL_IF -->
+
+        $("#filterbutton").click(function() {
+            $("#fundfilters").slideToggle(0);
+            $("#content").css({ marginLeft:  $("#content").css("marginLeft") == "4em"?"15em":"4em"});
+        });
     });
 //]]>
 </script>
@@ -147,7 +152,7 @@
 <div id="doc3" class="yui-t2">
 <div id="bd">
 <div id="yui-main">
-<div class="yui-b">
+<div class="yui-b" id="content">
 
 <!-- TMPL_UNLESS name="delete_confirm" --><!-- TMPL_INCLUDE NAME="budgets-admin-toolbar.inc" --><!-- /TMPL_UNLESS -->
 <!-- TMPL_IF name="else" -->
@@ -303,7 +308,7 @@
     <select name="budget_branchcode" id="budget_branchcode">
     <option value=""></option>
     <!-- TMPL_LOOP name="branchloop_select" -->
-        <!-- TMPL_IF name="selected" --> <option value="<!-- TMPL_VAR name="value" -->" > <!--TMPL_ELSE--> <option value="<!-- TMPL_VAR name="value" -->" selected="selected"> <!-- /TMPL_IF --> <!-- TMPL_VAR name="branchname" --></option>
+        <!-- TMPL_UNLESS name="selected" --> <option value="<!-- TMPL_VAR name="value" -->" > <!--TMPL_ELSE--> <option value="<!-- TMPL_VAR name="value" -->" selected="selected"> <!-- /TMPL_UNLESS --> <!-- TMPL_VAR NAME="value" -->-<!-- TMPL_VAR name="branchname" --></option>
     <!-- /TMPL_LOOP -->
     </select>
     </li>
@@ -393,7 +398,8 @@
 </div>
 <div class="yui-b">
 <!-- TMPL_IF NAME="else" --><form action="/cgi-bin/koha/admin/aqbudgets.pl" method="get">
-    <fieldset class="brief">
+    <a href="#" id="filterbutton">Filters</a>
+    <fieldset class="brief" id="fundfilters">
     <h4>Fund filters</h4>
         <ol>
         <li>
