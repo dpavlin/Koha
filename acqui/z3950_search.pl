@@ -48,7 +48,6 @@ my $error        = $input->param('error');
 my $biblionumber = $input->param('biblionumber');
 $biblionumber = 0 unless $biblionumber;
 my $frameworkcode = $input->param('frameworkcode');
-warn($frameworkcode);
 my $title         = $input->param('title');
 my $author        = $input->param('author');
 my $isbn          = $input->param('isbn');
@@ -90,14 +89,14 @@ my $DEBUG = 0;    # if set to 1, many debug message are send on syslog.
 my $frameworks = getframeworks;
 my @frameworkcodeloop;
 foreach my $thisframeworkcode ( keys %$frameworks ) {
-    my %row = (
+    my $row = {
         value         => $thisframeworkcode,
         frameworktext => $frameworks->{$thisframeworkcode}->{'frameworktext'},
-    );
-    if ( %row->{'value'} eq $frameworkcode){
-        %row->{'active'} = 'true';
+    };
+    if ( $row->{'value'} eq $frameworkcode){
+        $row->{'active'} = 'true';
     }
-    push @frameworkcodeloop, \%row;
+    push @frameworkcodeloop, $row;
 }
 
 $template->param( frameworkcode => $frameworkcode, 

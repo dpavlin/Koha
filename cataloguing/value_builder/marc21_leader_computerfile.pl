@@ -54,7 +54,7 @@ function Blur$function_name(subfield_managed) {
 
 function Clic$function_name(i) {
 	defaultvalue=document.getElementById(\"$field_number\").value;
-	newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=marc21_leader.pl&index=$field_number&result=\"+defaultvalue,\"unimarc field 100\",'width=1000,height=600,toolbar=false,scrollbars=yes');
+	newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=marc21_leader.pl&index=$field_number&result=\"+defaultvalue,\"tag_editor\",'width=1000,height=600,toolbar=false,scrollbars=yes');
 
 }
 //]]>
@@ -80,12 +80,9 @@ my ($template, $loggedinuser, $cookie)
 			     debug => 1,
 			     });
 	$result = "     nmm         7a      " unless $result;
-	warn "RESULT:".$result;
 	my $f5 = substr($result,5,1);
 	my $f6 = substr($result,6,1);
-	warn "F6".$f6;
 	my $f7 = substr($result,7,1);
-	warn "F7:".$f7;
 	my $f8 = substr($result,8,1);
 	my $f9 = substr($result,9,1);
 	my $f17 = substr($result,17,1);

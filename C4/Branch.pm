@@ -68,11 +68,12 @@ The functions in this module deal with branches.
 
   $branches = &GetBranches();
 
-  Returns informations about ALL branches, IndependantBranches Insensitive.
-  GetBranchInfo() returns the same information without the problems of this function 
-  (namespace collision, mainly).
-  Create a branch selector with the following code.
-  
+Returns informations about ALL branches, IndependantBranches Insensitive.
+GetBranchInfo() returns the same information without the problems of this function 
+(namespace collision, mainly).
+
+Create a branch selector with the following code.
+
 =head3 in PERL SCRIPT
 
     my $branches = GetBranches;
@@ -610,6 +611,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Developement team <info@koha.org>
+Koha Development Team <http://koha-community.org/>
 
 =cut

@@ -137,8 +137,6 @@ environment variable to the pathname of a configuration file to use.
 
 =head1 METHODS
 
-=over 2
-
 =cut
 
 #'
@@ -186,8 +184,9 @@ $context = undef;        # Initially, no context is set
 @context_stack = ();        # Initially, no saved contexts
 
 
-=item KOHAVERSION
-    returns the kohaversion stored in kohaversion.pl file
+=head2 KOHAVERSION
+
+returns the kohaversion stored in kohaversion.pl file
 
 =cut
 
@@ -203,9 +202,7 @@ sub KOHAVERSION {
     do $cgidir."/kohaversion.pl" || die "NO $cgidir/kohaversion.pl";
     return kohaversion();
 }
-=item read_config_file
-
-=over 4
+=head2 read_config_file
 
 Reads the specified Koha config file. 
 
@@ -227,8 +224,6 @@ The elements nested within the <server> element:
     my $ccl2rpn = $koha->{'server'}->{'biblioserver'}->{'cql2rpn'};
 
 Returns undef in case of error.
-
-=back
 
 =cut
 
@@ -270,7 +265,7 @@ sub import {
     1;
 }
 
-=item new
+=head2 new
 
   $context = new C4::Context;
   $context = new C4::Context("/path/to/koha-conf.xml");
@@ -332,7 +327,7 @@ sub new {
     return $self;
 }
 
-=item set_context
+=head2 set_context
 
   $context = new C4::Context;
   $context->set_context();
@@ -380,7 +375,7 @@ sub set_context
     $context = $new_context;
 }
 
-=item restore_context
+=head2 restore_context
 
   &restore_context;
 
@@ -406,7 +401,7 @@ sub restore_context
     # that was current when this was called?
 }
 
-=item config
+=head2 config
 
   $value = C4::Context->config("config_variable");
 
@@ -444,7 +439,7 @@ sub ModZebrations {
 	return _common_config($_[1],'serverinfo');
 }
 
-=item preference
+=head2 preference
 
   $sys_preference = C4::Context->preference('some_variable');
 
@@ -493,13 +488,13 @@ sub boolean_preference ($) {
     return defined($it)? C4::Boolean::true_p($it): undef;
 }
 
-=item clear_syspref_cache
+=head2 clear_syspref_cache
 
   C4::Context->clear_syspref_cache();
 
-  cleans the internal cache of sysprefs. Please call this method if
-  you update the systempreferences table. Otherwise, your new changes
-  will not be seen by this process.
+cleans the internal cache of sysprefs. Please call this method if
+you update the systempreferences table. Otherwise, your new changes
+will not be seen by this process.
 
 =cut
 
@@ -507,12 +502,12 @@ sub clear_syspref_cache {
     %sysprefs = ();
 }
 
-=item set_preference
+=head2 set_preference
 
   C4::Context->set_preference( $variable, $value );
 
-  This updates a preference's value both in the systempreferences table and in
-  the sysprefs cache.
+This updates a preference's value both in the systempreferences table and in
+the sysprefs cache.
 
 =cut
 
@@ -556,9 +551,9 @@ sub AUTOLOAD
     return $self->config($AUTOLOAD);
 }
 
-=item Zconn
+=head2 Zconn
 
-$Zconn = C4::Context->Zconn
+  $Zconn = C4::Context->Zconn
 
 Returns a connection to the Zebra database for the current
 context. If no connection has yet been made, this method 
@@ -599,7 +594,7 @@ sub Zconn {
     }
 }
 
-=item _new_Zconn
+=head2 _new_Zconn
 
 $context->{"Zconn"} = &_new_Zconn($server,$async);
 
@@ -711,7 +706,7 @@ sub _new_dbh
     return $dbh;
 }
 
-=item dbh
+=head2 dbh
 
   $dbh = C4::Context->dbh;
 
@@ -742,7 +737,7 @@ sub dbh
     return $context->{"dbh"};
 }
 
-=item new_dbh
+=head2 new_dbh
 
   $dbh = C4::Context->new_dbh;
 
@@ -763,7 +758,7 @@ sub new_dbh
     return &_new_dbh();
 }
 
-=item set_dbh
+=head2 set_dbh
 
   $my_dbh = C4::Connect->new_dbh;
   C4::Connect->set_dbh($my_dbh);
@@ -794,7 +789,7 @@ sub set_dbh
     $context->{"dbh"} = $new_dbh;
 }
 
-=item restore_dbh
+=head2 restore_dbh
 
   C4::Context->restore_dbh;
 
@@ -821,7 +816,7 @@ sub restore_dbh
     # return something, then this function should, too.
 }
 
-=item marcfromkohafield
+=head2 marcfromkohafield
 
   $dbh = C4::Context->marcfromkohafield;
 
@@ -862,7 +857,7 @@ sub _new_marcfromkohafield
     return $marcfromkohafield;
 }
 
-=item stopwords
+=head2 stopwords
 
   $dbh = C4::Context->stopwords;
 
@@ -903,7 +898,7 @@ sub _new_stopwords
     return $stopwordlist;
 }
 
-=item userenv
+=head2 userenv
 
   C4::Context->userenv;
 
@@ -934,9 +929,10 @@ sub userenv {
     }
 }
 
-=item set_userenv
+=head2 set_userenv
 
-  C4::Context->set_userenv($usernum, $userid, $usercnum, $userfirstname, $usersurname, $userbranch, $userflags, $emailaddress);
+  C4::Context->set_userenv($usernum, $userid, $usercnum, $userfirstname, 
+                  $usersurname, $userbranch, $userflags, $emailaddress);
 
 Establish a hash of user environment variables.
 
@@ -985,7 +981,7 @@ sub get_shelves_userenv () {
 	return ($totshelves, $pubshelves, $barshelves);
 }
 
-=item _new_userenv
+=head2 _new_userenv
 
   C4::Context->_new_userenv($session);  # FIXME: This calling style is wrong for what looks like an _internal function
 
@@ -1006,7 +1002,7 @@ sub _new_userenv
      $context->{"activeuser"}=$sessionID;
 }
 
-=item _unset_userenv
+=head2 _unset_userenv
 
   C4::Context->_unset_userenv;
 
@@ -1023,7 +1019,7 @@ sub _unset_userenv
 }
 
 
-=item get_versions
+=head2 get_versions
 
   C4::Context->get_versions
 
@@ -1055,17 +1051,11 @@ sub get_versions {
 1;
 __END__
 
-=back
-
 =head1 ENVIRONMENT
 
-=over 4
-
-=item C<KOHA_CONF>
+=head2 C<KOHA_CONF>
 
 Specifies the configuration file to read.
-
-=back
 
 =head1 SEE ALSO
 
@@ -1078,217 +1068,3 @@ Andrew Arensburger <arensb at ooblick dot com>
 Joshua Ferraro <jmf at liblime dot com>
 
 =cut
-
-# Revision 1.57  2007/05/22 09:13:55  tipaul
-# Bugfixes & improvements (various and minor) :
-# - updating templates to have tmpl_process3.pl running without any errors
-# - adding a drupal-like css for prog templates (with 3 small images)
-# - fixing some bugs in circulation & other scripts
-# - updating french translation
-# - fixing some typos in templates
-#
-# Revision 1.56  2007/04/23 15:21:17  tipaul
-# renaming currenttransfers to transferstoreceive
-#
-# Revision 1.55  2007/04/17 08:48:00  tipaul
-# circulation cleaning continued: bufixing
-#
-# Revision 1.54  2007/03/29 16:45:53  tipaul
-# Code cleaning of Biblio.pm (continued)
-#
-# All subs have be cleaned :
-# - removed useless
-# - merged some
-# - reordering Biblio.pm completly
-# - using only naming conventions
-#
-# Seems to have broken nothing, but it still has to be heavily tested.
-# Note that Biblio.pm is now much more efficient than previously & probably more reliable as well.
-#
-# Revision 1.53  2007/03/29 13:30:31  tipaul
-# Code cleaning :
-# == Biblio.pm cleaning (useless) ==
-# * some sub declaration dropped
-# * removed modbiblio sub
-# * removed moditem sub
-# * removed newitems. It was used only in finishrecieve. Replaced by a TransformKohaToMarc+AddItem, that is better.
-# * removed MARCkoha2marcItem
-# * removed MARCdelsubfield declaration
-# * removed MARCkoha2marcBiblio
-#
-# == Biblio.pm cleaning (naming conventions) ==
-# * MARCgettagslib renamed to GetMarcStructure
-# * MARCgetitems renamed to GetMarcItem
-# * MARCfind_frameworkcode renamed to GetFrameworkCode
-# * MARCmarc2koha renamed to TransformMarcToKoha
-# * MARChtml2marc renamed to TransformHtmlToMarc
-# * MARChtml2xml renamed to TranformeHtmlToXml
-# * zebraop renamed to ModZebra
-#
-# == MARC=OFF ==
-# * removing MARC=OFF related scripts (in cataloguing directory)
-# * removed checkitems (function related to MARC=off feature, that is completly broken in head. If someone want to reintroduce it, hard work coming...)
-# * removed getitemsbybiblioitem (used only by MARC=OFF scripts, that is removed as well)
-#
-# Revision 1.52  2007/03/16 01:25:08  kados
-# Using my precrash CVS copy I did the following:
-#
-# cvs -z3 -d:ext:kados@cvs.savannah.nongnu.org:/sources/koha co -P koha
-# find koha.precrash -type d -name "CVS" -exec rm -v {} \;
-# cp -r koha.precrash/* koha/
-# cd koha/
-# cvs commit
-#
-# This should in theory put us right back where we were before the crash
-#
-# Revision 1.52  2007/03/12 21:17:05  rych
-# add server, serverinfo as arrays from config
-#
-# Revision 1.51  2007/03/09 14:31:47  tipaul
-# rel_3_0 moved to HEAD
-#
-# Revision 1.43.2.10  2007/02/09 17:17:56  hdl
-# Managing a little better database absence.
-# (preventing from BIG 550)
-#
-# Revision 1.43.2.9  2006/12/20 16:50:48  tipaul
-# improving "insecure" management
-#
-# WARNING KADOS :
-# you told me that you had some libraries with insecure=ON (behind a firewall).
-# In this commit, I created a "fake" user when insecure=ON. It has a fake branch. You may find better to have the 1st branch in branch table instead of a fake one.
-#
-# Revision 1.43.2.8  2006/12/19 16:48:16  alaurin
-# reident programs, and adding branchcode value in reserves
-#
-# Revision 1.43.2.7  2006/12/06 21:55:38  hdl
-# Adding ModZebrations for servers to get serverinfos in Context.pm
-# Using this function in rebuild_zebra.pl
-#
-# Revision 1.43.2.6  2006/11/24 21:18:31  kados
-# very minor changes, no functional ones, just comments, etc.
-#
-# Revision 1.43.2.5  2006/10/30 13:24:16  toins
-# fix some minor POD error.
-#
-# Revision 1.43.2.4  2006/10/12 21:42:49  hdl
-# Managing multiple zebra connections
-#
-# Revision 1.43.2.3  2006/10/11 14:27:26  tipaul
-# removing a warning
-#
-# Revision 1.43.2.2  2006/10/10 15:28:16  hdl
-# BUG FIXING : using database name in Zconn if defined and not hard coded value
-#
-# Revision 1.43.2.1  2006/10/06 13:47:28  toins
-# Synch with dev_week.
-#  /!\ WARNING :: Please now use the new version of koha.xml.
-#
-# Revision 1.18.2.5.2.14  2006/09/24 15:24:06  kados
-# remove Zebraauth routine, fold the functionality into Zconn
-# Zconn can now take several arguments ... this will probably
-# change soon as I'm not completely happy with the readability
-# of the current format ... see the POD for details.
-#
-# cleaning up Biblio.pm, removing unnecessary routines.
-#
-# DeleteBiblio - used to delete a biblio from zebra and koha tables
-#     -- checks to make sure there are no existing issues
-#     -- saves backups of biblio,biblioitems,items in deleted* tables
-#     -- does commit operation
-#
-# getRecord - used to retrieve one record from zebra in piggyback mode using biblionumber
-# brought back z3950_extended_services routine
-#
-# Lots of modifications to Context.pm, you can now store user and pass info for
-# multiple servers (for federated searching) using the <serverinfo> element.
-# I'll commit my koha.xml to demonstrate this or you can refer to the POD in
-# Context.pm (which I also expanded on).
-#
-# Revision 1.18.2.5.2.13  2006/08/10 02:10:21  kados
-# Turned warnings on, and running a search turned up lots of warnings.
-# Cleaned up those ...
-#
-# removed getitemtypes from Koha.pm (one in Search.pm looks newer)
-# removed itemcount from Biblio.pm
-#
-# made some local subs local with a _ prefix (as they were redefined
-# elsewhere)
-#
-# Add two new search subs to Search.pm the start of a new search API
-# that's a bit more scalable
-#
-# Revision 1.18.2.5.2.10  2006/07/21 17:50:51  kados
-# moving the *.properties files to intranetdir/etc dir
-#
-# Revision 1.18.2.5.2.9  2006/07/17 08:05:20  tipaul
-# there was a hardcoded link to /koha/etc/ I replaced it with intranetdir config value
-#
-# Revision 1.18.2.5.2.8  2006/07/11 12:20:37  kados
-# adding ccl and cql files ... Tumer, if you want to fit these into the
-# config file by all means do.
-#
-# Revision 1.18.2.5.2.7  2006/06/04 22:50:33  tgarip1957
-# We do not hard code cql2rpn conversion file in context.pm our koha.xml configuration file already describes the path for this file.
-# At cql searching we use method CQL not CQL2RPN as the cql2rpn conversion file is defined at server level
-#
-# Revision 1.18.2.5.2.6  2006/06/02 23:11:24  kados
-# Committing my working dev_week. It's been tested only with
-# searching, and there's quite a lot of config stuff to set up
-# beforehand. As things get closer to a release, we'll be making
-# some scripts to do it for us
-#
-# Revision 1.18.2.5.2.5  2006/05/28 18:49:12  tgarip1957
-# This is an unusual commit. The main purpose is a working model of Zebra on a modified rel2_2.
-# Any questions regarding these commits should be asked to Joshua Ferraro unless you are Joshua whom I'll report to
-#
-# Revision 1.36  2006/05/09 13:28:08  tipaul
-# adding the branchname and the librarian name in every page :
-# - modified userenv to add branchname
-# - modifier menus.inc to have the librarian name & userenv displayed on every page. they are in a librarian_information div.
-#
-# Revision 1.35  2006/04/13 08:40:11  plg
-# bug fixed: typo on Zconnauth name
-#
-# Revision 1.34  2006/04/10 21:40:23  tgarip1957
-# A new handler defined for zebra Zconnauth with read/write permission. Zconnauth should only be called in biblio.pm where write operations are. Use of this handler will break things unless koha.conf contains new variables:
-# zebradb=localhost
-# zebraport=<your port>
-# zebrauser=<username>
-# zebrapass=<password>
-#
-# The zebra.cfg file should read:
-# perm.anonymous:r
-# perm.username:rw
-# passw.c:<yourpasswordfile>
-#
-# Password file should be prepared with Apaches htpasswd utility in encrypted mode and should exist in a folder zebra.cfg can read
-#
-# Revision 1.33  2006/03/15 11:21:56  plg
-# bug fixed: utf-8 data where not displayed correctly in screens. Supposing
-# your data are truely utf-8 encoded in your database, they should be
-# correctly displayed. "set names 'UTF8'" on mysql connection (C4/Context.pm)
-# is mandatory and "binmode" to utf8 (C4/Interface/CGI/Output.pm) seemed to
-# converted data twice, so it was removed.
-#
-# Revision 1.32  2006/03/03 17:25:01  hdl
-# Bug fixing : a line missed a comment sign.
-#
-# Revision 1.31  2006/03/03 16:45:36  kados
-# Remove the search that tests the Zconn -- warning, still no fault
-# tollerance
-#
-# Revision 1.30  2006/02/22 00:56:59  kados
-# First go at a connection object for Zebra. You can now get a
-# connection object by doing:
-#
-# my $Zconn = C4::Context->Zconn;
-#
-# My initial tests indicate that as soon as your funcion ends
-# (ie, when you're done doing something) the connection will be
-# closed automatically. There may be some other way to make the
-# connection more stateful, I'm not sure...
-#
-# Local Variables:
-# tab-width: 4
-# End:

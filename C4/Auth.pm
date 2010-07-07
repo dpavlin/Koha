@@ -84,41 +84,39 @@ C4::Auth - Authenticates Koha users
 
 =head1 DESCRIPTION
 
-    The main function of this module is to provide
-    authentification. However the get_template_and_user function has
-    been provided so that a users login information is passed along
-    automatically. This gets loaded into the template.
+The main function of this module is to provide
+authentification. However the get_template_and_user function has
+been provided so that a users login information is passed along
+automatically. This gets loaded into the template.
 
 =head1 FUNCTIONS
 
-=over 2
+=head2 get_template_and_user
 
-=item get_template_and_user
+ my ($template, $borrowernumber, $cookie)
+     = get_template_and_user(
+       {
+         template_name   => "opac-main.tmpl",
+         query           => $query,
+         type            => "opac",
+         authnotrequired => 1,
+         flagsrequired   => {borrow => 1, catalogue => '*', tools => 'import_patrons' },
+       }
+     );
 
-    my ($template, $borrowernumber, $cookie)
-        = get_template_and_user(
-          {
-            template_name   => "opac-main.tmpl",
-            query           => $query,
-            type            => "opac",
-            authnotrequired => 1,
-            flagsrequired   => {borrow => 1, catalogue => '*', tools => 'import_patrons' },
-          }
-        );
+This call passes the C<query>, C<flagsrequired> and C<authnotrequired>
+to C<&checkauth> (in this module) to perform authentification.
+See C<&checkauth> for an explanation of these parameters.
 
-    This call passes the C<query>, C<flagsrequired> and C<authnotrequired>
-    to C<&checkauth> (in this module) to perform authentification.
-    See C<&checkauth> for an explanation of these parameters.
+The C<template_name> is then used to find the correct template for
+the page. The authenticated users details are loaded onto the
+template in the HTML::Template LOOP variable C<USER_INFO>. Also the
+C<sessionID> is passed to the template. This can be used in templates
+if cookies are disabled. It needs to be put as and input to every
+authenticated page.
 
-    The C<template_name> is then used to find the correct template for
-    the page. The authenticated users details are loaded onto the
-    template in the HTML::Template LOOP variable C<USER_INFO>. Also the
-    C<sessionID> is passed to the template. This can be used in templates
-    if cookies are disabled. It needs to be put as and input to every
-    authenticated page.
-
-    More information on the C<gettemplate> sub can be found in the
-    Output.pm module.
+More information on the C<gettemplate> sub can be found in the
+Output.pm module.
 
 =cut
 
@@ -208,24 +206,16 @@ sub get_template_and_user {
             }
         }
 
-        if (C4::Context->preference('GranularPermissions')) {
-            if ( $flags ) {
-                foreach my $module (keys %$all_perms) {
-                    if ( $flags->{$module} == 1) {
-                        foreach my $subperm (keys %{ $all_perms->{$module} }) {
-                            $template->param( "CAN_user_${module}_${subperm}" => 1 );
-                        }
-                    } elsif ( ref($flags->{$module}) ) {
-                        foreach my $subperm (keys %{ $flags->{$module} } ) {
-                            $template->param( "CAN_user_${module}_${subperm}" => 1 );
-                        }
-                    }
-                }
-            }
-        } else {
+        if ( $flags ) {
             foreach my $module (keys %$all_perms) {
-                foreach my $subperm (keys %{ $all_perms->{$module} }) {
-                    $template->param( "CAN_user_${module}_${subperm}" => 1 );
+                if ( $flags->{$module} == 1) {
+                    foreach my $subperm (keys %{ $all_perms->{$module} }) {
+                        $template->param( "CAN_user_${module}_${subperm}" => 1 );
+                    }
+                } elsif ( ref($flags->{$module}) ) {
+                    foreach my $subperm (keys %{ $flags->{$module} } ) {
+                        $template->param( "CAN_user_${module}_${subperm}" => 1 );
+                    }
                 }
             }
         }
@@ -471,7 +461,7 @@ sub get_template_and_user {
     return ( $template, $borrowernumber, $cookie, $flags);
 }
 
-=item checkauth
+=head2 checkauth
 
   ($userid, $cookie, $sessionID) = &checkauth($query, $noauth, $flagsrequired, $type);
 
@@ -506,21 +496,22 @@ that the user must have the "circulate" privilege in order to
 proceed. To make sure that access control is correct, the
 C<$flagsrequired> parameter must be specified correctly.
 
-If the GranularPermissions system preference is ON, the
-value of each key in the C<flagsrequired> hash takes on an additional
-meaning, e.g.,
+Koha also has a concept of sub-permissions, also known as
+granular permissions.  This makes the value of each key
+in the C<flagsrequired> hash take on an additional
+meaning, i.e.,
 
-=item 1
+ 1
 
 The user must have access to all subfunctions of the module
 specified by the hash key.
 
-=item *
+ *
 
 The user must have access to at least one subfunction of the module
 specified by the hash key.
 
-=item specific permission, e.g., 'export_catalog'
+ specific permission, e.g., 'export_catalog'
 
 The user must have access to the specific subfunction list, which
 must correspond to a row in the permissions table.
@@ -980,7 +971,7 @@ sub checkauth {
     exit;
 }
 
-=item check_api_auth
+=head2 check_api_auth
 
   ($status, $cookie, $sessionId) = check_api_auth($query, $userflags);
 
@@ -1000,7 +991,7 @@ are OK.
 
 Possible return values in C<$status> are:
 
-=over 4
+=over
 
 =item "ok" -- user authenticated; C<$cookie> and C<$sessionid> have valid values.
 
@@ -1214,7 +1205,7 @@ sub check_api_auth {
     }
 }
 
-=item check_cookie_auth
+=head2 check_cookie_auth
 
   ($status, $sessionId) = check_api_auth($cookie, $userflags);
 
@@ -1227,7 +1218,7 @@ have been authenticated in the usual way.
 
 Possible return values in C<$status> are:
 
-=over 4
+=over
 
 =item "ok" -- user authenticated; C<$sessionID> have valid values.
 
@@ -1323,7 +1314,7 @@ sub check_cookie_auth {
     }
 }
 
-=item get_session
+=head2 get_session
 
   use CGI::Session;
   my $session = get_session($sessionID);
@@ -1427,7 +1418,7 @@ sub checkpw {
     return 0;
 }
 
-=item getuserflags
+=head2 getuserflags
 
     my $authflags = getuserflags($flags, $userid, [$dbh]);
 
@@ -1467,24 +1458,20 @@ sub getuserflags {
     return $userflags;
 }
 
-=item get_user_subpermissions
+=head2 get_user_subpermissions
 
-=over 4
-
-my $user_perm_hashref = get_user_subpermissions($userid);
-
-=back
+  $user_perm_hashref = get_user_subpermissions($userid);
 
 Given the userid (note, not the borrowernumber) of a staff user,
 return a hashref of hashrefs of the specific subpermissions
 accorded to the user.  An example return is
 
-{
+ {
     tools => {
         export_catalog => 1,
         import_patrons => 1,
     }
-}
+ }
 
 The top-level hash-key is a module or function code from
 userflags.flag, while the second-level key is a code
@@ -1515,13 +1502,9 @@ sub get_user_subpermissions {
     return $user_perms;
 }
 
-=item get_all_subpermissions
+=head2 get_all_subpermissions
 
-=over 4
-
-my $perm_hashref = get_all_subpermissions();
-
-=back
+  my $perm_hashref = get_all_subpermissions();
 
 Returns a hashref of hashrefs defining all specific
 permissions currently defined.  The return value
@@ -1545,7 +1528,7 @@ sub get_all_subpermissions {
     return $all_perms;
 }
 
-=item haspermission
+=head2 haspermission
 
   $flags = ($userid, $flagsrequired);
 
@@ -1571,20 +1554,16 @@ sub haspermission {
     }
     return $flags if $flags->{superlibrarian};
     foreach my $module ( keys %$flagsrequired ) {
-        if (C4::Context->preference('GranularPermissions')) {
-            my $subperm = $flagsrequired->{$module};
-            if ($subperm eq '*') {
-                return 0 unless ( $flags->{$module} == 1 or ref($flags->{$module}) );
-            } else {
-                return 0 unless ( $flags->{$module} == 1 or
-                                    ( ref($flags->{$module}) and
-                                      exists $flags->{$module}->{$subperm} and
-                                      $flags->{$module}->{$subperm} == 1
-                                    )
-                                );
-            }
+        my $subperm = $flagsrequired->{$module};
+        if ($subperm eq '*') {
+            return 0 unless ( $flags->{$module} == 1 or ref($flags->{$module}) );
         } else {
-            return 0 unless ( $flags->{$module} );
+            return 0 unless ( $flags->{$module} == 1 or
+                                ( ref($flags->{$module}) and
+                                  exists $flags->{$module}->{$subperm} and
+                                  $flags->{$module}->{$subperm} == 1
+                                )
+                            );
         }
     }
     return $flags;
@@ -1614,8 +1593,6 @@ sub getborrowernumber {
 END { }    # module clean-up code here (global destructor)
 1;
 __END__
-
-=back
 
 =head1 SEE ALSO
 

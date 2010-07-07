@@ -3605,6 +3605,87 @@ if (C4::Context->preference('Version') < TransformToNum($DBversion)){
     SetVersion ($DBversion);
 }
 
+$DBversion = '3.01.00.135';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do("
+        INSERT INTO `letter` (module, code, name, title, content) VALUES
+('reserves', 'HOLD_PRINT', 'Hold Available for Pickup (print notice)', 'Hold Available for Pickup (print notice)', '<<branches.branchname>>\r\n<<branches.branchaddress1>>\r\n<<branches.branchaddress2>>\r\n\r\n\r\nChange Service Requested\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<<borrowers.firstname>> <<borrowers.surname>>\r\n<<borrowers.address>>\r\n<<borrowers.city>> <<borrowers.zipcode>>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<<borrowers.firstname>> <<borrowers.surname>> <<borrowers.cardnumber>>\r\n\r\nYou have a hold available for pickup as of <<reserves.waitingdate>>:\r\n\r\nTitle: <<biblio.title>>\r\nAuthor: <<biblio.author>>\r\nCopy: <<items.copynumber>>\r\n')
+");
+    print "Upgrade to $DBversion done (bug 4377: added HOLD_PRINT message template)";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.136';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do(qq{
+INSERT INTO permissions (module_bit, code, description) VALUES
+   ( 9, 'edit_items', 'Edit Items');});
+    print "Upgrade to $DBversion done Adding a new permission to edit items";
+    SetVersion ($DBversion);
+}
+
+$DBversion = "3.01.00.137";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+        $dbh->do("
+          INSERT INTO permissions (module_bit, code, description) VALUES
+          (15, 'check_expiration', 'Check the expiration of a serial'),
+          (15, 'claim_serials', 'Claim missing serials'),
+          (15, 'create_subscription', 'Create a new subscription'),
+          (15, 'delete_subscription', 'Delete an existing subscription'),
+          (15, 'edit_subscription', 'Edit an existing subscription'),
+          (15, 'receive_serials', 'Serials receiving'),
+          (15, 'renew_subscription', 'Renew a subscription'),
+          (15, 'routing', 'Routing');
+                 ");
+    print "Upgrade to $DBversion done (adding granular permissions for serials)";
+    SetVersion ($DBversion);
+}
+
+$DBversion = "3.01.00.138";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("DELETE FROM systempreferences WHERE variable = 'GranularPermissions'");
+    print "Upgrade to $DBversion done (bug 4896: removing GranularPermissions syspref; use of granular permissions is now the default)";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.139';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do("ALTER TABLE message_attributes CHANGE message_name message_name varchar(40);");
+    print "Upgrade to $DBversion done (bug 3682: change message_name from varchar(20) to varchar(40))\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.140';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do("UPDATE systempreferences SET value = '0' WHERE variable = 'TagsModeration' AND value is NULL");
+    print "Upgrade to $DBversion done (bug 4312 TagsModeration changed from NULL to 0)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.141';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do(qq{DELETE FROM message_attributes WHERE message_attribute_id=3;});
+    $dbh->do(qq{DELETE FROM letter WHERE code='EVENT' AND title='Upcoming Library Event';});
+    print "Upgrade to $DBversion done Remove upcoming events messaging option (bug 2434)";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.142';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do(qq{DELETE FROM message_transports WHERE message_attribute_id=3;});
+    print "Upgrade to $DBversion done Remove upcoming events messaging option part 2 (bug 2434)";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.01.00.143';
+if (C4::Context->preference('Version') < TransformToNum($DBversion)){
+    $dbh->do(qq{CREATE INDEX auth_value_idx ON authorised_values (authorised_value)});
+    $dbh->do(qq{CREATE INDEX auth_val_cat_idx ON borrower_attribute_types (authorised_value_category)});
+    print "Create index on authorised_values and borrower_attribute_types (bug 4139)";
+    SetVersion ($DBversion);
+}
+
+
 =item DropAllForeignKeys($table)
 
   Drop all foreign keys of the table $table

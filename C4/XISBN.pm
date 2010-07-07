@@ -104,7 +104,7 @@ sub get_xisbns {
     # XISBN
     if ( C4::Context->preference('XISBN') ) {
         my $affiliate_id=C4::Context->preference('OCLCAffiliateID');
-        my $limit = C4::Context->preference('XISBNDailyLimit') || 499;
+        my $limit = C4::Context->preference('XISBNDailyLimit') || 999;
         my $reached_limit = _service_throttle('xisbn',$limit);
         my $url = "http://xisbn.worldcat.org/webservices/xid/isbn/".$isbn."?method=getEditions&format=xml&fl=form,year,lang,ed";
         $url.="&ai=".$affiliate_id if $affiliate_id;
@@ -179,6 +179,8 @@ sub _service_throttle {
 __END__
 
 =head1 NOTES
+
+=cut
 
 =head1 AUTHOR
 

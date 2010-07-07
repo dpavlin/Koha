@@ -74,21 +74,13 @@ $VERSION = 3.00;
 );
 
 
-=head2 marc2bibtex - Convert from UNIMARC to RIS
+=head1 marc2bibtex - Convert from UNIMARC to RIS
 
-=over 4
-
-my ($ris) = marc2ris($record);
+  my ($ris) = marc2ris($record);
 
 Returns a RIS scalar
 
-=over 2
-
 C<$record> - a MARC::Record object
-
-=back
-
-=back
 
 =cut
 
@@ -285,8 +277,6 @@ sub marc2ris {
 
 	## end RIS dataset
 	print "ER  - \n";
-
-    warn $outvar;
 
     # Let's re-redirect stdout
     close STDOUT;
@@ -955,7 +945,6 @@ sub charconv {
     }
     elsif ($uniout eq "t") {
 	## convert to utf-8
-	warn "marc8_to_utf8";
 	return marc8_to_utf8("@_");
     }
     else {
