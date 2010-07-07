@@ -349,8 +349,6 @@ sub SendAlerts {
                 'Content-Type' => 'text/plain; charset="utf8"',
             );
             sendmail(%mail) or carp $Mail::Sendmail::error;
-            warn
-"sending to $mail{To} From $mail{From} subj $mail{Subject} Mess $mail{Message}";
         }
         if ( C4::Context->preference("LetterLog") ) {
             logaction(
@@ -439,8 +437,6 @@ sub SendAlerts {
                   . $innerletter->{content}
             ) if C4::Context->preference("LetterLog");
         }
-        warn
-"sending to From $userenv->{emailaddress} subj $innerletter->{title} Mess $innerletter->{content}";
     }    
    # send an "account details" notice to a newly created user 
     elsif ( $type eq 'members' ) {
@@ -803,7 +799,12 @@ sub _send_message_by_email ($;$$$) {
             return;
         }
         my $which_address = C4::Context->preference('AutoEmailPrimaryAddress');
-        $to_address = $member->{$which_address};
+        # If the system preference is set to 'first valid' (value == OFF), look up email address
+        if ($which_address eq 'OFF') {
+            $to_address = GetFirstValidEmailAddress( $message->{'borrowernumber'} );
+        } else {
+            $to_address = $member->{$which_address};
+        }
         unless ($to_address) {  
             # warn "FAIL: No 'to_address' and no email for " . ($member->{surname} ||'') . ", borrowernumber ($message->{borrowernumber})";
             # warning too verbose for this more common case?

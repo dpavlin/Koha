@@ -184,7 +184,6 @@ sub printbasketgrouppdf{
     
     my $pdfformat = C4::Context->preference("OrderPdfFormat");
     eval "use $pdfformat" ;
-    warn @_;
     eval "use C4::Branch";
     
     my $basketgroup = GetBasketgroup($basketgroupid);
@@ -239,7 +238,10 @@ sub printbasketgrouppdf{
         }
         $orders{$basket->{basketno}}=\@ba_orders;
     }
-    print $input->header( -type => 'application/pdf', -attachment => $basketgroup->{name}.'.pdf' );
+    print $input->header(
+        -type       => 'application/pdf',
+        -attachment => ( $basketgroup->{name} || $basketgroupid ) . '.pdf'
+    );
     my $pdf = printpdf($basketgroup, $bookseller, $baskets, \%orders, $bookseller->{gstrate} || C4::Context->preference("gist")) || die "pdf generation failed";
     print $pdf;
     exit;
@@ -386,9 +388,7 @@ if ( $op eq "add" ) {
     printbasketgrouppdf($basketgroupid);
 }elsif( $op eq "delete"){
     my $basketgroupid = $input->param('basketgroupid');
-    warn $basketgroupid;
     DelBasketgroup($basketgroupid);
-    warn "---------------";
     print $input->redirect('/cgi-bin/koha/acqui/basketgroup.pl?booksellerid=' . $booksellerid);
     
 }elsif ( $op eq 'reopen'){
