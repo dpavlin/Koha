@@ -1,1 +1,1 @@
-<!-- TMPL_VAR NAME="OpacNav" -->
+<!-- TMPL_VAR NAME="OpacNav" ESCAPE="0" -->

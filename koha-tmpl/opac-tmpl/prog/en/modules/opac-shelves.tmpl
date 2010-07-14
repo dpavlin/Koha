@@ -1,4 +1,4 @@
-<!-- TMPL_INCLUDE NAME="doc-head-open.inc" --><!-- TMPL_IF NAME="LibraryNameTitle" --><!-- TMPL_VAR NAME="LibraryNameTitle" --><!-- TMPL_ELSE -->Koha Online<!-- /TMPL_IF --> Catalog &rsaquo;   <!-- TMPL_IF NAME="viewshelf" -->Contents of <!-- TMPL_VAR NAME="shelfname" ESCAPE="html" --><!-- TMPL_ELSE -->My Lists<!-- /TMPL_IF --><!-- TMPL_INCLUDE NAME="doc-head-close.inc" -->
+<!-- TMPL_INCLUDE NAME="doc-head-open.inc" --><!-- TMPL_IF NAME="LibraryNameTitle" --><!-- TMPL_VAR NAME="LibraryNameTitle" --><!-- TMPL_ELSE -->Koha Online<!-- /TMPL_IF --> Catalog &rsaquo;   <!-- TMPL_IF NAME="viewshelf" -->Contents of <!-- TMPL_VAR NAME="shelfname" --><!-- TMPL_ELSE -->My Lists<!-- /TMPL_IF --><!-- TMPL_INCLUDE NAME="doc-head-close.inc" -->
 <script type="text/javascript" src="<!-- TMPL_VAR name="themelang" -->/lib/jquery/plugins/jquery.checkboxes.min.js"></script>
 <script type="text/javascript" src="<!-- TMPL_VAR name="themelang" -->/lib/jquery/plugins/jquery.tablesorter.min.js"></script>
 <script type="text/JavaScript" language="JavaScript">
@@ -183,7 +183,7 @@ $(function() {
             
 
             <!-- TMPL_IF NAME="viewshelf" --><!--  Viewing a particular shelf -->
-              <h3><a href="/cgi-bin/koha/opac-shelves.pl">Lists</a> <img src="<!-- TMPL_VAR NAME="themelang" -->/../images/caret.gif" width="16" height="16" alt="&gt;" border="0" /> <em><!-- TMPL_VAR NAME="shelfname" ESCAPE="html" --></em></h3>
+              <h3><a href="/cgi-bin/koha/opac-shelves.pl">Lists</a> <img src="<!-- TMPL_VAR NAME="themelang" -->/../images/caret.gif" width="16" height="16" alt="&gt;" border="0" /> <em><!-- TMPL_VAR NAME="shelfname" --></em></h3>
               <!-- TMPL_IF NAME="itemsloop" -->
                   <div id="toolbar" class="list-actions"> <span class="checkall"></span>
                     <span class="clearall"></span>
@@ -227,7 +227,7 @@ $(function() {
                     <input type="hidden" name="viewshelf" value="<!-- TMPL_VAR NAME="shelfnumber" -->" />
                     <input type="hidden" name="modifyshelfcontents" value="1" />
                 <!-- /TMPL_IF -->
-                <!-- TMPL_VAR name='pagination_bar'-->
+                <!-- TMPL_VAR name="pagination_bar" ESCAPE="0"-->
                 <table id="listcontents">
                   <thead><tr>
                     <th>&nbsp;</th>
@@ -251,8 +251,8 @@ $(function() {
                           <img src="<!-- TMPL_VAR NAME="imageurl" -->" alt="<!-- TMPL_VAR NAME="description" -->" title="<!-- TMPL_VAR NAME="description" -->" /><!-- TMPL_VAR NAME="description" -->
                         </td>
                     <!-- /TMPL_UNLESS -->
-                        <td><!-- TMPL_IF NAME="BiblioDefaultViewmarc" --><a class="title" href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="title" escape="html" --> <!-- TMPL_IF NAME="subtitle" --><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP --><!-- /TMPL_IF --></a><!-- TMPL_ELSE -->
-                        <!-- TMPL_IF NAME="BiblioDefaultViewisbd" --><a class="title" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="title" escape="html" --> <!-- TMPL_IF NAME="subtitle" --><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP --><!-- /TMPL_IF --></a><!-- TMPL_ELSE --><a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="title" escape="html" --> <!-- TMPL_IF NAME="subtitle" --><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP --><!-- /TMPL_IF --></a><!-- /TMPL_IF --><!-- /TMPL_IF -->
+                        <td><!-- TMPL_IF NAME="BiblioDefaultViewmarc" --><a class="title" href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="title" --> <!-- TMPL_IF NAME="subtitle" --><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP --><!-- /TMPL_IF --></a><!-- TMPL_ELSE -->
+                        <!-- TMPL_IF NAME="BiblioDefaultViewisbd" --><a class="title" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="title" --> <!-- TMPL_IF NAME="subtitle" --><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP --><!-- /TMPL_IF --></a><!-- TMPL_ELSE --><a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="title" --> <!-- TMPL_IF NAME="subtitle" --><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP --><!-- /TMPL_IF --></a><!-- /TMPL_IF --><!-- /TMPL_IF -->
                     <!-- COinS / OpenURL -->
                           <!-- COinS / OpenURL --><span class="Z3988" title="<!-- TMPL_VAR NAME="coins" -->"></span>
                           <br/>
@@ -303,13 +303,13 @@ $(function() {
 
             
             <!-- TMPL_IF NAME="edit" -->
-                <h3><a href="/cgi-bin/koha/opac-shelves.pl">Lists</a> <img src="<!-- TMPL_VAR NAME="themelang" -->/../images/caret.gif" width="16" height="16" alt="&gt;" border="0" /> <a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=<!-- TMPL_VAR NAME="shelfnumber" -->"><em><!-- TMPL_VAR NAME="shelfname" ESCAPE="html" --></em></a> <img src="<!-- TMPL_VAR NAME="themelang" -->/../images/caret.gif" width="16" height="16" alt="&gt;" border="0" /> Editing</h3>
+                <h3><a href="/cgi-bin/koha/opac-shelves.pl">Lists</a> <img src="<!-- TMPL_VAR NAME="themelang" -->/../images/caret.gif" width="16" height="16" alt="&gt;" border="0" /> <a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=<!-- TMPL_VAR NAME="shelfnumber" -->"><em><!-- TMPL_VAR NAME="shelfname" --></em></a> <img src="<!-- TMPL_VAR NAME="themelang" -->/../images/caret.gif" width="16" height="16" alt="&gt;" border="0" /> Editing</h3>
                 <form method="post" action="/cgi-bin/koha/opac-shelves.pl">
                   <input type="hidden" name="op" value="modifsave" />
                   <input type="hidden" name="shelfnumber" value="<!-- TMPL_VAR NAME="shelfnumber" -->" />
                   <fieldset class="rows">
                     <ol>
-                      <li><label for="shelfname">List Name: </label><input type="text" id="shelfname" name="shelfname" size="60" value="<!-- TMPL_VAR NAME="shelfname" ESCAPE="html" -->" /></li>
+                      <li><label for="shelfname">List Name: </label><input type="text" id="shelfname" name="shelfname" size="60" value="<!-- TMPL_VAR NAME="shelfname" -->" /></li>
                       <li>
                         <label for="sortfield" >Sort this list by: </label>
                         <select name="sortfield" id="sortfield">
@@ -359,7 +359,7 @@ $(function() {
                     <div id="toolbar"><a class="newshelf" href="/cgi-bin/koha/opac-shelves.pl?shelves=1">New List</a></div>
                   <!-- TMPL_IF NAME="showprivateshelves" -->
                     <!-- TMPL_IF NAME="shelveslooppriv" -->
-                      <!-- TMPL_VAR name='pagination_bar'-->
+                      <!-- TMPL_VAR name="pagination_bar" ESCAPE="0" -->
                       <table>
                         <tr>
                           <th>List Name</th>
@@ -374,7 +374,7 @@ $(function() {
                           <!--TMPL_ELSE-->
                             <tr>
                           <!-- /TMPL_UNLESS -->
-                              <td><a href="/cgi-bin/koha/opac-shelves.pl?display=privateshelves&amp;viewshelf=<!-- TMPL_VAR NAME="shelf" -->&amp;sortfield=<!-- TMPL_VAR NAME="sortfield" -->"><!-- TMPL_VAR NAME="shelfname" ESCAPE="html"  --></a></td>
+                              <td><a href="/cgi-bin/koha/opac-shelves.pl?display=privateshelves&amp;viewshelf=<!-- TMPL_VAR NAME="shelf" -->&amp;sortfield=<!-- TMPL_VAR NAME="sortfield" -->"><!-- TMPL_VAR NAME="shelfname"  --></a></td>
                               <td><!-- TMPL_VAR NAME="count" --> item(s)</td>
                               <td><!-- TMPL_IF NAME="authorsort" -->Author<!-- TMPL_ELSIF NAME="yearsort" -->Year<!-- TMPL_ELSE -->Title<!-- /TMPL_IF -->
                           </td>
@@ -429,7 +429,7 @@ $(function() {
                   <div><a href="/cgi-bin/koha/opac-user.pl">Log in</a> to create new Lists.</div>
                   <!-- /TMPL_IF -->
                   <!-- TMPL_IF NAME="shelvesloop" -->
-                    <!-- TMPL_VAR name='pagination_bar'-->
+                    <!-- TMPL_VAR name="pagination_bar" ESCAPE="0" -->
                       <table>
                         <tr>
                           <th>List Name</th>
@@ -443,7 +443,7 @@ $(function() {
                       <!--TMPL_ELSE-->
                         <tr>
                       <!-- /TMPL_UNLESS -->
-                          <td><a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=<!-- TMPL_VAR NAME="shelf" -->&amp;sortfield=<!-- TMPL_VAR NAME="sortfield" -->"><!-- TMPL_VAR NAME="shelfname" ESCAPE="html"  --></a></td>
+                          <td><a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=<!-- TMPL_VAR NAME="shelf" -->&amp;sortfield=<!-- TMPL_VAR NAME="sortfield" -->"><!-- TMPL_VAR NAME="shelfname"  --></a></td>
                           <td><!-- TMPL_VAR NAME="count" --> item(s)</td>
                           <td><!-- TMPL_IF NAME="authorsort" -->Author<!-- TMPL_ELSIF NAME="yearsort" -->Year<!-- TMPL_ELSE -->Title<!-- /TMPL_IF -->
                           </td>

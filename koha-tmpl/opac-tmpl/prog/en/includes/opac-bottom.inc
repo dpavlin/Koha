@@ -1,7 +1,7 @@
 
 <!-- TMPL_IF NAME="opaccredits" -->
 	<div class="ft">
-        <!-- TMPL_VAR NAME="opaccredits" -->
+        <!-- TMPL_VAR NAME="opaccredits" ESCAPE="0" -->
     </div>
 <!-- /TMPL_IF -->
 </div>
@@ -12,7 +12,7 @@
         <!-- TMPL_LOOP NAME="languages_loop" -->
             <!-- TMPL_IF NAME="group_enabled" -->
             <!-- TMPL_IF NAME="plural" -->
-            <a id="show<!-- TMPL_VAR NAME="rfc4646_subtag" -->" class="sublangs more" href="#"><!-- TMPL_IF NAME="native_description" --><!-- TMPL_VAR NAME="native_description" --><!-- TMPL_ELSE --><!-- TMPL_VAR NAME="rfc4646_subtag" --><!-- /TMPL_IF --></a>
+            <a id="show<!-- TMPL_VAR NAME="rfc4646_subtag" -->" class="sublangs more" href="#"><!-- TMPL_IF NAME="native_description" --><!-- TMPL_VAR NAME="native_description" ESCAPE="0" --><!-- TMPL_ELSE --><!-- TMPL_VAR NAME="rfc4646_subtag" --><!-- /TMPL_IF --></a>
 			<div id="sub<!-- TMPL_VAR NAME="rfc4646_subtag" -->">
             <div class="bd"><ul>
             <!-- TMPL_LOOP NAME="sublanguages_loop" -->
@@ -20,7 +20,7 @@
                 <!-- TMPL_IF NAME="sublanguage_current" -->
                     <li> <!-- TMPL_VAR NAME="native_description" --> <!-- TMPL_VAR NAME="script_description" --> <!-- TMPL_VAR NAME="region_description" --> <!-- TMPL_VAR NAME="variant_description" --> (<!-- TMPL_VAR NAME="rfc4646_subtag" -->)</li>
                 <!-- TMPL_ELSE -->
-                <li><a href="/cgi-bin/koha/opac-changelanguage.pl?language=<!-- TMPL_VAR NAME="rfc4646_subtag" -->"> <!-- TMPL_VAR NAME="native_description" --> <!-- TMPL_VAR NAME="script_description" --> <!-- TMPL_VAR NAME="region_description" --> <!-- TMPL_VAR NAME="variant_description" --> (<!-- TMPL_VAR NAME="rfc4646_subtag" -->)</a></li>
+                <li><a href="/cgi-bin/koha/opac-changelanguage.pl?language=<!-- TMPL_VAR NAME="rfc4646_subtag" -->"> <!-- TMPL_VAR NAME="native_description" ESCAPE="0" --> <!-- TMPL_VAR NAME="script_description" ESCAPE="0" --> <!-- TMPL_VAR NAME="region_description" ESCAPE="0" --> <!-- TMPL_VAR NAME="variant_description" ESCAPE="0" --> (<!-- TMPL_VAR NAME="rfc4646_subtag" -->)</a></li>
                 <!-- /TMPL_IF -->
 		<!-- /TMPL_IF -->
             <!-- /TMPL_LOOP -->

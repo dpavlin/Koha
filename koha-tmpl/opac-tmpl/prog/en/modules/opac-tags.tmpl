@@ -97,7 +97,7 @@
 	<!-- TMPL_LOOP NAME="TAGLOOP" -->
 	<span class="tag" id="tag<!-- TMPL_VAR NAME="__counter__" -->" title="<!-- TMPL_VAR NAME="cloudweight" -->">
 		<a href="/cgi-bin/koha/opac-search.pl?tag=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->&amp;q=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->">
-		<!-- TMPL_VAR NAME="term" ESCAPE="HTML" --></a>
+		<!-- TMPL_VAR NAME="term" --></a>
 			<span class="tagweight"><!-- TMPL_VAR NAME="weight_total" --></span>
 	</span>
 	<!-- /TMPL_LOOP -->
@@ -121,10 +121,10 @@
 		</tr></thead>
 	<tbody><!-- TMPL_LOOP NAME="MY_TAGS" -->
 		<tr><td><a href="/cgi-bin/koha/opac-search.pl?tag=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->&amp;q=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->">
-				<!-- TMPL_VAR NAME="term" ESCAPE="HTML" --></a>
+				<!-- TMPL_VAR NAME="term" --></a>
 			</td>
 			<td><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">
-				<!-- TMPL_VAR NAME="bib_summary" ESCAPE="HTML" --></a></td>
+				<!-- TMPL_VAR NAME="bib_summary" --></a></td>
 			<td><!-- TMPL_VAR NAME="date_created_display" --></td>
 			<td><input type="submit" name="del<!-- TMPL_VAR NAME="tag_id" -->" value="Delete" /></td>
 		</tr>

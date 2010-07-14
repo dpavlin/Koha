@@ -13,11 +13,11 @@
       <webMaster></webMaster>
       <!-- TMPL_LOOP NAME="message_list" -->
       <item>
-        <title><!-- TMPL_VAR ESCAPE=HTML NAME="subject" --></title>
-        <link><!-- TMPL_VAR ESCAPE=HTML NAME="title" --></link>
-        <description><!-- TMPL_VAR ESCAPE=HTML NAME="content"--></description>
-        <pubDate><!-- TMPL_VAR ESCAPE=HTML NAME="time_queued" --></pubDate>
-        <guid><!-- TMPL_VAR ESCAPE=HTML NAME="title" --></guid>
+        <title><!-- TMPL_VAR NAME="subject" --></title>
+        <link><!-- TMPL_VAR NAME="title" --></link>
+        <description><!-- TMPL_VAR NAME="content"--></description>
+        <pubDate><!-- TMPL_VAR NAME="time_queued" --></pubDate>
+        <guid><!-- TMPL_VAR NAME="title" --></guid>
       </item>
       <!-- /TMPL_LOOP -->
    </channel>

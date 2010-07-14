@@ -98,6 +98,7 @@ sub gettemplate {
     my $template       = HTML::Template::Pro->new(
         filename          => $filename,
         die_on_bad_params => 1,
+        default_escape    => 'html',
         global_vars       => 1,
         case_sensitive    => 1,
         loop_context_vars => 1, # enable: __first__, __last__, __inner__, __odd__, __counter__ 

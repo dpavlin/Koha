@@ -1,4 +1,4 @@
-<!-- TMPL_INCLUDE NAME="doc-head-open.inc" --><!-- TMPL_IF NAME="LibraryNameTitle" --><!-- TMPL_VAR NAME="LibraryNameTitle" --><!-- TMPL_ELSE -->Koha Online<!-- /TMPL_IF --> Catalog &rsaquo; Details for: <!-- TMPL_VAR NAME="title" escape="html" --><!-- TMPL_LOOP NAME="subtitle" -->, <!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP -->
+<!-- TMPL_INCLUDE NAME="doc-head-open.inc" --><!-- TMPL_IF NAME="LibraryNameTitle" --><!-- TMPL_VAR NAME="LibraryNameTitle" --><!-- TMPL_ELSE -->Koha Online<!-- /TMPL_IF --> Catalog &rsaquo; Details for: <!-- TMPL_VAR NAME="title" --><!-- TMPL_LOOP NAME="subtitle" -->, <!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP -->
 <!-- TMPL_INCLUDE NAME="doc-head-close.inc" -->
 <script type="text/javascript" src="<!-- TMPL_VAR name="themelang" -->/lib/jquery/plugins/jquery.tablesorter.min.js"></script>
 <script type="text/JavaScript" language="JavaScript">
@@ -80,7 +80,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
     <!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
 
     <!-- TMPL_IF NAME="GoogleJackets" --><div style="block" title="<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->" class="<!-- TMPL_VAR NAME="normalized_isbn" -->" id="gbs-thumbnail-preview"></div><!-- /TMPL_IF -->
-    <!-- TMPL_IF NAME="BakerTaylorEnabled" --><!-- TMPL_IF NAME="normalized_isbn" --><!-- TMPL_IF NAME="OPACURLOpenInNewWindow" --><a href="https://<!-- TMPL_VAR NAME="BakerTaylorBookstoreURL" ESCAPE="HTML" --><!-- TMPL_VAR NAME="normalized_isbn" -->" target="_blank"><img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" ESCAPE="HTML" --><!-- TMPL_VAR NAME="normalized_isbn" -->" /></a><!-- TMPL_ELSE --><a href="https://<!-- TMPL_VAR NAME="BakerTaylorBookstoreURL" ESCAPE="HTML" --><!-- TMPL_VAR NAME="normalized_isbn" -->"><img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" ESCAPE="HTML" --><!-- TMPL_VAR NAME="normalized_isbn" -->" /></a><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
+    <!-- TMPL_IF NAME="BakerTaylorEnabled" --><!-- TMPL_IF NAME="normalized_isbn" --><!-- TMPL_IF NAME="OPACURLOpenInNewWindow" --><a href="https://<!-- TMPL_VAR NAME="BakerTaylorBookstoreURL" --><!-- TMPL_VAR NAME="normalized_isbn" -->" target="_blank"><img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" --><!-- TMPL_VAR NAME="normalized_isbn" -->" /></a><!-- TMPL_ELSE --><a href="https://<!-- TMPL_VAR NAME="BakerTaylorBookstoreURL" --><!-- TMPL_VAR NAME="normalized_isbn" -->"><img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" --><!-- TMPL_VAR NAME="normalized_isbn" -->" /></a><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
     </div>
 
     <abbr class="unapi-id" title="koha:biblionumber:<!-- TMPL_VAR NAME="biblionumber" -->"><!-- unAPI --></abbr>
@@ -90,10 +90,10 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
     <!-- /TMPL_IF -->
 
     <!-- TMPL_IF NAME="OPACXSLTDetailsDisplay" -->
-        <!-- TMPL_VAR NAME="XSLTBloc" -->
+        <!-- TMPL_VAR NAME="XSLTBloc" ESCAPE="0" -->
     <!-- TMPL_ELSE -->
-    <h1><!-- TMPL_VAR NAME="title" escape="html" --><!-- TMPL_IF NAME="subtitle" --> <span class="subtitle"><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --> <!-- /TMPL_LOOP --></span><!-- /TMPL_IF --></h1>
-    <!-- TMPL_IF NAME="author" --><h5 class="author">by <a href="/cgi-bin/koha/opac-search.pl?q=au:<!-- TMPL_VAR NAME="author" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="author" ESCAPE="HTML" --></a></h5><!-- /TMPL_IF --> 
+    <h1><!-- TMPL_VAR NAME="title" --><!-- TMPL_IF NAME="subtitle" --> <span class="subtitle"><!-- TMPL_LOOP NAME="subtitle" --><!-- TMPL_VAR NAME="subfield" --> <!-- /TMPL_LOOP --></span><!-- /TMPL_IF --></h1>
+    <!-- TMPL_IF NAME="author" --><h5 class="author">by <a href="/cgi-bin/koha/opac-search.pl?q=au:<!-- TMPL_VAR NAME="author" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="author" --></a></h5><!-- /TMPL_IF --> 
     <div id="views"><span class="view"><span id="Normalview">Normal View</span></span> <span class="view"><a id="MARCview" href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">MARC View</a></span> <!-- TMPL_IF NAME="ISBD" --><span class="view"><a id="ISBDview" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">ISBD View</a></span><!-- /TMPL_IF -->
     </div>
 
@@ -133,7 +133,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
     <!-- TMPL_IF name="publishercode" -->
     <span class="results_summary"><span class="label">Published by :</span>
         <a href="/cgi-bin/koha/opac-search.pl?q=pb:<!-- TMPL_VAR NAME="publishercode" ESCAPE="URL" --> ">
-            <!-- TMPL_VAR NAME="publishercode" ESCAPE="HTML" --> 
+            <!-- TMPL_VAR NAME="publishercode" --> 
         </a> <!-- TMPL_IF name="place" -->(<!-- TMPL_VAR NAME="place"-->)<!--/TMPL_IF--> <!-- TMPL_IF NAME="publicationyear" -->, <!-- TMPL_VAR NAME="publicationyear" --><!-- /TMPL_IF -->
     </span>
     <!-- /TMPL_IF -->
@@ -228,7 +228,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <!-- TMPL_IF NAME="GetShelves" -->
 	<span class="results_summary"><span class="label">List(s) this item appears in: </span>
 	<!-- TMPL_LOOP NAME="GetShelves" -->
-		<a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=<!-- TMPL_VAR NAME="shelfnumber" -->&sortfield=title"><!-- TMPL_VAR NAME="shelfname" --></a> 
+		<a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=<!-- TMPL_VAR NAME="shelfnumber" -->&amp;sortfield=title"><!-- TMPL_VAR NAME="shelfname" --></a> 
 		<!-- TMPL_IF NAME="__LAST__" --><!-- TMPL_ELSE -->|<!-- /TMPL_IF -->
 	<!-- /TMPL_LOOP -->
 	</span>
@@ -239,7 +239,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
         <!-- TMPL_IF NAME="TagLoop" -->
         <span class="label">Tags from this library:</span>
             <ul><!-- TMPL_LOOP NAME="TagLoop" -->
-            <li><a href="/cgi-bin/koha/opac-search.pl?tag=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->&amp;q=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="term" ESCAPE="HTML" --></a> <span class="weight">(<!-- TMPL_VAR NAME="weight_total" -->)</span></li>
+            <li><a href="/cgi-bin/koha/opac-search.pl?tag=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->&amp;q=<!-- TMPL_VAR NAME="term" ESCAPE="URL" -->"><!-- TMPL_VAR NAME="term" --></a> <span class="weight">(<!-- TMPL_VAR NAME="weight_total" -->)</span></li>
             <!-- /TMPL_LOOP -->
             </ul><!-- TMPL_ELSE --><span class="label">Tags from this library:</span><div>No tags from this library for this title.</div> 
         <!-- /TMPL_IF -->
@@ -302,7 +302,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 
     <!-- TMPL_IF NAME="BakerTaylorContentURL" -->
         <span class="results_summary">
-        <span class="label">Enhanced Content:</span><!-- TMPL_IF NAME="OPACURLOpenInNewWindow" --><a href="<!-- TMPL_VAR NAME="BakerTaylorContentURL" ESCAPE="HTML" -->" target="_blank">Content Cafe</a><!-- TMPL_ELSE --><a href="<!-- TMPL_VAR NAME="BakerTaylorContentURL" ESCAPE="HTML" -->">Content Cafe</a><!-- /TMPL_IF -->
+        <span class="label">Enhanced Content:</span><!-- TMPL_IF NAME="OPACURLOpenInNewWindow" --><a href="<!-- TMPL_VAR NAME="BakerTaylorContentURL" -->" target="_blank">Content Cafe</a><!-- TMPL_ELSE --><a href="<!-- TMPL_VAR NAME="BakerTaylorContentURL" -->">Content Cafe</a><!-- /TMPL_IF -->
         </span>
     <!-- /TMPL_IF -->
 </div>
@@ -433,7 +433,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
     <!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
     <!-- TMPL_IF NAME="GoogleJackets" --><!-- TMPL_IF NAME="browser_normalized_isbn" --><div style="block" title="<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->" class="<!-- TMPL_VAR name="browser_normalized_isbn" -->" id="gbs-thumbnail-preview<!--TMPL_VAR NAME="__counter__"-->"></div><!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF -->
     <!-- TMPL_IF NAME="BakerTaylorEnabled" --><!-- TMPL_IF NAME="browser_normalized_isbn" -->
-    <img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" ESCAPE="HTML" --><!-- TMPL_VAR NAME="browser_normalized_isbn" -->" /><!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF -->
+    <img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" --><!-- TMPL_VAR NAME="browser_normalized_isbn" -->" /><!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF -->
 
 </a></td>
 <!-- /TMPL_LOOP -->
@@ -452,7 +452,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 
     <!-- TMPL_IF NAME="GoogleJackets" --><!-- TMPL_IF NAME="browser_normalized_isbn" --><div style="block" title="<!-- TMPL_VAR NAME="biblionumber" ESCAPE="URL" -->" class="<!-- TMPL_VAR name="browser_normalized_isbn" -->" id="gbs-thumbnail-preview<!--TMPL_VAR NAME="__counter__"-->"></div><!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF -->
     <!-- TMPL_IF NAME="BakerTaylorEnabled" --><!-- TMPL_IF NAME="browser_normalized_isbn" -->
-    <img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" ESCAPE="HTML" --><!-- TMPL_VAR NAME="browser_normalized_isbn" -->" /><!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF -->
+    <img alt="See Baker &amp; Taylor" src="<!-- TMPL_VAR NAME="BakerTaylorImageURL" --><!-- TMPL_VAR NAME="browser_normalized_isbn" -->" /><!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF -->
 
 </a></td>
 <!-- /TMPL_LOOP -->
@@ -461,11 +461,11 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 
 <tr>
 <!-- TMPL_LOOP NAME="PREVIOUS_SHELF_BROWSE" -->
-<td class="top"><!-- TMPL_VAR NAME="itemcallnumber" --><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->&amp;shelfbrowse_itemnumber=<!-- TMPL_VAR NAME="itemnumber" -->#shelfbrowser"><!-- TMPL_VAR NAME="title" escape="html" --></a></td>
+<td class="top"><!-- TMPL_VAR NAME="itemcallnumber" --><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->&amp;shelfbrowse_itemnumber=<!-- TMPL_VAR NAME="itemnumber" -->#shelfbrowser"><!-- TMPL_VAR NAME="title" --></a></td>
 <!-- /TMPL_LOOP -->
 
 <!-- TMPL_LOOP NAME="NEXT_SHELF_BROWSE" -->
-       <td class="top"><!-- TMPL_VAR NAME="itemcallnumber" --><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->&amp;shelfbrowse_itemnumber=<!-- TMPL_VAR NAME="itemnumber" -->#shelfbrowser"><!-- TMPL_VAR NAME="title" escape="html" --></a></td>
+       <td class="top"><!-- TMPL_VAR NAME="itemcallnumber" --><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->&amp;shelfbrowse_itemnumber=<!-- TMPL_VAR NAME="itemnumber" -->#shelfbrowser"><!-- TMPL_VAR NAME="title" --></a></td>
 <!-- /TMPL_LOOP -->
 </tr>
 </table>
@@ -483,7 +483,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <!-- TMPL_LOOP NAME="AMAZON_EDITORIAL_REVIEWS" -->
     <!-- TMPL_IF NAME="Content" -->
     <h4>From <!-- TMPL_VAR NAME="Source" -->:</h4>
-    <div><!-- TMPL_VAR NAME="Content" --></div>
+    <div><!-- TMPL_VAR NAME="Content" ESCAPE="0" --></div>
     <!-- /TMPL_IF -->
 <!-- /TMPL_LOOP -->
 <!-- /TMPL_IF-->
@@ -492,7 +492,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <!-- TMPL_IF NAME="SyndeticsSummary" -->
 <!-- TMPL_IF NAME="SYNDETICS_SUMMARY" -->
     <h4>Enhanced Descriptions from Syndetics:</h4>
-    <p><!-- TMPL_VAR NAME="SYNDETICS_SUMMARY" --></p>
+    <p><!-- TMPL_VAR NAME="SYNDETICS_SUMMARY" ESCAPE="0" --></p>
 <!-- /TMPL_IF -->
 <!-- /TMPL_IF -->
 <!-- /TMPL_IF -->
@@ -530,7 +530,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <div id="excerpt">
 <div class="content_set">
 <h3>Excerpt provided by Syndetics</h3>
-<!-- TMPL_VAR NAME="SYNDETICS_EXCERPT" -->
+<!-- TMPL_VAR NAME="SYNDETICS_EXCERPT" ESCAPE="0" -->
 </div>
 </div>
 <!-- /TMPL_IF --><!-- /TMPL_IF -->
@@ -545,7 +545,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 	<!-- TMPL_LOOP NAME="reviews" -->
 
 	<!-- TMPL_IF NAME="content" -->
-		<!-- TMPL_VAR NAME="content" -->
+		<!-- TMPL_VAR NAME="content" ESCAPE="0" -->
 	<!-- /TMPL_IF -->
 
 	<!-- /TMPL_LOOP -->
@@ -561,7 +561,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <h3>Author Notes provided by Syndetics</h3>
 <!-- TMPL_LOOP NAME="SYNDETICS_ANOTES" -->
     <!-- TMPL_IF NAME="content" -->
-        <!-- TMPL_VAR NAME="content" -->
+        <!-- TMPL_VAR NAME="content" ESCAPE="0" -->
     <!-- /TMPL_IF -->
 <!-- /TMPL_LOOP -->
 </div>
@@ -716,8 +716,8 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
 
 </td>
-<td><!-- TMPL_VAR NAME="description" --></td><td><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->"><!-- TMPL_VAR NAME="title" escape="html" --></a><!-- TMPL_IF NAME="author" --> by <!-- TMPL_VAR NAME="author" ESCAPE="HTML" --><!-- /TMPL_IF --><!-- TMPL_IF NAME="copyrightdate" --> &copy;<!-- TMPL_VAR NAME="copyrightdate" --><!-- /TMPL_IF --><!-- TMPL_IF name="publishercode" -->
-    <p><!-- TMPL_VAR NAME="publishercode" ESCAPE="HTML" --> 
+<td><!-- TMPL_VAR NAME="description" --></td><td><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->"><!-- TMPL_VAR NAME="title" --></a><!-- TMPL_IF NAME="author" --> by <!-- TMPL_VAR NAME="author" --><!-- /TMPL_IF --><!-- TMPL_IF NAME="copyrightdate" --> &copy;<!-- TMPL_VAR NAME="copyrightdate" --><!-- /TMPL_IF --><!-- TMPL_IF name="publishercode" -->
+    <p><!-- TMPL_VAR NAME="publishercode" --> 
        <!-- TMPL_IF name="place" -->(<!-- TMPL_VAR NAME="place"-->)<!--/TMPL_IF--> <!-- TMPL_IF NAME="publicationyear" -->, <!-- TMPL_VAR NAME="publicationyear" --><!-- /TMPL_IF -->
         <!-- TMPL_IF NAME="pages" --><!-- TMPL_VAR NAME="pages" --> <!-- TMPL_VAR NAME="illus" --> <!-- TMPL_VAR NAME="size" --></p><!-- /TMPL_IF -->
     <!-- /TMPL_IF --></td>
@@ -744,7 +744,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
     <img border="0" src="https://secure.syndetics.com/index.aspx?isbn=<!-- TMPL_VAR NAME="browser_normalized_isbn" -->/SC.GIF&amp;client=<!-- TMPL_VAR NAME="SyndeticsClientCode" --><!-- TMPL_IF NAME="browser_normalized_upc" -->&amp;upc=<!-- TMPL_VAR NAME="browser_normalized_upc" --><!-- /TMPL_IF --><!-- TMPL_IF NAME="browser_normalized_oclc" -->&amp;oclc=<!-- TMPL_VAR NAME="browser_normalized_oclc" --><!-- /TMPL_IF -->&amp;type=xw10" alt="" />
     <!-- TMPL_ELSE --><img border="0" src="http://www.syndetics.com/index.aspx?isbn=<!-- TMPL_VAR NAME="browser_normalized_isbn" -->/SC.GIF&amp;client=<!-- TMPL_VAR NAME="SyndeticsClientCode" --><!-- TMPL_IF NAME="browser_normalized_upc" -->&amp;upc=<!-- TMPL_VAR NAME="browser_normalized_upc" --><!-- /TMPL_IF --><!-- TMPL_IF NAME="browser_normalized_oclc" -->&amp;oclc=<!-- TMPL_VAR NAME="browser_normalized_oclc" --><!-- /TMPL_IF -->&amp;type=xw10" alt="" /><!-- /TMPL_IF -->
     <!-- TMPL_ELSE --><span class="no-image">No cover image available</span><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
-<a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->"><!-- TMPL_VAR NAME="title" ESCAPE="HTML" --></a> </td>
+<a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->"><!-- TMPL_VAR NAME="title" --></a> </td>
 <!-- /TMPL_LOOP -->
 <!-- /TMPL_LOOP -->
 </tr></table>
@@ -760,9 +760,9 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 
         <!-- TMPL_LOOP NAME="AMAZON_CUSTOMER_REVIEWS" -->
             <div class="content_set">
-            <div class="clearfix" style="margin: .5em 0;"><h4 style="float: left;"><!-- TMPL_VAR NAME="Summary" ESCAPE="HTML" --></h4>  <span class="starMT" style="float: left;"><span class="starFull" style="float: left; width:<!-- TMPL_VAR EXPR="Rating * 10" -->px"></span></span> </div>  <!-- TMPL_VAR NAME="Date" -->
+            <div class="clearfix" style="margin: .5em 0;"><h4 style="float: left;"><!-- TMPL_VAR NAME="Summary" --></h4>  <span class="starMT" style="float: left;"><span class="starFull" style="float: left; width:<!-- TMPL_VAR EXPR="Rating * 10" -->px"></span></span> </div>  <!-- TMPL_VAR NAME="Date" -->
             <!-- TMPL_IF NAME="Content" -->
-                <p style="margin-left: .2em;"><!-- TMPL_VAR NAME="Content" ESCAPE="HTML" --></p>
+                <p style="margin-left: .2em;"><!-- TMPL_VAR NAME="Content" ESCAPE="0" --></p>
             <!-- /TMPL_IF -->
             </div>
         <!-- /TMPL_LOOP -->
@@ -814,7 +814,7 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 <h4>Search for this title in:</h4>
 <ul class="first-of-type">
 
-<!-- TMPL_VAR NAME="OPACSearchForTitleIn" -->
+<!-- TMPL_VAR NAME="OPACSearchForTitleIn" ESCAPE="0" -->
 
 </ul>
 </div>

@@ -15,7 +15,7 @@
   <!-- /TMPL_IF -->
 </div>
   <!-- TMPL_IF NAME="opacheader" -->
-	<!-- TMPL_VAR NAME="opacheader" -->
+	<!-- TMPL_VAR NAME="opacheader" ESCAPE="0" -->
   <!-- /TMPL_IF -->
 <div id="opac-main-search" class="yui-g">
    <!-- TMPL_IF NAME="opacsmallimage" -->
@@ -78,7 +78,7 @@
       <select name="limit" id="masthead_search" class="left" style="max-width:10em;width:10em;">
          <option value="">All Libraries</option>
          <!-- TMPL_LOOP NAME="BranchesLoop" -->
-            <option <!-- TMPL_IF NAME="selected" -->SELECTED<!-- /TMPL_IF --> value="branch:<!-- TMPL_VAR NAME='value' -->"><!-- TMPL_VAR NAME='branchname' --></option>
+            <option <!-- TMPL_IF NAME="selected" -->SELECTED<!-- /TMPL_IF --> value="branch:<!-- TMPL_VAR NAME="value" -->"><!-- TMPL_VAR NAME="branchname" --></option>
          <!-- /TMPL_LOOP -->
       </select>
    <!-- TMPL_ELSE -->
