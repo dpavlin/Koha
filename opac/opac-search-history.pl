@@ -113,28 +113,28 @@ if (!$loggedinuser) {
     # Showing search history
     } else {
 
-	my $date = C4::Dates->new();
-	my $dateformat = $date->DHTMLcalendar() . " %H:%i:%S"; # Current syspref date format + standard time format
+        my $date       = C4::Dates->new();
+        my $dateformat = $date->DHTMLcalendar() . " %H:%i:%S";    # Current syspref date format + standard time format
 
-	# Getting the data with date format work done by mysql
-	my $query = "SELECT userid, sessionid, query_desc, query_cgi, total, DATE_FORMAT(time, \"$dateformat\") as time FROM search_history WHERE userid = ? AND sessionid = ?";
-	my $sth   = $dbh->prepare($query);
-	$sth->execute($loggedinuser, $cgi->cookie("CGISESSID"));
-	my $searches = $sth->fetchall_arrayref({});
-	$template->param(recentSearches => $searches);
-	
-	# Getting searches from previous sessions
-	$query = "SELECT COUNT(*) FROM search_history WHERE userid = ? AND sessionid != ?";
-	$sth   = $dbh->prepare($query);
-	$sth->execute($loggedinuser, $cgi->cookie("CGISESSID"));
+        # Getting the data with date format work done by mysql
+        my $query = "SELECT userid, sessionid, query_desc, query_cgi, limit_desc, limit_cgi, total, DATE_FORMAT(time, \"$dateformat\") as time FROM search_history WHERE userid = ? AND sessionid = ?";
+        my $sth   = $dbh->prepare($query);
+        $sth->execute( $loggedinuser, $cgi->cookie("CGISESSID") );
+        my $searches = $sth->fetchall_arrayref( {} );
+        $template->param( recentSearches => $searches );
 
-	# If at least one search from previous sessions has been performed
-        if ($sth->fetchrow_array > 0) {
-	    $query = "SELECT userid, sessionid, query_desc, query_cgi, total, DATE_FORMAT(time, \"$dateformat\") as time FROM search_history WHERE userid = ? AND sessionid != ?";
-	    $sth   = $dbh->prepare($query);
-	    $sth->execute($loggedinuser, $cgi->cookie("CGISESSID"));
-    	    my $previoussearches = $sth->fetchall_arrayref({});
-    	    $template->param(previousSearches => $previoussearches);
+        # Getting searches from previous sessions
+        $query = "SELECT COUNT(*) FROM search_history WHERE userid = ? AND sessionid != ?";
+        $sth   = $dbh->prepare($query);
+        $sth->execute( $loggedinuser, $cgi->cookie("CGISESSID") );
+
+        # If at least one search from previous sessions has been performed
+        if ( $sth->fetchrow_array > 0 ) {
+            $query = "SELECT userid, sessionid, query_desc, query_cgi, limit_desc, limit_cgi, total, DATE_FORMAT(time, \"$dateformat\") as time FROM search_history WHERE userid = ? AND sessionid != ?";
+            $sth   = $dbh->prepare($query);
+            $sth->execute( $loggedinuser, $cgi->cookie("CGISESSID") );
+            my $previoussearches = $sth->fetchall_arrayref( {} );
+            $template->param( previousSearches => $previoussearches );
 	
 	}
 

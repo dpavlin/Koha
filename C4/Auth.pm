@@ -121,8 +121,8 @@ Output.pm module.
 =cut
 
 my $SEARCH_HISTORY_INSERT_SQL =<<EOQ;
-INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, total, time            )
-VALUES                    (     ?,         ?,          ?,         ?,     ?, FROM_UNIXTIME(?))
+INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, limit_desc, limit_cgi, total, time            )
+VALUES                    (     ?,         ?,          ?,         ?,          ?,         ?,     ?, FROM_UNIXTIME(?))
 EOQ
 sub get_template_and_user {
     my $in       = shift;
@@ -357,6 +357,7 @@ sub get_template_and_user {
             IntranetmainUserblock       => C4::Context->preference("IntranetmainUserblock"),
             LibraryName                 => C4::Context->preference("LibraryName"),
             LoginBranchname             => (C4::Context->userenv?C4::Context->userenv->{"branchname"}:"insecure"),
+            TemplateEncoding                                                           => C4::Context->preference("TemplateEncoding"),
             advancedMARCEditor          => C4::Context->preference("advancedMARCEditor"),
             canreservefromotherbranches => C4::Context->preference('canreservefromotherbranches'),
             intranetcolorstylesheet     => C4::Context->preference("intranetcolorstylesheet"),
@@ -369,9 +370,10 @@ sub get_template_and_user {
             virtualshelves              => C4::Context->preference("virtualshelves"),
             StaffSerialIssueDisplayCount => C4::Context->preference("StaffSerialIssueDisplayCount"),
             NoZebra                     => C4::Context->preference('NoZebra'),
+            IntranetXSLTDetailsDisplay                                                 => C4::Context->preference("IntranetXSLTDetailsDisplay"),
+            IntranetXSLTResultsDisplay                                                 => C4::Context->preference("IntranetXSLTResultsDisplay"),
         );
-    }
-    else {
+    } else {
         warn "template type should be OPAC, here it is=[" . $in->{'type'} . "]" unless ( $in->{'type'} eq 'opac' );
         #TODO : replace LibraryName syspref with 'system name', and remove this html processing
         my $LibraryNameTitle = C4::Context->preference("LibraryName");
@@ -421,6 +423,7 @@ sub get_template_and_user {
             OPACFinesTab              => C4::Context->preference("OPACFinesTab"),
             OpacTopissue              => C4::Context->preference("OpacTopissue"),
             RequestOnOpac             => C4::Context->preference("RequestOnOpac"),
+            TemplateEncoding               => "" . C4::Context->preference("TemplateEncoding"),
             'Version'                 => C4::Context->preference('Version'),
             hidelostitems             => C4::Context->preference("hidelostitems"),
             mylibraryfirst            => (C4::Context->preference("SearchMyLibraryFirst") && C4::Context->userenv) ? C4::Context->userenv->{'branch'} : '',

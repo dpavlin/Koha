@@ -461,72 +461,10 @@ for (my $i=0;$i<@servers;$i++) {
                 push @newresults, { group_label => $group->{'group_label'}, GROUP_RESULTS => \@group_results };
             }
         } else {
-            @newresults = searchResults('opac', $query_desc, $hits, $results_per_page, $offset, $scan,
-                                        @{$results_hashref->{$server}->{"RECORDS"}},, C4::Context->preference('hidelostitems'));
+            @newresults =
+              searchResults( $query_desc, $hits, $results_per_page, $offset, $scan, @{ $results_hashref->{$server}->{"RECORDS"} },, C4::Context->preference('hidelostitems') );
         }
-		my $tag_quantity;
-		if (C4::Context->preference('TagsEnabled') and
-			$tag_quantity = C4::Context->preference('TagsShowOnList')) {
-			foreach (@newresults) {
-				my $bibnum = $_->{biblionumber} or next;
-				$_->{itemsissued} = CountItemsIssued( $bibnum );
-				$_ ->{'TagLoop'} = get_tags({biblionumber=>$bibnum, approved=>1, 'sort'=>'-weight',
-										limit=>$tag_quantity });
-			}
-		}
-		foreach (@newresults) {
-		    $_->{coins} = GetCOinSBiblio($_->{'biblionumber'});
-		}
-      
-	if ($results_hashref->{$server}->{"hits"}){
-	    $total = $total + $results_hashref->{$server}->{"hits"};
-	}
- 	# Opac search history
- 	my $newsearchcookie;
- 	if (C4::Context->preference('EnableOpacSearchHistory')) {
- 	    my @recentSearches; 
- 
- 	    # Getting the (maybe) already sent cookie
- 	    my $searchcookie = $cgi->cookie('KohaOpacRecentSearches');
- 	    if ($searchcookie){
- 		$searchcookie = uri_unescape($searchcookie);
- 		if (thaw($searchcookie)) {
- 		    @recentSearches = @{thaw($searchcookie)};
- 		}
- 	    }
- 
- 	    # Adding the new search if needed
-        if ( not defined $borrowernumber or $borrowernumber eq '' ) {
- 	    # To a cookie (the user is not logged in)
- 
             if ( not defined $params->{'offset'} or $params->{'offset'} eq '' ) {
- 
-     		    push @recentSearches, {
-     					    "query_desc" => $query_desc || "unknown", 
-     					    "query_cgi"  => $query_cgi  || "unknown", 
-     					    "time"       => time(),
-     					    "total"      => $total
-     					  };
-     		    $template->param(ShowOpacRecentSearchLink => 1);
-     		}
- 
-            shift @recentSearches if (@recentSearches > 15);
-     		# Pushing the cookie back 
-     		$newsearchcookie = $cgi->cookie(
- 					    -name => 'KohaOpacRecentSearches',
- 					    # We uri_escape the whole freezed structure so we're sure we won't have any encoding problems
- 					    -value => uri_escape(freeze(\@recentSearches)),
- 					    -expires => ''
- 			);
- 			$cookie = [$cookie, $newsearchcookie];
- 	    } 
-		else {
- 	    # To the session (the user is logged in)
-<<<<<<< HEAD
-                       if (($params->{'offset'}||'') eq '') {
-=======
-            if ( not defined $params->{'offset'} or $params->{'offset'} eq '' ) {
->>>>>>> Fix opac search history
 				AddSearchHistory($borrowernumber, $cgi->cookie("CGISESSID"), $query_desc, $query_cgi, $total);
      		    $template->param(ShowOpacRecentSearchLink => 1);
      		}
@@ -537,6 +475,91 @@ for (my $i=0;$i<@servers;$i++) {
 	    && $format ne 'opensearchdescription' && $format ne 'atom') {   
             my $biblionumber=$newresults[0]->{biblionumber};
             if (C4::Context->preference('BiblioDefaultView') eq 'isbd') {
+        my $tag_quantity;
+        if ( C4::Context->preference('TagsEnabled')
+            and $tag_quantity = C4::Context->preference('TagsShowOnList') ) {
+            foreach (@newresults) {
+                my $bibnum = $_->{biblionumber} or next;
+                $_->{itemsissued} = CountItemsIssued($bibnum);
+                $_->{'TagLoop'} = get_tags(
+                    {   biblionumber => $bibnum,
+                        approved     => 1,
+                        'sort'       => '-weight',
+                        limit        => $tag_quantity
+                    }
+                );
+            }
+        }
+        foreach (@newresults) {
+            $_->{coins} = GetCOinSBiblio( $_->{'biblionumber'} );
+        }
+
+        if ( $results_hashref->{$server}->{"hits"} ) {
+            $total = $total + $results_hashref->{$server}->{"hits"};
+        }
+
+        # Opac search history
+        my $newsearchcookie;
+        if ( C4::Context->preference('EnableOpacSearchHistory') ) {
+            my @recentSearches;
+
+            # Getting the (maybe) already sent cookie
+            my $searchcookie = $cgi->cookie('KohaOpacRecentSearches');
+            if ($searchcookie) {
+                $searchcookie = uri_unescape($searchcookie);
+                if ( thaw($searchcookie) ) {
+                    @recentSearches = @{ thaw($searchcookie) };
+                }
+            }
+
+            # Adding the new search if needed
+            if ( not defined $borrowernumber or $borrowernumber eq '' ) {
+
+                # To a cookie (the user is not logged in)
+
+                if ( not defined $params->{'offset'} or $params->{'offset'} eq '' ) {
+                    push @recentSearches,
+                      { "query_desc" => $query_desc || "unknown",
+                        "query_cgi"  => $query_cgi  || "unknown",
+                        "limit_desc" => $limit_desc,
+                        "limit_cgi"  => $limit_cgi,
+                        "time"       => time(),
+                        "total"      => $total
+                      };
+                    $template->param( ShowOpacRecentSearchLink => 1 );
+                }
+
+		# Only the 15 more recent searches are kept
+		# TODO: This has been done because of cookies' max size, which is
+		# usually 4KB. A real check on cookie actual size would be better
+		# than setting an arbitrary limit on the number of searches
+		shift @recentSearches if (@recentSearches > 15);
+
+                # Pushing the cookie back
+                $newsearchcookie = $cgi->cookie(
+                    -name => 'KohaOpacRecentSearches',
+
+                    # We uri_escape the whole freezed structure so we're sure we won't have any encoding problems
+                    -value   => uri_escape( freeze( \@recentSearches ) ),
+                    -expires => ''
+                );
+                $cookie = [ $cookie, $newsearchcookie ];
+            } else {
+
+                # To the session (the user is logged in)
+                if ( not defined $params->{'offset'} or $params->{'offset'} eq '' ) {
+                    AddSearchHistory( $borrowernumber, $cgi->cookie("CGISESSID"), $query_desc, $query_cgi, $limit_desc, $limit_cgi, $total );
+                    $template->param( ShowOpacRecentSearchLink => 1 );
+                }
+            }
+        }
+        ## If there's just one result, redirect to the detail page
+        if (   $total == 1
+            && $format ne 'rss2'
+            && $format ne 'opensearchdescription'
+            && $format ne 'atom' ) {
+            my $biblionumber = $newresults[0]->{biblionumber};
+            if ( C4::Context->preference('BiblioDefaultView') eq 'isbd' ) {
                 print $cgi->redirect("/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=$biblionumber");
             } elsif  (C4::Context->preference('BiblioDefaultView') eq 'marc') {
                 print $cgi->redirect("/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=$biblionumber");
