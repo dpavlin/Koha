@@ -25,6 +25,8 @@
 use strict;
 use warnings;
 use CGI;
+use Number::Format qw(:all);
+
 use C4::Context;
 use C4::Auth;
 use C4::Input;
@@ -36,9 +38,22 @@ use C4::Acquisition qw/NewOrder/;
 use C4::Biblio;
 use C4::Items;
 use C4::Koha qw/GetItemTypes/;
-use C4::Budgets qw/GetBudgets/;
+use C4::Budgets qw/GetBudgets GetBudgetHierarchy/;
 use C4::Acquisition qw/NewOrderItem/;
 use C4::Bookseller qw/GetBookSellerFromId/;
+
+
+use C4::Dates;
+use C4::Suggestions;    # GetSuggestion
+use C4::Branch;         # GetBranches
+use C4::Members;
+#needed for z3950 import:
+use C4::ImportBatch qw/GetImportRecordMarc SetImportRecordStatus/;
+use C4::Acquisition;
+use C4::Koha;
+use C4::Budgets;
+use C4::Acquisition;
+use C4::Bookseller;
 
 my $input = new CGI;
 my ($template, $loggedinuser, $cookie) = get_template_and_user({
@@ -52,6 +67,8 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
 my $cgiparams = $input->Vars;
 my $op = $cgiparams->{'op'};
 my $booksellerid  = $input->param('booksellerid');
+my $close        = $input->param('close');
+my $data;
 my $bookseller = GetBookSellerFromId($booksellerid);
 
 $template->param(scriptname => "/cgi-bin/koha/acqui/addorderiso2709.pl",
@@ -80,6 +97,7 @@ if ($op eq ""){
     import_biblios_list($template, $cgiparams->{'import_batch_id'});
     
 } elsif ($op eq 'import_records'){
+    my $num=FormatNumber();
 #import selected lines
     $template->param('basketno' => $cgiparams->{'basketno'});
 # Budget_id is mandatory for adding an order, we just add a default, the user needs to modify this aftewards
@@ -119,6 +137,11 @@ if ($op eq ""){
                     }
                 }
 
+                $price= GetMarcPrice($marcrecord);
+                if ($price){
+                    $price = $num->unformat_number($price);
+                }
+
                 ( $biblionumber, $bibitemnum ) = AddBiblio( $marcrecord, $cgiparams->{'frameworkcode'} || '' );
             } else {
                 warn("Duplicate item found: ", $biblionumber, "; Duplicate: ", $duplicatetitle);
@@ -140,40 +163,21 @@ if ($op eq ""){
             # get the price if there is one.
             # filter by storing only the 1st number
             # we suppose the currency is correct, as we have no possibilities to get it.
-            if ($marcrecord->subfield("345","d")) {
-              $orderinfo{'listprice'} = $marcrecord->subfield("345","d");
-              if ($orderinfo{'listprice'} =~ /^([\d\.,]*)/) {
-                  $orderinfo{'listprice'} = $1;
-                  $orderinfo{'listprice'} =~ s/,/\./;
-                  eval "use C4::Acquisition qw/GetBasket/;";
-                  eval "use C4::Bookseller qw/GetBookSellerFromId/;";
-                  my $basket = GetBasket($orderinfo{basketno});
-                  my $bookseller = GetBookSellerFromId($basket->{booksellerid});
-                  my $gst = $bookseller->{gstrate} || C4::Context->preference("gist") || 0;
-                  $orderinfo{'unitprice'} = $orderinfo{listprice} - ($orderinfo{listprice} * ($bookseller->{discount} / 100));
-                  $orderinfo{'ecost'} = $orderinfo{unitprice};
-              } else {
-                  $orderinfo{'listprice'} = 0;
-              }
-              $orderinfo{'rrp'} = $orderinfo{'listprice'};
-            }
-            elsif ($marcrecord->subfield("010","d")) {
-              $orderinfo{'listprice'} = $marcrecord->subfield("010","d");
-              if ($orderinfo{'listprice'} =~ /^([\d\.,]*)/) {
-                  $orderinfo{'listprice'} = $1;
-                  $orderinfo{'listprice'} =~ s/,/\./;
-                  eval "use C4::Acquisition qw/GetBasket/;";
-                  eval "use C4::Bookseller qw/GetBookSellerFromId/;";
-                  my $basket = GetBasket($orderinfo{basketno});
-                  my $bookseller = GetBookSellerFromId($basket->{booksellerid});
-                  my $gst = $bookseller->{gstrate} || C4::Context->preference("gist") || 0;
-                  $orderinfo{'unitprice'} = $orderinfo{listprice} - ($orderinfo{listprice} * ($bookseller->{discount} / 100));
-                  $orderinfo{'ecost'} = $orderinfo{unitprice};
-              } else {
-                  $orderinfo{'listprice'} = 0;
-              }
-              $orderinfo{'rrp'} = $orderinfo{'listprice'};
-            }
+               if ($price){
+                $orderinfo{'listprice'} = $price;
+            
+                    eval "use C4::Acquisition qw/GetBasket/;";
+                    eval "use C4::Bookseller qw/GetBookSellerFromId/;";
+                    my $basket     = GetBasket( $orderinfo{basketno} );
+                    my $bookseller = GetBookSellerFromId( $basket->{booksellerid} );
+                    my $gst        = $bookseller->{gstrate} || C4::Context->preference("gist") || 0;
+                    $orderinfo{'unitprice'} = $orderinfo{listprice} - ( $orderinfo{listprice} * ( $bookseller->{discount} / 100 ) );
+                    $orderinfo{'ecost'} = $orderinfo{unitprice};
+                } else {
+                    $orderinfo{'listprice'} = 0;
+                }
+                $orderinfo{'rrp'} = $orderinfo{'listprice'};
+
             # remove uncertainprice flag if we have found a price in the MARC record
             $orderinfo{uncertainprice} = 0 if $orderinfo{listprice};
             my $basketno;
@@ -240,6 +244,66 @@ if ($op eq ""){
     print $input->redirect("/cgi-bin/koha/acqui/basket.pl?basketno=".$cgiparams->{'basketno'});
     exit;
 }
+
+my $budgets = GetBudgets();
+my $budget_id = @$budgets[0]->{'budget_id'};
+# build bookfund list
+my $borrower = GetMember( 'borrowernumber' => $loggedinuser );
+my ( $flags, $homebranch ) = ( $borrower->{'flags'}, $borrower->{'branchcode'} );
+my $budget = GetBudget($budget_id);
+
+# build budget list
+my $budget_loop = [];
+my $budgets = GetBudgetHierarchy( q{}, $borrower->{branchcode}, $borrower->{borrowernumber} );
+foreach my $r ( @{$budgets} ) {
+    if ( !defined $r->{budget_amount} || $r->{budget_amount} == 0 ) {
+        next;
+    }
+    push @{$budget_loop},
+      { b_id  => $r->{budget_id},
+        b_txt => $r->{budget_name},
+        b_sel => ( $r->{budget_id} == $budget_id ) ? 1 : 0,
+      };
+}   
+#warn Data::Dumper::Dumper($budget_loop);
+$template->param( budget_loop    => $budget_loop,);   
+
+my $CGIsort1;
+if ($budget) {    # its a mod ..
+    if ( defined $budget->{'sort1_authcat'} ) {    # with custom  Asort* planning values
+        $CGIsort1 = GetAuthvalueDropbox( 'sort1', $budget->{'sort1_authcat'}, $data->{'sort1'} );
+    }
+} elsif ( scalar(@$budgets) ) {
+    $CGIsort1 = GetAuthvalueDropbox( 'sort1', @$budgets[0]->{'sort1_authcat'}, '' );
+} else {
+    $CGIsort1 = GetAuthvalueDropbox( 'sort1', '', '' );
+}
+
+# if CGIsort is successfully fetched, the use it
+# else - failback to plain input-field
+if ($CGIsort1) {
+    $template->param( CGIsort1 => $CGIsort1 );
+} else {
+    $template->param( sort1 => $data->{'sort1'} );
+}
+
+my $CGIsort2;
+if ($budget) {
+    if ( defined $budget->{'sort2_authcat'} ) {
+        $CGIsort2 = GetAuthvalueDropbox( 'sort2', $budget->{'sort2_authcat'}, $data->{'sort2'} );
+    }
+} elsif ( scalar(@$budgets) ) {
+    $CGIsort2 = GetAuthvalueDropbox( 'sort2', @$budgets[0]->{sort2_authcat}, '' );
+} else {
+    $CGIsort2 = GetAuthvalueDropbox( 'sort2', '', '' );
+}
+
+if ($CGIsort2) {
+    $template->param( CGIsort2 => $CGIsort2 );
+} else {
+    $template->param( sort2 => $data->{'sort2'} );
+}
+
 output_html_with_http_headers $input, $cookie, $template->output;
 
 
@@ -271,12 +335,13 @@ sub import_biblios_list {
     my $batch = GetImportBatch($import_batch_id,'staged');
     my $biblios = GetImportBibliosRange($import_batch_id,'','','staged');
     my @list = ();
-# # Itemtype is mandatory for adding a biblioitem, we just add a default, the user needs to modify this aftewards
-#     my $itemtypehash = GetItemTypes();
-#     my @itemtypes;
-#     for my $key (sort { $itemtypehash->{$a}->{description} cmp $itemtypehash->{$b}->{description} } keys %$itemtypehash) {
-#         push(@itemtypes, $itemtypehash->{$key});
-#     }
+
+    # # Itemtype is mandatory for adding a biblioitem, we just add a default, the user needs to modify this aftewards
+    #     my $itemtypehash = GetItemTypes();
+    #     my @itemtypes;
+    #     for my $key (sort { $itemtypehash->{$a}->{description} cmp $itemtypehash->{$b}->{description} } keys %$itemtypehash) {
+    #         push(@itemtypes, $itemtypehash->{$key});
+    #     }
     foreach my $biblio (@$biblios) {
         my $citation = $biblio->{'title'};
         $citation .= " $biblio->{'author'}" if $biblio->{'author'};
