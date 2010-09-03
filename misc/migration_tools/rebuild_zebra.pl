@@ -9,6 +9,7 @@ use File::Temp qw/ tempdir /;
 use File::Path;
 use C4::Biblio;
 use C4::AuthoritiesMarc;
+use C4::Items;
 
 # 
 # script that checks zebradir structure & create directories & mandatory files if needed
@@ -317,6 +318,20 @@ sub export_marc_records_from_sth {
             my $marcxml = $record_type eq 'biblio'
                           ? GetXmlBiblio( $record_number )
                           : GetAuthorityXML( $record_number );
+            if ($record_type eq 'biblio'){
+                #CALL  sub ProcessItems
+                my $items=GetItemsInfo($record_number);
+                if ($items){
+                    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField("items.itemnumber",GetFrameworkCode($biblionumber)||'');
+                    foreach my $item (@$items){
+                        my $record=Item2Marc($items, $record_number);                        
+                        my $itemfield = $record->field($itemtag);
+                        #if xml then print itemfield as xml
+                        # and update marcxml
+                        # else push field
+                    }
+                }
+            }
             if ( $marcxml ) {
                 print OUT $marcxml if $marcxml;
                 $num_exported++;
