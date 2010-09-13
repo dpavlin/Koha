@@ -953,12 +953,33 @@ sub checkauth {
     );
     $template->param( loginprompt => 1 ) unless $info{'nopermission'};
 
-    if ($cas) { 
+    if ($cas) {
+
+	# Is authentication against multiple CAS servers enabled?
+
+        if (C4::Auth_with_cas::multipleAuth && !$casparam) {
+	    my $casservers = C4::Auth_with_cas::getMultipleAuth();		    
+#	    warn Data::Dumper::Dumper($casservers);
+	    my @tmplservers;
+	    foreach my $key (keys %$casservers) {
+	    warn $key, $casservers->{$key};
+		push @tmplservers, {name => $key, value => login_cas_url($query, $key)};
+	    }
+	    #warn Data::Dumper::Dumper(\@tmplservers);
+	    $template->param(
+		casServersLoop => \@tmplservers
+	    );
+	} else {
+        $template->param(
+            casServerUrl    => login_cas_url($query),
+	    );
+	}
+
 	$template->param(
-        casServerUrl    => login_cas_url($query),
-	    invalidCasLogin => $info{'invalidCasLogin'}
-	);
-   }
+            invalidCasLogin => $info{'invalidCasLogin'}
+        );
+    }
+
     my $self_url = $query->url( -absolute => 1 );
     $template->param(
         url         => $self_url,
