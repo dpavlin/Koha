@@ -1139,7 +1139,7 @@ sub GetItemsByBiblioitemnumber {
 
 =head2 GetItemsInfo
 
-  @results = GetItemsInfo($biblionumber, $type);
+  @results = GetItemsInfo($biblionumber, $type, $count);
 
 Returns information about books with the given biblionumber.
 
@@ -1184,7 +1184,7 @@ If this is set, it is set to C<One Order>.
 =cut
 
 sub GetItemsInfo {
-    my ( $biblionumber, $type ) = @_;
+    my ( $biblionumber, $type , $count) = @_;
     my $dbh   = C4::Context->dbh;
     # note biblioitems.* must be avoided to prevent large marc and marcxml fields from killing performance.
     my $query = "
@@ -1211,7 +1211,8 @@ sub GetItemsInfo {
      LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
      LEFT JOIN itemtypes   ON   itemtypes.itemtype         = "
      . (C4::Context->preference('item-level_itypes') ? 'items.itype' : 'biblioitems.itemtype');
-    $query .= " WHERE items.biblionumber = ? ORDER BY branches.branchname,items.dateaccessioned desc" ;
+    $query .= " WHERE items.biblionumber = ? ORDER BY items.dateaccessioned,branches.branchname desc" ;
+    $query .= " LIMIT $count " if ($count);
     my $sth = $dbh->prepare($query);
     $sth->execute($biblionumber);
     my $i = 0;
