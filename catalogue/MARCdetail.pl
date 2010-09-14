@@ -72,6 +72,10 @@ my $tagslib = &GetMarcStructure(1,$frameworkcode);
 
 my $record = GetMarcBiblio($biblionumber);
 my $biblio = GetBiblioData($biblionumber);
+my $itemsinfos=GetItemInfosOf($biblionumber,'intra',30);
+for my $iteminfo (@$itemsinfos) {
+    $record->insert_fields_ordered(Item2Marc($iteminfo,$biblionumber));
+}
 # open template
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
