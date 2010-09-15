@@ -126,7 +126,8 @@ foreach my $subscription (@subscriptions) {
     push @subs, \%cell;
 }
 
-$dat->{'count'} = scalar(@items);
+$dat->{'displaycount'} = scalar(@items);
+$dat->{'count'} = GetItemsCount($biblionumber);
 
 # If there is a lot of items, and the user has not decided
 # to view them all yet, we first warn him
@@ -219,7 +220,10 @@ my $subtitle         = GetRecordValue('subtitle', $record, GetFrameworkCode($bib
                      itemdata_itemnotes          => $itemfields{itemnotes},
                      authorised_value_images => $biblio_authorised_value_images,
                      subtitle                => $subtitle,
+                     itemscount  => GetItemsCount($biblionumber),
     );
+}
+
 
 foreach ( keys %{$dat} ) {
     $template->param( "$_" => defined $dat->{$_} ? $dat->{$_} : '' );
