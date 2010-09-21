@@ -478,7 +478,12 @@ END_SQL
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber, mindays = $mindays, maxdays = $maxdays";
                 $sth2->execute(@params);
                 my $itemcount = 0;
-                my $titles = "";
+                my $titles;
+                if ($htmlfilename) {
+                    $titles = "<table id='itemscontent$borrowernumber'>";
+                    $titles .= "<thead><tr><th>" . join( "</th><th>", @$columns_def_hashref{@item_content_fields} );
+                    $titles .= "</th></tr></thead><tbody>";
+                }
                 my @items = ();
                 
                 my $i = 0;
@@ -506,7 +511,7 @@ END_SQL
                                            }
                     }
                 );
-                $letter->{'content-type'}="text/".($html?"html":"plain");
+                $letter->{'content-type'}="text/".($htmlfilename?"html":"plain");
 
                 if ($exceededPrintNoticesMaxLines) {
                     $letter->{'content'} .= "List too long for form; please check your account online for a complete list of your overdue items.";
