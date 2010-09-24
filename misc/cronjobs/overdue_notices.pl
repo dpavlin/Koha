@@ -32,6 +32,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Text::CSV_XS;
 use Locale::Currency::Format 1.28;
+use List::MoreUtils qw/none/;
 use Encode;
 
 use C4::Context;
@@ -54,6 +55,7 @@ overdue_notices.pl [ -n ] [ -library <branchcode> ] [ -library <branchcode>...] 
    -n                             No email will be sent
    -max          <days>           maximum days overdue to deal with
    -library      <branchname>     only deal with overdues from this library (repeatable : several libraries can be given)
+   -not          <branchname>     Issues on that branch/those branches will not be processed
    -csv          <filename>       populate CSV file
    -html         <filename>       Output html to file
    -itemscontent <list of fields> item information in templates
@@ -251,6 +253,7 @@ my $verbose = 0;
 my $nomail  = 0;
 my $MAX     = 90;
 my @branchcodes; # Branch(es) passed as parameter
+my @branchcodesout;   
 my $csvfilename;
 my $htmlfilename;
 my $triggered = 0;
@@ -265,6 +268,7 @@ GetOptions(
     'v'              => \$verbose,
     'n'              => \$nomail,
     'max=s'          => \$MAX,
+    'not=s'          => \@branchcodesout,
     'library=s'      => \@branchcodes,
     'csv:s'          => \$csvfilename,    # this optional argument gets '' if not supplied.
     'html:s'          => \$htmlfilename,    # this optional argument gets '' if not supplied.
@@ -282,6 +286,7 @@ if ( defined $csvfilename && $csvfilename =~ /^-/ ) {
 }
 
 my @overduebranches    = C4::Overdues::GetBranchcodesWithOverdueRules();	# Branches with overdue rules
+@overduebranches = grep {my $localbranch=$_; none{$localbranch eq $_ } @branchcodesout } @overduebranches if (@branchcodesout>=1); 
 my @branches;									# Branches passed as parameter with overdue rules
 my $branchcount = scalar(@overduebranches);
 
@@ -373,7 +378,7 @@ foreach my $branchcode (@branches) {
 
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $admin_email_address;
 
-    my $sth2 = $dbh->prepare( <<'END_SQL' );
+    my $string_sth2 = <<'END_SQL';
 SELECT biblio.*, items.*, issues.*, TO_DAYS(NOW())-TO_DAYS(date_due) AS days_overdue
   FROM issues,items,biblio
   WHERE items.itemnumber=issues.itemnumber
@@ -381,6 +386,10 @@ SELECT biblio.*, items.*, issues.*, TO_DAYS(NOW())-TO_DAYS(date_due) AS days_ove
     AND issues.borrowernumber = ?
     AND TO_DAYS(NOW())-TO_DAYS(date_due) BETWEEN ? and ?
 END_SQL
+    if ( @branchcodesout) {
+       $string_sth2 .= ' AND issues.branchcode NOT IN ("'.join('","',@branchcodesout).'") ';
+    }
+    my $sth2 = $dbh->prepare($string_sth2 );
 
     my $query = "SELECT * FROM overduerules WHERE delay1 IS NOT NULL AND branchcode = ? ";
     $query .= " AND categorycode IN (".join( ',' , ('?') x @myborcat ).") " if (@myborcat);
@@ -429,7 +438,10 @@ WHERE  issues.borrowernumber=borrowers.borrowernumber
 AND    borrowers.categorycode=categories.categorycode
 END_SQL
             my @borrower_parameters;
-            if ($branchcode) {
+            if ( @branchcodesout) {
+                $borrower_sql .= ' AND issues.branchcode NOT IN ("'.join('","',@branchcodesout).'") ';
+            }
+            if ( $branchcode && $branchcode ne "" ) {
                 $borrower_sql .= ' AND issues.branchcode=? ';
                 push @borrower_parameters, $branchcode;
             }
