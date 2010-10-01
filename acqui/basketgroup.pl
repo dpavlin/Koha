@@ -272,7 +272,9 @@ if ( $op eq "add" ) {
         my $basketgroupid = $input->param('basketgroupid');
         my $billingplace;
         my $deliveryplace;
-        if ( $basketgroupid ) {
+        my $freedeliveryplace;
+        if ($basketgroupid) {
+
             # Get the selected baskets in the basketgroup to display them
             my $selecteds = GetBasketsByBasketgroup($basketgroupid);
             foreach (@{$selecteds}){
@@ -283,12 +285,15 @@ if ( $op eq "add" ) {
 
             # Get general informations about the basket group to prefill the form
             my $basketgroup = GetBasketgroup($basketgroupid);
+	    warn Data::Dumper::Dumper($basketgroup);
             $template->param(
                 name            => $basketgroup->{name},
                 deliverycomment => $basketgroup->{deliverycomment},
+                freedeliveryplace => $basketgroup->{freedeliveryplace},
             );
             $billingplace  = $basketgroup->{billingplace};
             $deliveryplace = $basketgroup->{deliveryplace};
+            $freedeliveryplace = $basketgroup->{freedeliveryplace};
         }
 
         # determine default billing and delivery places depending on librarian homebranch and existing basketgroup data
@@ -409,6 +414,7 @@ if ( $op eq "add" ) {
     my $booksellerid    = $input->param('booksellerid');
     my $billingplace    = $input->param('billingplace');
     my $deliveryplace   = $input->param('deliveryplace');
+    my $freedeliveryplace = $input->param('freedeliveryplace');
     my $deliverycomment = $input->param('deliverycomment');
     my $close           = $input->param('close') ? 1 : 0;
     # If we got a basketgroupname, we create a basketgroup
@@ -419,6 +425,7 @@ if ( $op eq "add" ) {
               basketlist      => \@baskets,
               billingplace    => $billingplace,
               deliveryplace   => $deliveryplace,
+            freedeliveryplace => $freedeliveryplace,
               deliverycomment => $deliverycomment,
               closed          => $close,
         };
@@ -432,6 +439,7 @@ if ( $op eq "add" ) {
             booksellerid    => $booksellerid,
             basketlist      => \@baskets,
             deliveryplace   => $deliveryplace,
+            freedeliveryplace => $freedeliveryplace,
             deliverycomment => $deliverycomment,
             closed          => $close,
         };
