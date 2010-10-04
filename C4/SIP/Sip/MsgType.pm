@@ -18,6 +18,7 @@ use Sip::Checksum qw(verify_cksum);
 use Data::Dumper;
 use CGI;
 use C4::Auth qw(&check_api_auth);
+use C4::Dates;
 
 use UNIVERSAL qw(can);	# make sure this is *after* C4 modules.
 
@@ -545,7 +546,7 @@ sub handle_checkout {
 	$resp .= add_field(FID_ITEM_ID, $item_id);
 	$resp .= add_field(FID_TITLE_ID, $item->title_id);
     if ($item->due_date) {
-        $resp .= add_field(FID_DUE_DATE, Sip::timestamp($item->due_date));
+            $resp .= add_field( FID_DUE_DATE, C4::Dates->new($item->due_date,'iso' )->output() );
     } else {
         $resp .= add_field(FID_DUE_DATE, q{});
     }
@@ -988,8 +989,13 @@ sub handle_patron_info {
 
         # SIP 2.0 extensions used by Envisionware
         # Other terminals will ignore unrecognized fields (unrecognized field identifiers)
+<<<<<<< HEAD
         $resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->birthdate);
         $resp .= maybe_add(FID_PATRON_CLASS,     $patron->ptype);
+=======
+        $resp .= maybe_add( FID_PATRON_BIRTHDATE, C4::Dates->new($patron->birthdate,'iso')->output() );
+        $resp .= maybe_add( FID_PATRON_CLASS,     $patron->ptype );
+>>>>>>> SIP : Format dates as should be in Koha
 
         # Custom protocol extension to report patron internet privileges
         $resp .= maybe_add(FID_INET_PROFILE,     $patron->inet_privileges);
@@ -1104,6 +1110,7 @@ sub handle_item_information {
 	# title id is required, but we don't have one
 	$resp .= add_field(FID_TITLE_ID, '');
     } else {
+<<<<<<< HEAD
 	# Valid Item ID, send the good stuff
 	$resp .= $item->sip_circulation_status;
 	$resp .= $item->sip_security_marker;
@@ -1139,6 +1146,44 @@ sub handle_item_information {
 
 	$resp .= maybe_add(FID_SCREEN_MSG, $item->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $item->print_line);
+=======
+
+        # Valid Item ID, send the good stuff
+        $resp .= $item->sip_circulation_status;
+        $resp .= $item->sip_security_marker;
+        $resp .= $item->sip_fee_type;
+        $resp .= Sip::timestamp;
+
+        $resp .= add_field( FID_ITEM_ID,  $item->id );
+        $resp .= add_field( FID_TITLE_ID, $item->title_id );
+
+        $resp .= maybe_add( FID_MEDIA_TYPE,   $item->sip_media_type );
+        $resp .= maybe_add( FID_PERM_LOCN,    $item->permanent_location );
+        $resp .= maybe_add( FID_CURRENT_LOCN, $item->current_location );
+        $resp .= maybe_add( FID_ITEM_PROPS,   $item->sip_item_properties );
+
+        if ( ( $i = $item->fee ) != 0 ) {
+            $resp .= add_field( FID_CURRENCY, $item->fee_currency );
+            $resp .= add_field( FID_FEE_AMT,  $i );
+        }
+        $resp .= maybe_add( FID_OWNER, $item->owner );
+
+        if ( ( $i = scalar @{ $item->hold_queue } ) > 0 ) {
+            $resp .= add_field( FID_HOLD_QUEUE_LEN, $i );
+        }
+        if ( ( $i = $item->due_date ) != 0 ) {
+            $resp .= add_field( FID_DUE_DATE, C4::Dates->new($i,'iso' )->output() );
+        }
+        if ( ( $i = $item->recall_date ) != 0 ) {
+            $resp .= add_field( FID_RECALL_DATE, C4::Dates->new($i,'iso' )->output() );
+        }
+        if ( ( $i = $item->hold_pickup_date ) != 0 ) {
+            $resp .= add_field( FID_HOLD_PICKUP_DATE, C4::Dates->new($i,'iso' )->output() );
+        }
+
+        $resp .= maybe_add( FID_SCREEN_MSG, $item->screen_msg );
+        $resp .= maybe_add( FID_PRINT_LINE, $item->print_line );
+>>>>>>> SIP : Format dates as should be in Koha
     }
 
     $self->write_msg($resp);
@@ -1347,6 +1392,7 @@ sub handle_renew {
     $patron = $status->patron;
     $item   = $status->item;
 
+<<<<<<< HEAD
     if ($status->ok) {
 	$resp .= '1';
 	$resp .= $status->renewal_ok ? 'Y' : 'N';
@@ -1367,6 +1413,27 @@ sub handle_renew {
 	}
 	$resp .= add_field(FID_MEDIA_TYPE, $item->sip_media_type);
 	$resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+=======
+    if ( $status->ok ) {
+        $resp .= '1';
+        $resp .= $status->renewal_ok ? 'Y' : 'N';
+        if ( $ils->supports('magnetic media') ) {
+            $resp .= sipbool( $item->magnetic_media );
+        } else {
+            $resp .= 'U';
+        }
+        $resp .= sipbool( $status->desensitize );
+        $resp .= Sip::timestamp;
+        $resp .= add_field( FID_PATRON_ID, $patron->id );
+        $resp .= add_field( FID_ITEM_ID, $item->id );
+        $resp .= add_field( FID_TITLE_ID, $item->title_id );
+        $resp .= add_field( FID_DUE_DATE, C4::Dates->new($item->due_date,'iso' )->output() );
+        if ( $ils->supports('security inhibit') ) {
+            $resp .= add_field( FID_SECURITY_INHIBIT, $status->security_inhibit );
+        }
+        $resp .= add_field( FID_MEDIA_TYPE, $item->sip_media_type );
+        $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties );
+>>>>>>> SIP : Format dates as should be in Koha
     } else {
 	# renew failed for some reason
 	# not OK, renewal not OK, Unknown media type (why bother checking?)
