@@ -1419,7 +1419,7 @@ sub GetLateOrders {
         aqbudgets.budget_name     AS budget,
         borrowers.branchcode      AS branch,
         aqbooksellers.name        AS supplier,
-        biblio.author,
+        biblio.author, biblio.title,
         biblioitems.publishercode AS publisher,
         biblioitems.publicationyear,
     ";
