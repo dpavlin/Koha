@@ -64,7 +64,7 @@ sub transformMARCXML4XSLT {
     eval {
         @fields = $record->fields();
     };
-    if ($@) { warn "PROBLEM WITH RECORD"; next; }
+    if ($@) { warn "$biblionumber PROBLEM WITH RECORD"; return; }
     my $av = getAuthorisedValues4MARCSubfields($frameworkcode);
     foreach my $tag ( keys %$av ) {
         foreach my $field ( $record->field( $tag ) ) {
