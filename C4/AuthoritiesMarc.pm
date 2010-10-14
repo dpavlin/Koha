@@ -1280,6 +1280,8 @@ sub merge {
     
     my @record_to;
     @record_to = $MARCto->field($auth_tag_to_report_to)->subfields() if $MARCto->field($auth_tag_to_report_to);
+    my $field_to;
+    $field_to = $MARCto->field($auth_tag_to_report_to) if $MARCto->field($auth_tag_to_report_to);
     my @record_from;
     @record_from = $MARCfrom->field($auth_tag_to_report_from)->subfields() if $MARCfrom->field($auth_tag_to_report_from);
     my @reccache;
@@ -1339,28 +1341,48 @@ sub merge {
     # BulkEdit marc records
     # May be used as a template for a bulkedit field  
     foreach my $marcrecord(@reccache){
-        my $update;           
-        $marcrecord= MARC::Record->new_from_xml($marcrecord,"utf8",C4::Context->preference("marcflavour")) unless(C4::Context->preference('NoZebra'));
+	    $debug && warn "before merge",$marcrecord->as_formatted;
         foreach my $tagfield (@tags_using_authtype){
             foreach my $field ($marcrecord->field($tagfield)){
-                my $auth_number=$field->subfield("9");
+                my $update;           
                 my $tag=$field->tag();          
-                if ($auth_number==$mergefrom) {
-                my $field_to=MARC::Field->new(($tag_to?$tag_to:$tag),$field->indicator(1),$field->indicator(2),"9"=>$mergeto);
-		# Adding numeric subfields from the biblio record
-		foreach my $subfield ($marcrecord->field($tag_to?$tag_to:$tag)->subfields()) {
-		    $debug && warn $subfield->[0] . " => " . $subfield->[1];
-                    $field_to->add_subfields($subfield->[0] =>$subfield->[1]) if ($subfield->[0] =~ /\d/ and $subfield->[0] ne "9");
+		my @newsubfields;
+		my %indexes;
+		foreach my $subfield ($field->subfields()){
+			$debug && warn @$subfield, " ", $mergefrom," ",$mergeto;
+		    if ($subfield->[0] eq 9 and $subfield->[1] eq $mergefrom){
+			$debug && warn $subfield->[1], " ", $mergeto;
+			    $subfield->[1] = $mergeto;
+		    	    $update=1;
+		    	$debug && warn "update 1";
 		}
 
+		    if ($update){
 		# Removing numeric subfields from the authority record
-                foreach my $subfield (@record_to) {
-		    $debug && warn $subfield->[0] . " => " . $subfield->[1];
-                    $field_to->add_subfields($subfield->[0] =>$subfield->[1]) if ($subfield->[0] =~ /[a-z]/ and $subfield->[0] ne "9");
+		    for my $subfieldfrom (@record_from) {
+			$debug && warn $subfield->[1], " ", $subfieldfrom->[1];
+			next if ($subfield->[0] eq 9);
+		    	if ($subfield->[0] eq $subfieldfrom->[0]){
+			    if (exists $indexes{$subfield->[0]}){
+			    $indexes{$subfield->[0]}++;
+			    } else {
+			    $indexes{$subfield->[0]}=0;
                 }
-                $marcrecord->delete_field($field);
-                $marcrecord->insert_grouped_field($field_to);            
+				my @subfstemp=$field_to->subfield($subfield->[0]);
+				$debug && warn @subfstemp;
+				$subfield->[1] = $subfstemp[$indexes{$subfield->[0]}];
                 $update=1;
+				last;
+			}
+		    }
+		    }
+			$debug && warn @$subfield;
+          	    push @newsubfields,@$subfield;
+		}
+		if ($update){
+                my $field_to=MARC::Field->new(($tag_to?$tag_to:$tag),$field->indicator(1),$field->indicator(2),@newsubfields);
+                $marcrecord->delete_field($field);
+                $marcrecord->insert_fields_ordered($field_to);            
                 }
             }#for each tag
         }#foreach tagfield
@@ -1372,15 +1394,16 @@ sub merge {
         else {
             $biblionumber=$marcrecord->subfield($bibliotag,$bibliosubf);
         }
+#	    $debug && warn $biblionumber,$marcrecord->as_formatted;
         unless ($biblionumber){
             warn "pas de numéro de notice bibliographique dans : ".$marcrecord->as_formatted;
             next;
         }
-        if ($update==1){
+        #if ($update==1){
             &ModBiblio($marcrecord,$biblionumber,GetFrameworkCode($biblionumber)) ;
             $counteditedbiblio++;
             warn $counteditedbiblio if (($counteditedbiblio % 10) and $ENV{DEBUG});
-        }    
+        #}    
     }#foreach $marc
     DelAuthority($mergefrom) if ($mergefrom != $mergeto);
     return $counteditedbiblio;  
