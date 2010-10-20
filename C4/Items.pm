@@ -1478,12 +1478,16 @@ sub GetHiddenItemnumbers {
     my (@items) = @_;
     my @resultitems;
 
-    my $yamlhiddenitems = "../opac/opac-hidden-items.yaml"; # TODO: Hardcoded. Might be a syspref
-
-    if (-e qq($FindBin::Bin/$yamlhiddenitems)) {
-
-        my $dbh = C4::Context->dbh;
-	my $hidingrules = YAML::LoadFile(qq($FindBin::Bin/$yamlhiddenitems));
+    my $yaml = C4::Context->preference('OpacHiddenItems');
+    my $hidingrules;
+    eval {
+    	$hidingrules = YAML::Load($yaml);
+    };
+    if ($@) {
+    	warn "Unable to parse OpacHiddenItems syspref : $@";
+    	return ();
+    } else {
+    my $dbh = C4::Context->dbh;
 
 	# For each item
 	foreach my $item (@items) {
@@ -1507,8 +1511,6 @@ sub GetHiddenItemnumbers {
 	    }
 	}
 	return @resultitems;
-    } else {
-	return ();
     }
 
  }
