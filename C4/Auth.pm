@@ -128,8 +128,8 @@ Output.pm module.
 =cut
 
 my $SEARCH_HISTORY_INSERT_SQL =<<EOQ;
-INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, total, time            )
-VALUES                    (     ?,         ?,          ?,         ?,     ?, FROM_UNIXTIME(?))
+INSERT INTO search_history(userid, sessionid, query_desc, query_cgi, limit_desc, limit_cgi, total, time            )
+VALUES                    (     ?,         ?,          ?,         ?,          ?,         ?,     ?, FROM_UNIXTIME(?))
 EOQ
 sub get_template_and_user {
     my $in       = shift;
@@ -259,13 +259,9 @@ sub get_template_and_user {
 			        my @recentSearches = @{thaw($searchcookie) || []};
 				if (@recentSearches) {
 					my $sth = $dbh->prepare($SEARCH_HISTORY_INSERT_SQL);
-					$sth->execute( $borrowernumber,
-						       $in->{'query'}->cookie("CGISESSID"),
-						       $_->{'query_desc'},
-						       $_->{'query_cgi'},
-						       $_->{'total'},
-						       $_->{'time'},
-                                        ) foreach @recentSearches;
+                    
+                    $sth->execute( $borrowernumber, $in->{'query'}->cookie("CGISESSID"), $_->{'query_desc'}, $_->{'query_cgi'}, $_->{'limit_desc'}, $_->{'limit_cgi'}, $_->{'total'}, $_->{'time'}, )
+                                foreach @recentSearches;
 
 					# And then, delete the cookie's content
 					my $newsearchcookie = $in->{'query'}->cookie(
@@ -552,15 +548,6 @@ sub _version_check ($$) {
     # and so we must redirect to OPAC maintenance page or to the WebInstaller
 	# also, if OpacMaintenance is ON, OPAC should redirect to maintenance
 	if (C4::Context->preference('OpacMaintenance') && $type eq 'opac') {
-		warn "OPAC Install required, redirecting to maintenance";
-		print $query->redirect("/cgi-bin/koha/maintenance.pl");
-	}
-    unless ($version = C4::Context->preference('Version')) {    # assignment, not comparison
-      if ($type ne 'opac') {
-        warn "Install required, redirecting to Installer";
-        print $query->redirect("/cgi-bin/koha/installer/install.pl");
-      }
-      else {
         warn "OPAC Install required, redirecting to maintenance";
         print $query->redirect("/cgi-bin/koha/maintenance.pl");
     }
@@ -971,7 +958,7 @@ sub checkauth {
         casServerUrl    => login_cas_url($query),
 	    invalidCasLogin => $info{'invalidCasLogin'}
 	);
-
+   }
     my $self_url = $query->url( -absolute => 1 );
     $template->param(
         url         => $self_url,
