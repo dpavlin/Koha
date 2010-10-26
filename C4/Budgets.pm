@@ -487,14 +487,15 @@ sub ModBudgetPeriod {
 
 # -------------------------------------------------------------------
 sub GetBudgetHierarchy {
-	my ($budget_period_id, $branchcode, $owner) = @_;
-	my @bind_params;
-	my $dbh   = C4::Context->dbh;
-	my $query = qq|
-                    SELECT aqbudgets.*
+    my ( $budget_period_id, $branchcode, $owner ) = @_;
+    my @bind_params;
+    my $dbh   = C4::Context->dbh;
+    my $query = qq|
+                    SELECT aqbudgets.*, aqbudgetperiods.budget_period_active
                     FROM aqbudgets 
-                    LEFT JOIN aqbudgetperiods 
-                    ON aqbudgetperiods.budget_period_id=aqbudgets.budget_period_id |;
+                    JOIN aqbudgetperiods USING (budget_period_id)|;
+                        
+    # show only period X if requested
 	my @where_strings;
     # Pick out the active ones
     push @where_strings, 'aqbudgetperiods.budget_period_active=1';
