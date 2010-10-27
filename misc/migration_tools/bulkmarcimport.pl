@@ -77,7 +77,7 @@ if ($all){
 }
 
 if ($version || ($input_marc_file eq '')) {
-    print <<EOF
+    print <<EOF ;
 Small script to import bibliographic records into Koha.
 
 Parameters:
