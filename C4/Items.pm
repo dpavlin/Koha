@@ -368,7 +368,7 @@ sub AddItemBatchFromMarc {
     }
 
     # update the MARC biblio
-    $biblionumber = ModBiblioMarc( $record, $biblionumber, $frameworkcode );
+ #   $biblionumber = ModBiblioMarc( $record, $biblionumber, $frameworkcode );
 
     return (\@itemnumbers, \@errors);
 }
@@ -588,23 +588,13 @@ sub DelItem {
 
     # get the MARC record
     my $record = GetMarcBiblio($biblionumber);
-    my $frameworkcode = GetFrameworkCode($biblionumber);
+    ModZebra( $biblionumber, "specialUpdate", "biblioserver", undef, undef );
 
     # backup the record
     my $copy2deleted = $dbh->prepare("UPDATE deleteditems SET marc=? WHERE itemnumber=?");
     $copy2deleted->execute( $record->as_usmarc(), $itemnumber );
 
     #search item field code
-    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField("items.itemnumber",$frameworkcode);
-    my @fields = $record->field($itemtag);
-
-    # delete the item specified
-    foreach my $field (@fields) {
-        if ( $field->subfield($itemsubfield) eq $itemnumber ) {
-            $record->delete_field($field);
-        }
-    }
-    &ModBiblioMarc( $record, $biblionumber, $frameworkcode );
     logaction("CATALOGUING", "DELETE", $itemnumber, "item") if C4::Context->preference("CataloguingLog");
 }
 
@@ -2011,16 +2001,16 @@ sub MoveItemFromBiblio {
 	    }
 
 	    # Saving the modification
-	    ModBiblioMarc($record, $frombiblio, $frameworkcode);
+	    #ModBiblioMarc($record, $frombiblio, $frameworkcode);
 
 	    # Getting the record we want to move the item to
-	    $record = GetMarcBiblio($tobiblio);
+	    #$record = GetMarcBiblio($tobiblio);
 
 	    # Inserting the previously saved item
-	    $record->insert_fields_ordered($item);	
+	    #$record->insert_fields_ordered($item);	
 
 	    # Saving the modification
-	    ModBiblioMarc($record, $tobiblio, $frameworkcode);
+	    #ModBiblioMarc($record, $tobiblio, $frameworkcode);
 
 	} else {
 	    return undef;
@@ -2104,6 +2094,7 @@ sub _koha_modify_item {
         $error.="ERROR in _koha_modify_item $query".$dbh->errstr;
         warn $error;
     }
+    ModZebra( $item->{biblionumber}, "specialUpdate", "biblioserver", undef, undef );
     return ($item->{'itemnumber'},$error);
 }
 
@@ -2247,7 +2238,7 @@ sub _replace_item_field_in_biblio {
     }
 
     # save the record
-    ModBiblioMarc($completeRecord, $biblionumber, $frameworkcode);
+    #ModBiblioMarc($completeRecord, $biblionumber, $frameworkcode);
 }
 
 =head2 _repack_item_errors
