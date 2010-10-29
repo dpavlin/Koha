@@ -989,13 +989,8 @@ sub handle_patron_info {
 
         # SIP 2.0 extensions used by Envisionware
         # Other terminals will ignore unrecognized fields (unrecognized field identifiers)
-<<<<<<< HEAD
-        $resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->birthdate);
-        $resp .= maybe_add(FID_PATRON_CLASS,     $patron->ptype);
-=======
         $resp .= maybe_add( FID_PATRON_BIRTHDATE, C4::Dates->new($patron->birthdate,'iso')->output() );
         $resp .= maybe_add( FID_PATRON_CLASS,     $patron->ptype );
->>>>>>> SIP : Format dates as should be in Koha
 
         # Custom protocol extension to report patron internet privileges
         $resp .= maybe_add(FID_INET_PROFILE,     $patron->inet_privileges);
