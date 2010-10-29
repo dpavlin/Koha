@@ -326,6 +326,7 @@ melm 676$a		Dewey-classification:w,Dewey-classification:s
 
 #############"# item information (based on 995) ###############
 melm 995$2		lost,lost:n,item
+melm 995$5    codstat,item
 melm 995$a		homebranch,Host-item,item
 melm 995$b		homebranch,Host-item,item
 melm 995$c		holdingbranch,Record-Source,item
@@ -333,6 +334,7 @@ melm 995$d		holdingbranch,Record-Source,item
 melm 995$e      location,item
 melm 995$f		barcode,item
 melm 995$h		ccode,item
+melm 995$i    don,item
 melm 995$j      LC-card-number:s,item
 melm 995$k      Call-Number,Local-Classification,lcn,Call-Number:p,Local-Classification:p,lcn:p,item
 melm 995$n      onloan:d,onloan:n,onloan:s,onloan:w,item
