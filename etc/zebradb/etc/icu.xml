@@ -20,14 +20,14 @@ along with Koha; if not, write to the Free Software Foundation, Inc.,
 -->
 
 <icu_chain locale="fr-FR">
+  <display/>
   <transliterate rule="\'>\ "/>
   <transliterate rule="[:Number:] { '-' > '' "/>
-  <transform rule="[:Control:] Any-Remove"/>
-  <tokenize rule="l"/>
-  <transform rule="[[:WhiteSpace:][:Punctuation:]] Remove"/>
+  <transform rule="[[:Control:][:Punctuation:]] Any-Remove"/>
   <transform rule="NFD"/>
   <transform rule="[:Nonspacing Mark:] Remove"/>
   <transform rule="NFC"/>
-  <display/>
+  <tokenize rule="l"/> 
   <casemap rule="l"/>
+  <transform rule="[:WhiteSpace:] Any-Remove"/> 
 </icu_chain>
