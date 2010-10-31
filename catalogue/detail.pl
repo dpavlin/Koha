@@ -91,6 +91,7 @@ my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
 my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
 my $marcseriesarray  = GetMarcSeries($record,$marcflavour);
 my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
+my $marchostsarray  = GetMarcHosts($record,$marcflavour);
 my $subtitle         = GetRecordValue('subtitle', $record, $fw);
 
 # Get Branches, Itemtypes and Locations
@@ -100,6 +101,23 @@ my $dbh = C4::Context->dbh;
 
 # change back when ive fixed request.pl
 my @items = &GetItemsInfo( $biblionumber, 'intra' );
+
+# flag indicating existence of at least one item linked via a host record
+my $hostrecords;
+# adding items linked via host biblios
+   foreach my $hostfield ( $record->field('773')) {
+        my $hostbiblionumber = $hostfield->subfield("w");
+        my $linkeditemnumber = $hostfield->subfield("o");
+        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
+        foreach my $hostitemInfo (@hostitemInfos){
+                if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
+                        $hostrecords =1;
+                        push(@items, $hostitemInfo);
+                }
+         }
+    }
+
+
 my $dat = &GetBiblioData($biblionumber);
 
 #coping with subscriptions
@@ -207,6 +225,7 @@ $template->param(
 	MARCAUTHORS => $marcauthorsarray,
 	MARCSERIES  => $marcseriesarray,
 	MARCURLS => $marcurlsarray,
+	MARCHOSTS => $marchostsarray,
 	subtitle    => $subtitle,
 	itemdata_ccode      => $itemfields{ccode},
 	itemdata_enumchron  => $itemfields{enumchron},

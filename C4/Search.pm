@@ -1501,6 +1501,26 @@ sub searchResults {
         # Pull out the items fields
         my @fields = $marcrecord->field($itemtag);
 
+        # adding linked items that belong to host records
+        foreach my $hostfield ( $marcrecord->field('773')) {
+                my $hostbiblionumber = $hostfield->subfield("w");
+                my $linkeditemnumber = $hostfield->subfield("o");
+                if(!$hostbiblionumber eq undef){
+                        my $hostbiblio = GetMarcBiblio($hostbiblionumber);
+                        if(!$hostbiblio eq undef){
+                        my @hostitems = $hostbiblio->field('952');
+                        foreach my $hostitem (@hostitems){
+                                if ($hostitem->subfield("9") eq $linkeditemnumber){
+                                        my $linkeditem =$hostitem;
+                                         # append linked items if they exist
+                                        if (!$linkeditem eq undef){
+                                        push (@fields, $linkeditem);}
+                                }
+                        }
+                        }
+                }
+        }
+
         # Setting item statuses for display
         my @available_items_loop;
         my @onloan_items_loop;

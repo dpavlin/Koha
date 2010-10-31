@@ -72,6 +72,7 @@ BEGIN {
       &GetMarcBiblio
       &GetMarcAuthors
       &GetMarcSeries
+      &GetMarcHosts
       GetMarcUrls
       &GetUsedMarcStructure
       &GetXmlBiblio
@@ -1552,6 +1553,39 @@ sub GetMarcSeries {
     my $marcseriessarray = \@marcseries;
     return $marcseriessarray;
 }    #end getMARCseriess
+
+=head2 GetMarcHosts
+
+  $marchostsarray = GetMarcHosts($record,$marcflavour);
+
+Get all host records (773s) from the MARC record and returns them in an array.
+
+=cut
+
+sub GetMarcHosts {
+    my ( $record, $marcflavour ) = @_;
+    my ( $tag );
+    if ( $marcflavour eq "MARC21" ) {
+        $tag = "773";
+
+    }
+
+    my @marchosts;
+
+    foreach my $field ( $record->field('773')) {
+
+        my @fields_loop;
+
+        my $hostbiblionumber = $field->subfield("w");
+        my $hosttitle = $field->subfield("a");
+        my $hostitemnumber=$field->subfield("o");
+        push @fields_loop, { hostbiblionumber => $hostbiblionumber, hosttitle => $hosttitle, hostitemnumber => $hostitemnumber};
+        push @marchosts, { MARCHOSTS_FIELDS_LOOP => \@fields_loop };
+
+        }
+    my $marchostsarray = \@marchosts;
+    return $marchostsarray;
+}
 
 =head2 GetFrameworkCode
 

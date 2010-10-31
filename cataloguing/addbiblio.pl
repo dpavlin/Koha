@@ -695,6 +695,39 @@ sub build_tabs ($$$$$) {
                            # always include in the form regardless of the hidden setting - bug 2206
                     next
                       if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
+
+                # populating host record details for analytical records
+                my $hostbiblionumber = $input->param('hostbiblionumber');
+                my $hostitemnumber = $input->param('hostitemnumber');
+                    if ( $tag eq 773 and $hostbiblionumber){
+                                my $hostrecord = &GetMarcBiblio($hostbiblionumber);
+                                if ($subfield eq "w"){
+                                        push(
+                                                @subfields_data,
+                                        &create_input(
+                                            $tag, $subfield,$hostbiblionumber, $index_tag, $tabloop, $record,
+                                            $authorised_values_sth,$input
+                                        ));
+                                }
+                                elsif ($subfield eq "a"){
+                                        push(
+                                        @subfields_data,
+                                        &create_input(
+                                            $tag, $subfield,$hostrecord->subfield('245',"a"), $index_tag, $tabloop, $record,
+                                            $authorised_values_sth,$input
+                                        ));
+                                }
+                                elsif ($subfield eq "o"){
+                                        push(
+                                        @subfields_data,
+                                        &create_input(
+                                            $tag, $subfield,$hostitemnumber, $index_tag, $tabloop, $record,
+                                            $authorised_values_sth,$input
+                                        ));
+                                }
+
+                        }
+                         else {
                     push(
                         @subfields_data,
                         &create_input(
@@ -702,6 +735,7 @@ sub build_tabs ($$$$$) {
                             $authorised_values_sth,$input
                         )
                     );
+		}
                 }
                 if ( $#subfields_data >= 0 ) {
                     my %tag_data = (

@@ -78,6 +78,19 @@ if (C4::Context->preference("OPACXSLTDetailsDisplay") ) {
 $template->param('OPACShowCheckoutName' => C4::Context->preference("OPACShowCheckoutName") ); 
 # change back when ive fixed request.pl
 my @all_items = &GetItemsInfo( $biblionumber, 'opac' );
+
+# adding items linked via host biblios
+   foreach my $hostfield ( $record->field('773')) {
+        my $hostbiblionumber = $hostfield->subfield("w");
+        my $linkeditemnumber = $hostfield->subfield("o");
+        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
+        foreach my $hostitemInfo (@hostitemInfos){
+                if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
+                        push(@all_items, $hostitemInfo);
+                }
+         }
+    }
+
 my @items;
 @items = @all_items unless C4::Context->preference('hidelostitems');
 
@@ -202,6 +215,7 @@ my $marcauthorsarray = GetMarcAuthors ($record,$marcflavour);
 my $marcsubjctsarray = GetMarcSubjects($record,$marcflavour);
 my $marcseriesarray  = GetMarcSeries  ($record,$marcflavour);
 my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
+my $marchostsarray  = GetMarcHosts($record,$marcflavour);
 my $subtitle         = GetRecordValue('subtitle', $record, GetFrameworkCode($biblionumber));
 
     $template->param(

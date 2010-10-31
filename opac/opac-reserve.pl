@@ -114,6 +114,22 @@ foreach my $biblioNumber (@biblionumbers) {
     $biblioDataHash{$biblioNumber} = $biblioData;
 
     my @itemInfos = GetItemsInfo($biblioNumber);
+
+    my $marcrecord= GetMarcBiblio($biblioNumber);
+
+# adding items linked via host biblios
+    foreach my $hostfield ( $marcrecord->field('773')) {
+        my $hostbiblionumber = $hostfield->subfield("w");
+        my $linkeditemnumber = $hostfield->subfield("o");
+        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
+        foreach my $hostitemInfo (@hostitemInfos){
+                if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
+                        push(@itemInfos, $hostitemInfo);
+                }
+         }
+    }
+
+
     $biblioData->{itemInfos} = \@itemInfos;
     foreach my $itemInfo (@itemInfos) {
         $itemInfoHash{$itemInfo->{itemnumber}} = $itemInfo;

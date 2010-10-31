@@ -127,6 +127,15 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
             <!-- /TMPL_LOOP -->
     </span>
     <!-- /TMPL_IF -->
+
+<!-- TMPL_IF NAME="MARCHOSTS" -->
+                <li><strong>Host Records: </strong><ul><!-- TMPL_LOOP NAME="MARCHOSTS" -->
+                <li><!-- TMPL_LOOP NAME="MARCHOSTS_FIELDS_LOOP" --> <!-- TMPL_IF NAME="hosttitle" --> <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=<!-- TMPL_VAR NAME="hostbiblionumber" ESCAPE="url"-->"><!-- TMPL_VAR NAME="hosttitle" --></a><!-- /TMPL_IF --> <!-- /TMPL_LOOP --></li>
+                <!-- /TMPL_LOOP -->
+                </ul>
+                </li>
+    <!-- /TMPL_IF -->
+
     <!-- TMPL_IF name="editionstatement" -->
     <span class="results_summary"><span class="label">Edition statement:</span><!-- TMPL_VAR NAME="editionstatement" --><!-- TMPL_IF name="editionresponsibility" -->/<!-- TMPL_VAR NAME="editionresponsibility" --><!-- /TMPL_IF--></span>
     <!-- /TMPL_IF -->
