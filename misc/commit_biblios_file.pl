@@ -18,12 +18,16 @@ $| = 1;
 # command-line parameters
 my $batch_number = "";
 my $list_batches = 0;
+my $progress_interval = 100;
 my $want_help = 0;
+my $revert = 0;
 
 my $result = GetOptions(
-    'batch-number:s' => \$batch_number,
-    'list-batches'   => \$list_batches,
-    'h|help'         => \$want_help
+    'batch-number:s'     => \$batch_number,
+    'list-batches'       => \$list_batches,
+    'progress-interval'  => \$progress_interval,
+    'revert'             => \$revert,
+    'h|help'             => \$want_help
 );
 
 if ($want_help or (not $batch_number and not $list_batches)) {
@@ -47,7 +51,11 @@ if ($batch_number =~ /^\d+$/ and $batch_number > 0) {
     die "$0: import batch $batch_number does not exist in database\n" unless defined $batch;
     die "$0: import batch $batch_number status is '" . $batch->{'import_status'} . "', and therefore cannot be imported\n"
         unless $batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "reverted";
-    process_batch($batch_number);
+    if ($revert) {
+	revert_batch($batch_number);
+    } else {
+	process_batch($batch_number);
+    }
     $dbh->commit();
 } else {
     die "$0: please specify a numeric batch ID\n";
@@ -75,7 +83,7 @@ sub process_batch {
 
     print "... importing MARC records -- please wait\n";
     my ($num_added, $num_updated, $num_items_added, $num_items_errored, $num_ignored) = 
-        BatchCommitBibRecords($import_batch_id, 100, \&print_progress_and_commit);
+        BatchCommitBibRecords($import_batch_id, $progress_interval, \&print_progress_and_commit);
     print "... finished importing MARC records\n";
 
     print <<_SUMMARY_;
@@ -91,6 +99,29 @@ Number of items ignored:         $num_items_errored
 
 Note: an item is ignored if its barcode is a 
 duplicate of one already in the database.
+_SUMMARY_
+}
+
+sub revert_batch {
+    my ($import_batch_id) = @_;
+
+    print "... reverting MARC records -- please wait\n";
+    my ($num_deleted, $num_errors, $num_reverted, $num_items_deleted, $num_ignored) =
+	BatchRevertBibRecords($import_batch_id);
+    print "... finished revrting MARC records\n";
+
+    print <<_SUMMARY_;
+
+MARC record reversion report
+----------------------------------------
+Batch number:                    $import_batch_id
+Number of bibs deleted:          $num_deleted
+Number of errors:                $num_errors
+Number of bibs reverted:         $num_reverted
+Number of items deleted:         $num_items_deleted
+Number of ignored:               $num_ignored
+
+Note: an item is ignored if its in batch but not actually commited.
 _SUMMARY_
 }
 
@@ -112,6 +143,9 @@ stage_biblios_file.pl or by the Koha Tools option
 Parameters:
     --batch-number <#>   number of the record batch
                          to import
+    --progress-interval <#>  update import progress every <#> records
+                         (default 100)
+    --revert             revert the batch rather than commiting it
     --list-batches       print a list of record batches
                          available to commit
     --help or -h            show this message.
