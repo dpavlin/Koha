@@ -215,6 +215,11 @@ foreach my $item (@items) {
         $item->{waitingdate} = format_date($wait_hashref->{waitingdate});
     }
 
+    # item has a host number if its biblio number does not match the current bib
+    if ($item->{biblionumber} ne $biblionumber){
+        $item->{hostbiblionumber} = $item->{biblionumber};
+    }
+
     push @itemloop, $item;
 }
 
@@ -234,6 +239,7 @@ $template->param(
 	volinfo				=> $itemfields{enumchron},
     itemdata_itemnotes  => $itemfields{itemnotes},
 	z3950_search_params	=> C4::Search::z3950_search_args($dat),
+        hostrecords         => $hostrecords,
 	C4::Search::enabled_staff_search_views,
 );
 
