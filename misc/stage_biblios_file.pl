@@ -23,14 +23,16 @@ my $input_file = "";
 my $batch_comment = "";
 my $want_help = 0;
 my $no_replace ;
+my $progress_interval = 100;
 
 my $result = GetOptions(
-    'file:s'        => \$input_file,
-    'match-bibs:s'    => \$match_bibs,
-    'add-items'     => \$add_items,
-    'no-replace'    => \$no_replace,
-    'comment:s'     => \$batch_comment,
-    'h|help'        => \$want_help
+    'file:s'              => \$input_file,
+    'match-bibs:s'        => \$match_bibs,
+    'add-items'           => \$add_items,
+    'no-replace'          => \$no_replace,
+    'comment:s'           => \$batch_comment,
+    'progress-interval=i' => \$progress_interval,
+    'h|help'              => \$want_help
 );
 
 if (not $result or $input_file eq "" or $want_help) {
@@ -72,7 +74,7 @@ sub process_batch {
     print "... staging MARC records -- please wait\n";
     my ($batch_id, $num_valid, $num_items, @import_errors) = 
         BatchStageMarcRecords($marc_flavor, $marc_records, $input_file, $batch_comment, '', $add_items, 0,
-                              100, \&print_progress_and_commit);
+                              $progress_interval, \&print_progress_and_commit);
     print "... finished staging MARC records\n";
 
     my $num_with_matches = 0;
@@ -91,7 +93,7 @@ sub process_batch {
         SetImportBatchNoMatchAction($batch_id, 'create_new');
         SetImportBatchItemAction($batch_id, 'always_add');
         print "... looking for matches with records already in database\n";
-        $num_with_matches = BatchFindBibDuplicates($batch_id, $matcher, 10, 100, \&print_progress_and_commit);
+        $num_with_matches = BatchFindBibDuplicates($batch_id, $matcher, 10, $progress_interval, \&print_progress_and_commit);
         print "... finished looking for matches\n";
     }
 
@@ -155,6 +157,7 @@ Parameters:
                             the record batch; if the comment
                             has spaces in it, surround the
                             comment with quotation marks.
+    --progress-interval <#> update progress every <#> records (default 100)
     --help or -h            show this message.
 _USAGE_
 }
