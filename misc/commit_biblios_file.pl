@@ -52,9 +52,9 @@ if ($batch_number =~ /^\d+$/ and $batch_number > 0) {
     die "$0: import batch $batch_number status is '" . $batch->{'import_status'} . "', and therefore cannot be imported\n"
         unless $batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "reverted";
     if ($revert) {
-	revert_batch($batch_number);
+        revert_batch($batch_number);
     } else {
-	process_batch($batch_number);
+        process_batch($batch_number);
     }
     $dbh->commit();
 } else {
@@ -107,8 +107,8 @@ sub revert_batch {
 
     print "... reverting MARC records -- please wait\n";
     my ($num_deleted, $num_errors, $num_reverted, $num_items_deleted, $num_ignored) =
-	BatchRevertBibRecords($import_batch_id);
-    print "... finished revrting MARC records\n";
+        BatchRevertBibRecords($import_batch_id);
+    print "... finished reverting MARC records\n";
 
     print <<_SUMMARY_;
 
@@ -121,7 +121,8 @@ Number of bibs reverted:         $num_reverted
 Number of items deleted:         $num_items_deleted
 Number of ignored:               $num_ignored
 
-Note: an item is ignored if its in batch but not actually commited.
+Note: an item is ignored if it is in a batch but not 
+actually commited.
 _SUMMARY_
 }
 
