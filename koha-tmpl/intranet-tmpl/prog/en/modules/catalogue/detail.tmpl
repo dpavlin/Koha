@@ -111,6 +111,15 @@ function verify_images() {
 		</ul>
 		</li>
 <!-- /TMPL_IF -->
+
+<!-- TMPL_IF NAME="MARCHOSTS" -->
+                <li><strong>Host Records: </strong><ul><!-- TMPL_LOOP NAME="MARCHOSTS" -->
+                <li><!-- TMPL_LOOP NAME="MARCHOSTS_FIELDS_LOOP" --> <!-- TMPL_IF NAME="hosttitle" --> <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=<!-- TMPL_VAR NAME="hostbiblionumber" ESCAPE="url"-->"><!-- TMPL_VAR NAME="hosttitle" --></a><!-- /TMPL_IF --> &nbsp;<!-- TMPL_IF NAME="hostitemnumber" --> Linked Item: <a href="/cgi-bin/koha/catalogue/moredetail.pl?type=<!-- TMPL_VAR NAME="type" -->&amp;itemnumber=<!-- TMPL_VAR NAME="hostitemnumber" -->&amp;biblionumber=<!-- TMPL_VAR NAME="hostbiblionumber" -->&amp;bi=<!-- TMPL_VAR NAME="hostbiblionumber" -->#item<!-- TMPL_VAR NAME="hostitemnumber">"><!-- TMPL_VAR NAME="hostitemnumber" --></a><!-- /TMPL_IF --><!-- /TMPL_LOOP --></li>
+                <!-- /TMPL_LOOP -->
+                </ul>
+                </li>
+<!-- /TMPL_IF -->
+
         <!-- TMPL_IF name="publishercode" -->
     <li><strong>Published by:</strong>
         <a href="/cgi-bin/koha/catalogue/search.pl?q=pb:<!-- TMPL_VAR NAME="publishercode" ESCAPE="url" -->">
