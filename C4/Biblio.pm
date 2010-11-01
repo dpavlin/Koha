@@ -1558,27 +1558,36 @@ sub GetMarcSeries {
 
   $marchostsarray = GetMarcHosts($record,$marcflavour);
 
-Get all host records (773s) from the MARC record and returns them in an array.
+Get all host records (773s MARC21, 461 UNIMARC) from the MARC record and returns them in an array.
 
 =cut
 
 sub GetMarcHosts {
     my ( $record, $marcflavour ) = @_;
-    my ( $tag );
+    my ( $tag,$title_subf,$bibnumber_subf,$itemnumber_subf);
+    $marcflavour ||="MARC21";
     if ( $marcflavour eq "MARC21" ) {
         $tag = "773";
-
+        $title_subf = "a";
+        $bibnumber_subf ="w";
+        $itemnumber_subf='o';
+    }
+    elsif ($marcflavour eq "UNIMARC") {
+        $tag = "461";
+        $title_subf = "t";
+        $bibnumber_subf ="0";
+        $itemnumber_subf='9';
     }
 
     my @marchosts;
 
-    foreach my $field ( $record->field('773')) {
+    foreach my $field ( $record->field($tag)) {
 
         my @fields_loop;
 
-        my $hostbiblionumber = $field->subfield("w");
-        my $hosttitle = $field->subfield("a");
-        my $hostitemnumber=$field->subfield("o");
+        my $hostbiblionumber = $field->subfield("$title_subf");
+        my $hosttitle = $field->subfield($bibnumber_subf);
+        my $hostitemnumber=$field->subfield($itemnumber_subf);
         push @fields_loop, { hostbiblionumber => $hostbiblionumber, hosttitle => $hosttitle, hostitemnumber => $hostitemnumber};
         push @marchosts, { MARCHOSTS_FIELDS_LOOP => \@fields_loop };
 
