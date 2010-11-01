@@ -34,6 +34,9 @@ my $as_xml;
 my $process_zebraqueue;
 my $do_not_clear_zebraqueue;
 my $verbose_logging;
+my $min;
+my $where;
+my $ofset;
 my $zebraidx_log_opt = " -v none,fatal,warn ";
 my $result = GetOptions(
     'd:s'           => \$directory,
@@ -47,6 +50,9 @@ my $result = GetOptions(
     'munge-config'  => \$do_munge,
     'a'             => \$authorities,
     'h|help'        => \$want_help,
+    'where:s'        => \$where,
+    'min:i'        => \$min,
+    'ofset:i'      => \$ofset,
 	'x'				=> \$as_xml,
     'y'             => \$do_not_clear_zebraqueue,
     'z'             => \$process_zebraqueue,
@@ -269,13 +275,20 @@ sub select_all_records {
 }
 
 sub select_all_authorities {
-    my $sth = $dbh->prepare("SELECT authid FROM auth_header");
+    my $strsth=qq{SELECT authid from auth_header};
+    $strsth.=qq{ WHERE $where } if ($where);
+    $strsth.=qq{ LIMIT $min,$ofset } if ($min && $ofset);
+    my $sth = $dbh->prepare($strsth);
     $sth->execute();
     return $sth;
 }
 
 sub select_all_biblios {
-    my $sth = $dbh->prepare("SELECT biblionumber FROM biblioitems ORDER BY biblionumber");
+    my $strsth = qq{ SELECT biblionumber FROM biblioitems };
+    $strsth.=qq{ WHERE $where } if ($where);
+    $strsth.=qq{ LIMIT $min } if ($min);
+    $strsth.=qq{ ,$ofset } if ($ofset && $min);
+    my $sth = $dbh->prepare($strsth);
     $sth->execute();
     return $sth;
 }
@@ -585,6 +598,11 @@ Parameters:
 
     -v                      increase the amount of logging.  Normally only 
                             warnings and errors from the indexing are shown.
+
+    -where select           extract only a part of the biblios or authorities      
+
+    -min begins_at          limits the results to the n first or begins at n
+    -ofset display_n        counts n results
 
     -munge-config           Deprecated option to try
                             to fix Zebra config files.
