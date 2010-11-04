@@ -1128,13 +1128,11 @@ sub SetImportRecordMatches {
 
 sub _create_import_record {
     my ($batch_id, $record_sequence, $marc_record, $record_type, $encoding, $z3950random) = @_;
-
+    my $marcxml_old = " "; # placeholder because import_records.marcxml_old is NOT NULL with no DEFAULT set
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("INSERT INTO import_records (import_batch_id, record_sequence, marc, marcxml, 
-                                                         record_type, encoding, z3950random)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $sth->execute($batch_id, $record_sequence, $marc_record->as_usmarc(), $marc_record->as_xml(),
-                  $record_type, $encoding, $z3950random);
+    my $sth = $dbh->prepare("INSERT INTO import_records (import_batch_id, record_sequence, marc, marcxml, marcxml_old, record_type, encoding, z3950random)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $sth->execute($batch_id, $record_sequence, $marc_record->as_usmarc(), $marc_record->as_xml(), $marcxml_old, $record_type, $encoding, $z3950random);
     my $import_record_id = $dbh->{'mysql_insertid'};
     $sth->finish();
     return $import_record_id;
@@ -1152,7 +1150,6 @@ sub _update_import_record_marc {
 
 sub _add_biblio_fields {
     my ($import_record_id, $marc_record) = @_;
-
     my ($title, $author, $isbn, $issn) = _parse_biblio_fields($marc_record);
     my $dbh = C4::Context->dbh;
     # FIXME no controlnumber, originalsource
@@ -1160,7 +1157,6 @@ sub _add_biblio_fields {
     my $sth = $dbh->prepare("INSERT INTO import_biblios (import_record_id, title, author, isbn, issn) VALUES (?, ?, ?, ?, ?)");
     $sth->execute($import_record_id, $title, $author, $isbn, $issn);
     $sth->finish();
-                
 }
 
 sub _update_biblio_fields {

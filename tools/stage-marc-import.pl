@@ -25,7 +25,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use strict;
-#use warnings; FIXME - Bug 2505
+use warnings;
+
+#use Sys::Syslog; #XXX
+#openlog('Koha_Import','' ,'LOCAL0');
+
+#syslog('debug|local0', "Starting up tools/stage-marc-import.pl"); #XXX
 
 # standard or CPAN modules used
 use CGI;
@@ -128,6 +133,8 @@ if ($completedJobID) {
         $matching_callback = matching_progress_callback($job, $dbh);
 
     }
+
+    # open STDERR, '>', "/home/koha/koha.git/var/log/koha-import.log"; # uncomment to log errors from child process; fix path for your install; logfile must be owned by apache user
 
     # FIXME branch code
     my ($batch_id, $num_valid, $num_items, @import_errors) = BatchStageMarcRecords($syntax, $marcrecord, $filename, 
