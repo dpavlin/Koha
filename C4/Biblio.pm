@@ -3028,7 +3028,7 @@ Internal function to add a biblioitem
 sub _koha_add_biblioitem {
     my ( $dbh, $biblioitem ) = @_;
     my $error;
-
+    my $marcxml = " ";
     my ($cn_sort) = GetClassSort( $biblioitem->{'biblioitems.cn_source'}, $biblioitem->{'cn_class'}, $biblioitem->{'cn_item'} );
     my $query = "INSERT INTO biblioitems SET
         biblionumber    = ?,
@@ -3059,7 +3059,8 @@ sub _koha_add_biblioitem {
         cn_item         = ?,
         cn_suffix       = ?,
         cn_sort         = ?,
-        totalissues     = ?
+        totalissues     = ?,
+        marcxml         = ?
         ";
     my $sth = $dbh->prepare($query);
     $sth->execute(
@@ -3070,7 +3071,7 @@ sub _koha_add_biblioitem {
         $biblioitem->{'pages'},            $biblioitem->{'bnotes'},           $biblioitem->{'size'},                  $biblioitem->{'place'},
         $biblioitem->{'lccn'},             $biblioitem->{'marc'},             $biblioitem->{'url'},                   $biblioitem->{'biblioitems.cn_source'},
         $biblioitem->{'cn_class'},         $biblioitem->{'cn_item'},          $biblioitem->{'cn_suffix'},             $cn_sort,
-        $biblioitem->{'totalissues'}
+        $biblioitem->{'totalissues'},      $marcxml
     );
     my $bibitemnum = $dbh->{'mysql_insertid'};
 
