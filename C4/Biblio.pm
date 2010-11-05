@@ -1585,8 +1585,8 @@ sub GetMarcHosts {
 
         my @fields_loop;
 
-        my $hostbiblionumber = $field->subfield("$title_subf");
-        my $hosttitle = $field->subfield($bibnumber_subf);
+        my $hostbiblionumber = $field->subfield("$bibnumber_subf");
+        my $hosttitle = $field->subfield($title_subf);
         my $hostitemnumber=$field->subfield($itemnumber_subf);
         push @fields_loop, { hostbiblionumber => $hostbiblionumber, hosttitle => $hosttitle, hostitemnumber => $hostitemnumber};
         push @marchosts, { MARCHOSTS_FIELDS_LOOP => \@fields_loop };
