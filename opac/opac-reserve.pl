@@ -195,6 +195,12 @@ if ( $query->param('place_reserve') ) {
             $branch = $borr->{'branchcode'};
         }
 
+	#item may belong to a host biblio, if yes change biblioNum to hosts bilbionumber
+	my $hostbiblioNum = GetBiblionumberFromItemnumber($itemNum);
+	if ($hostbiblioNum ne $biblioNum) {
+		$biblioNum = $hostbiblioNum;
+	}
+
         my $biblioData = $biblioDataHash{$biblioNum};
         my $found;
 
@@ -390,6 +396,11 @@ foreach my $biblioNum (@biblionumbers) {
         my ($reservedate,$reservedfor,$expectedAt) = GetReservesFromItemnumber($itemNum);
         my $ItemBorrowerReserveInfo = GetMemberDetails( $reservedfor, 0);
 
+	# the item could be reserved for this borrower vi a host record, flag this
+	if ($reservedfor eq $borrowernumber){
+		$itemLoopIter->{already_reserved} = 1;
+	}
+
         if ( defined $reservedate ) {
             $itemLoopIter->{backgroundcolor} = 'reserved';
             $itemLoopIter->{reservedate}     = format_date($reservedate);
@@ -431,6 +442,12 @@ foreach my $biblioNum (@biblionumbers) {
             $itemLoopIter->{nocancel} = 1;
         }
 
+	# if the items belongs to a host record, show link to host record
+	if ($itemInfo->{biblionumber} ne $biblioNum){
+		$biblioLoopIter{hostitemsflag} = 1;
+		$itemLoopIter->{hostbiblionumber} = $itemInfo->{biblionumber};
+	}
+
         # If there is no loan, return and transfer, we show a checkbox.
         $itemLoopIter->{notforloan} = $itemLoopIter->{notforloan} || 0;
 
@@ -444,7 +461,7 @@ foreach my $biblioNum (@biblionumbers) {
             $policy_holdallowed = 0;
         }
 
-        if (IsAvailableForItemLevelRequest($itemNum) and $policy_holdallowed and CanItemBeReserved($borrowernumber,$itemNum)) {
+        if (IsAvailableForItemLevelRequest($itemNum) and $policy_holdallowed and CanItemBeReserved($borrowernumber,$itemNum) and ($itemLoopIter->{already_reserved} ne 1)) {
             $itemLoopIter->{available} = 1;
             $numCopiesAvailable++;
         }
