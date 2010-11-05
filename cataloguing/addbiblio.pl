@@ -348,6 +348,8 @@ sub create_input {
         );
     # always expand all subfields of a mandatory field
     $subfield_data{visibility} = "" if $tagslib->{$tag}->{mandatory};
+    # expand all subfields of 773 if there is a host item provided in the input
+    $subfield_data{visibility} ="" if ($tag eq 773 and $cgi->param('hostitemnumber'));
     # it's an authorised field
     if ( $tagslib->{$tag}->{$subfield}->{authorised_value} ) {
         $subfield_data{marc_value} =
@@ -679,6 +681,14 @@ sub build_tabs ($$$$$) {
             # if breeding is empty
             }
             else {
+               my $hostbiblionumber;
+               my $hostitemnumber;
+               my $hostrecord;
+               if ($tag eq 773){
+			$hostbiblionumber = $input->param('hostbiblionumber');
+			$hostitemnumber = $input->param('hostitemnumber');
+			$hostrecord = &GetMarcBiblio($hostbiblionumber);
+               }
                 my @subfields_data;
                 foreach my $subfield ( sort( keys %{ $tagslib->{$tag} } ) ) {
                     next if ( length $subfield != 1 );
@@ -695,12 +705,7 @@ sub build_tabs ($$$$$) {
                            # always include in the form regardless of the hidden setting - bug 2206
                     next
                       if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
-
-                # populating host record details for analytical records
-                my $hostbiblionumber = $input->param('hostbiblionumber');
-                my $hostitemnumber = $input->param('hostitemnumber');
                     if ( $tag eq 773 and $hostbiblionumber){
-                                my $hostrecord = &GetMarcBiblio($hostbiblionumber);
                                 if ($subfield eq "w"){
                                         push(
                                                 @subfields_data,
@@ -708,34 +713,34 @@ sub build_tabs ($$$$$) {
                                             $tag, $subfield,$hostbiblionumber, $index_tag, $tabloop, $record,
                                             $authorised_values_sth,$input
                                         ));
+					next;
                                 }
-                                elsif ($subfield eq "a"){
+                                if ($subfield eq "a"){
                                         push(
                                         @subfields_data,
                                         &create_input(
                                             $tag, $subfield,$hostrecord->subfield('245',"a"), $index_tag, $tabloop, $record,
                                             $authorised_values_sth,$input
                                         ));
+					next;
                                 }
-                                elsif ($subfield eq "o"){
+                                if ($subfield eq "o"){
                                         push(
                                         @subfields_data,
                                         &create_input(
                                             $tag, $subfield,$hostitemnumber, $index_tag, $tabloop, $record,
                                             $authorised_values_sth,$input
                                         ));
+					next;
                                 }
-
-                        }
-                         else {
-                    push(
+                    }
+			push(
                         @subfields_data,
                         &create_input(
                             $tag, $subfield, '', $index_tag, $tabloop, $record,
                             $authorised_values_sth,$input
                         )
                     );
-		}
                 }
                 if ( $#subfields_data >= 0 ) {
                     my %tag_data = (
