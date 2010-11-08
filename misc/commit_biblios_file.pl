@@ -16,14 +16,18 @@ use Getopt::Long;
 $| = 1;
 
 # command-line parameters
-my $batch_number = "";
+my $batch_number = 0;
 my $list_batches = 0;
+my $progress_interval = 100;
 my $want_help = 0;
+my $revert = 0;
 
 my $result = GetOptions(
-    'batch-number:s' => \$batch_number,
-    'list-batches'   => \$list_batches,
-    'h|help'         => \$want_help
+    'batch-number=i'      => \$batch_number,
+    'list-batches'        => \$list_batches,
+    'progress-interval=i' => \$progress_interval,
+    'revert'              => \$revert,
+    'h|help'              => \$want_help
 );
 
 if ($want_help or (not $batch_number and not $list_batches)) {
@@ -42,12 +46,18 @@ C4::Context->set_userenv(0, 'batch', 0, 'batch', 'batch', 'batch', 'batch', 'bat
 
 my $dbh = C4::Context->dbh;
 $dbh->{AutoCommit} = 0;
-if ($batch_number =~ /^\d+$/ and $batch_number > 0) {
+if ($batch_number > 0) {
     my $batch = GetImportBatch($batch_number);
     die "$0: import batch $batch_number does not exist in database\n" unless defined $batch;
-    die "$0: import batch $batch_number status is '" . $batch->{'import_status'} . "', and therefore cannot be imported\n"
-        unless $batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "reverted";
-    process_batch($batch_number);
+    if ($revert) {
+        die "$0: import batch $batch_number status is '" . $batch->{'import_status'} . "', and therefore cannot be reverted\n"
+            unless $batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "imported";
+        revert_batch($batch_number);
+    } else {
+        die "$0: import batch $batch_number status is '" . $batch->{'import_status'} . "', and therefore cannot be imported\n"
+            unless $batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "reverted";
+        process_batch($batch_number);
+    }
     $dbh->commit();
 } else {
     die "$0: please specify a numeric batch ID\n";
@@ -60,13 +70,11 @@ sub list_batches {
     print sprintf("%5.5s %-25.25s %-25.25s %-10.10s\n", "#", "File name", "Batch comments", "Status");
     print '-' x 5, ' ' , '-' x 25, ' ', '-' x 25, ' ', '-' x 10, "\n" ;
     foreach my $batch (@{ $results}) {
-        if ($batch->{'import_status'} eq "staged" or $batch->{'import_status'} eq "reverted") {
-            print sprintf("%5.5s %-25.25s %-25.25s %-10.10s\n",
-                          $batch->{'import_batch_id'},
-                          $batch->{'file_name'},
-                          $batch->{'comments'},
-                          $batch->{'import_status'});
-        }
+        print sprintf("%5.5s %-25.25s %-25.25s %-10.10s\n",
+                      $batch->{'import_batch_id'},
+                      $batch->{'file_name'},
+                      $batch->{'comments'},
+                      $batch->{'import_status'});
     }
 }
 
@@ -75,7 +83,7 @@ sub process_batch {
 
     print "... importing MARC records -- please wait\n";
     my ($num_added, $num_updated, $num_items_added, $num_items_errored, $num_ignored) = 
-        BatchCommitBibRecords($import_batch_id, 100, \&print_progress_and_commit);
+        BatchCommitBibRecords($import_batch_id, $progress_interval, \&print_progress_and_commit);
     print "... finished importing MARC records\n";
 
     print <<_SUMMARY_;
@@ -94,6 +102,30 @@ duplicate of one already in the database.
 _SUMMARY_
 }
 
+sub revert_batch {
+    my ($import_batch_id) = @_;
+
+    print "... reverting MARC records -- please wait\n";
+    my ($num_deleted, $num_errors, $num_reverted, $num_items_deleted, $num_ignored) =
+        BatchRevertBibRecords($import_batch_id);
+    print "... finished reverting MARC records\n";
+
+    print <<_SUMMARY_;
+
+MARC record reversion report
+----------------------------------------
+Batch number:                    $import_batch_id
+Number of bibs deleted:          $num_deleted
+Number of errors:                $num_errors
+Number of bibs reverted:         $num_reverted
+Number of items deleted:         $num_items_deleted
+Number of ignored:               $num_ignored
+
+Note: an item is ignored if it is in a batch but not 
+actually commited.
+_SUMMARY_
+}
+
 sub print_progress_and_commit {
     my $recs = shift;
     print "... processed $recs records\n";
@@ -102,18 +134,24 @@ sub print_progress_and_commit {
 
 sub print_usage {
     print <<_USAGE_;
-$0: import a batch of staged MARC records into database.
+$0: import a batch of staged MARC records or undo an import
 
 Use this batch job to complete the import of a batch of
 MARC records that was staged either by the batch job
 stage_biblios_file.pl or by the Koha Tools option
 "Stage MARC Records for Import".
 
+With the --revert option, can undo an import of a
+batch of records.
+
 Parameters:
-    --batch-number <#>   number of the record batch
-                         to import
-    --list-batches       print a list of record batches
-                         available to commit
-    --help or -h            show this message.
+    --batch-number <#>       number of the record batch
+                             to import or revert
+    --progress-interval <#>  update import progress every <#> records
+                             (default 100)
+    --revert                 revert the batch rather than commiting it
+    --list-batches           print a list of record batches
+                             available to commit or revert
+    --help or -h             show this message.
 _USAGE_
 }
