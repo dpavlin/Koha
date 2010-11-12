@@ -85,6 +85,17 @@ if ($input->param('sample')) {
     );
     $csv->combine(@columnkeys);
     print $csv->string, "\n";
+    my @column_values = ();
+    foreach my $key (@columnkeys) {
+        if ($key =~ m/gonenoaddress|lost|debarred|guarantorid|flags/) {
+            push @column_values, 0;
+        }
+        else {
+            push @column_values, "";
+        }
+    }
+    $csv->combine(@column_values);
+    print $csv->string, "\n";
     exit 1;
 }
 my $uploadborrowers = $input->param('uploadborrowers');
@@ -146,6 +157,10 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
             push @missing_criticals, {badparse=>1, line=>$., lineraw=>$borrowerline};
         } elsif (@columns == @columnkeys) {
             @borrower{@columnkeys} = @columns;
+            # MariaDB is more strict in its enforcement of NULL so we will default these fields to 0 which seems safe -chris_n
+            foreach my $key qw/gonenoaddress lost debarred guarantorid flags/ {
+                $borrower{$key} = 0 unless $borrower{$key};
+            }
             # MJR: try to fill blanks gracefully by using default values
             foreach my $key (@criticals) {
                 if ($borrower{$key} !~ /\S/) {
