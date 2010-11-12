@@ -231,7 +231,7 @@ $(function() {
                 <table id="listcontents">
                   <thead><tr>
                     <th>&nbsp;</th>
-                    <!-- TMPL_UNLESS NAME="item-level_itypes" --><th>Item Type</th><!-- /TMPL_UNLESS -->
+                    <!-- TMPL_UNLESS NAME="item_level_itypes" --><th>Item Type</th><!-- /TMPL_UNLESS -->
                     <th>Title</th>
                     <th>Author</th>
                     <th>Year</th>
@@ -246,7 +246,7 @@ $(function() {
                     <!-- /TMPL_UNLESS -->
                         <td><input type="checkbox" name="REM-<!-- TMPL_VAR NAME="biblionumber" -->"
                                    value="<!-- TMPL_VAR NAME="biblionumber">" /></td>
-                    <!-- TMPL_UNLESS NAME="item-level_itypes" -->
+                    <!-- TMPL_UNLESS NAME="item_level_itypes" -->
                         <td>
                           <!-- TMPL_UNLESS NAME="noItemTypeImages" -->
                           <img src="<!-- TMPL_VAR NAME="imageurl" -->" alt="<!-- TMPL_VAR NAME="description" -->" title="<!-- TMPL_VAR NAME="description" -->" />
