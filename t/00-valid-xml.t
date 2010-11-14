@@ -1,6 +1,4 @@
-package C4::Barcodes::incremental;
-
-# Copyright 2008 LibLime
+# Copyright 2010 Galen Charlton
 #
 # This file is part of Koha.
 #
@@ -20,20 +18,27 @@ package C4::Barcodes::incremental;
 use strict;
 use warnings;
 
-use vars qw($VERSION @ISA);
+use Test::More;
+use File::Spec;
+use File::Find;
+use XML::LibXML;
 
-BEGIN {
-    $VERSION = 0.01;
-    @ISA = qw(C4::Barcodes);
-}
+my $parser = XML::LibXML->new();
 
-1;
-__END__
-
-=head1 NOTES
-
-Since incremental is the default in C4::Barcodes, we do not override anything here.
-In fact, this file is more of a place holder.
-
-=cut
-
+find({
+    bydepth => 1,
+    no_chdir => 1,
+    wanted => sub {
+        my $file = $_;
+        return unless $file =~ /(\.xml|\.xsl|\.xslt)$/i;
+        my $dom;
+        eval { $dom = $parser->parse_file($file); };
+        if ($@) {
+            fail("$file parses");
+            diag($@);
+        } else {
+            pass("$file parses");
+        }
+    },
+}, File::Spec->curdir());
+done_testing();
