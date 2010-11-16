@@ -64,6 +64,7 @@ BEGIN {
         GetItemInfosOf
         GetItemsByBiblioitemnumber
         GetItemsInfo
+	GetHostItemsInfo
         get_itemnumbers_of
         GetItemnumberFromBarcode
         GetBarcodeFromItemnumber
@@ -1316,6 +1317,35 @@ sub GetItemsInfo {
     	return (@results);
 	}
 }
+
+
+=head2 GetHostItemsInfo
+
+	$hostiteminfo = GetHostItemsInfo($hostfield);
+
+	Returns the iteminfo for items linked to records via a host field
+
+=cut
+
+sub GetHostItemsInfo {
+	my ($record) = @_;
+	my @returnitemsInfo;
+
+	#MARC21 mapping, UNIMARC to be added
+	foreach my $hostfield ( $record->field('773') ) {
+        	my $hostbiblionumber = $hostfield->subfield("w");
+	        my $linkeditemnumber = $hostfield->subfield("o");
+        	my @hostitemInfos = GetItemsInfo($hostbiblionumber);
+	        foreach my $hostitemInfo (@hostitemInfos){
+        	        if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
+                	        push (@returnitemsInfo,$hostitemInfo);
+				last;
+                	}
+        	}
+	}
+	return @returnitemsInfo;
+}
+
 
 =head2 GetLastAcquisitions
 
