@@ -74,6 +74,23 @@ my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
 my @results;
 my $fw = GetFrameworkCode($biblionumber);
 my @items= GetItemsInfo($biblionumber);
+my $record=GetMarcBiblio($biblionumber);
+
+my $hostrecords;
+# adding items linked via host biblios
+   foreach my $hostfield ( $record->field('773')) {
+        my $hostbiblionumber = $hostfield->subfield("w");
+        my $linkeditemnumber = $hostfield->subfield("o");
+        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
+        foreach my $hostitemInfo (@hostitemInfos){
+                if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
+                        $hostrecords =1;
+                        push(@items, $hostitemInfo);
+                }
+         }
+    }
+
+
 my $count=@items;
 $data->{'count'}=$count;
 
