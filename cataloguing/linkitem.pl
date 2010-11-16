@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-# Move an item from a biblio to another
+# Link an item belonging to an analytical record, the item barcode needs to be provided
 #
-# Copyright 2009 BibLibre
+# Copyright 2009 BibLibre, 2010 Nucsoft OSS Labs
 #
 # This file is part of Koha.
 #
