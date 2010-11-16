@@ -96,6 +96,7 @@ my $error        = $input->param('error');
 my $biblionumber = $input->param('biblionumber');
 my $itemnumber   = $input->param('itemnumber');
 my $op           = $input->param('op');
+my $hostitemnumber = $input->param('hostitemnumber');
 
 my $frameworkcode = &GetFrameworkCode($biblionumber);
 
@@ -300,6 +301,14 @@ if ($op eq "additem") {
         $itemnumber="";
     }
     $nextop="additem";
+} elsif ($op eq "delinkitem"){
+	foreach my $field ($record->field('773')){
+		if ($field->subfield('o') eq $hostitemnumber){
+			$record->delete_field($field);
+			last;
+		}
+	}
+	my $modbibresult = ModBiblio($record, $biblionumber,'');
 }
 
 #
@@ -311,6 +320,20 @@ if ($op eq "additem") {
 my $temp = GetMarcBiblio( $biblionumber );
 my @fields = $temp->fields();
 #my @fields = $record->fields();
+
+my @hostitemnumbers;
+foreach my $hostfield ($temp->field('773')){
+	if ($hostfield->subfield('w')){
+		my $hostrecord = GetMarcBiblio($hostfield->subfield('w'));
+		foreach my $hostitem ($hostrecord->field('952')){
+			if ($hostitem->subfield('9') eq $hostfield->subfield('o')){
+				push (@fields, $hostitem);
+				push (@hostitemnumbers, $hostfield->subfield('o'));
+			}
+		}
+	}
+}
+
 my %witness; #---- stores the list of subfields used at least once, with the "meaning" of the code
 my @big_array;
 #---- finds where items.itemnumber is stored
@@ -342,6 +365,13 @@ foreach my $field (@fields) {
             }
         }
         $this_row{itemnumber} = $subf[$i][1] if ($field->tag() eq $itemtagfield && $subf[$i][0] eq $itemtagsubfield);
+	foreach my $hostitemnumber (@hostitemnumbers){
+		if ($this_row{itemnumber} eq $hostitemnumber){
+			$this_row{hostitemflag} = 1;
+			$this_row{hostbiblionumber}= GetBiblionumberFromItemnumber($hostitemnumber);
+			last;
+		}
+	}
     }
     if (%this_row) {
         push(@big_array, \%this_row);
@@ -362,6 +392,8 @@ for my $row ( @big_array ) {
     $row_data{itemnumber} = $row->{itemnumber};
     #reporting this_row values
     $row_data{'nomod'} = $row->{'nomod'};
+    $row_data{'hostitemflag'} = $row->{'hostitemflag'};
+    $row_data{'hostbiblionumber'} = $row->{'hostbiblionumber'};
     push(@item_value_loop,\%row_data);
 }
 foreach my $subfield_code (sort keys(%witness)) {
