@@ -285,16 +285,22 @@ foreach my $biblionumber (@biblionumbers) {
     my @branchcodes;
     my %itemnumbers_of_biblioitem;
     my @itemnumbers;
-    
+
     ## $items is array of 'item' table numbers
     if (my $items = get_itemnumbers_of($biblionumber)->{$biblionumber}){
         @itemnumbers  = @$items;
     }
-    else {
+	my @hostitems = get_hostitemnumbers_of($biblionumber);
+	if (@hostitems){
+		push(@itemnumbers, @hostitems);
+	}
+
+    if (!@itemnumbers) {
         $template->param('noitems' => 1);
         $biblioloopiter{noitems} = 1;
     }
-    
+
+   
     ## Hash of item number to 'item' table fields
     my $iteminfos_of = GetItemInfosOf(@itemnumbers);
     
@@ -322,6 +328,9 @@ foreach my $biblionumber (@biblionumbers) {
         
         $biblioitem->{description} =
           $itemtypes->{ $biblioitem->{itemtype} }{description};
+	if($biblioitem->{biblioitemnumber} ne $biblionumber){
+		$biblioitem->{hostitemsflag}=1;
+	}
         $biblioloopiter{description} = $biblioitem->{description};
         $biblioloopiter{itypename} = $biblioitem->{description};
         $biblioloopiter{imageurl} =
@@ -344,7 +353,11 @@ foreach my $biblionumber (@biblionumbers) {
                 $item->{holdingbranchname} =
                   $branches->{ $item->{holdingbranch} }{branchname};
             }
-            
+
+		if($item->{biblionumber} ne $biblionumber){
+			$item->{hostitemsflag}=1;
+		}
+		
             #   add information
             $item->{itemcallnumber} = $item->{itemcallnumber};
             

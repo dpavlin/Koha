@@ -9,6 +9,8 @@
     to <!-- TMPL_VAR NAME="transfertto" --> since <!-- TMPL_VAR NAME="transfertwhen" -->
 <!-- TMPL_ELSIF NAME="waiting" -->
     On hold
+<!-- TMPL_ELSIF NAME="onhold" -->
+	On hold
 <!-- TMPL_ELSIF NAME="wthdrawn" -->
     Item withdrawn
 <!-- TMPL_ELSIF name="itemlost"-->

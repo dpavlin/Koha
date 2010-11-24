@@ -81,6 +81,7 @@ if ($checkitem ne ''){
     }
 }
 
+
 if ($type eq 'str8' && $borrowernumber ne ''){
 
     foreach my $biblionumber (keys %bibinfos) {
@@ -97,6 +98,15 @@ if ($type eq 'str8' && $borrowernumber ne ''){
             }
         }
         my $const;
+
+	if ($checkitem ne ''){
+		my $item = GetItem($checkitem);
+        	if ($item->{'biblionumber'} ne $biblionumber) {
+                	$biblionumber = $item->{'biblionumber'};
+        	}
+	}
+
+
 
         if ($multi_hold) {
             my $bibinfo = $bibinfos{$biblionumber};

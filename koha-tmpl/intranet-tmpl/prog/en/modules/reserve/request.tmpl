@@ -253,7 +253,7 @@ function checkMultiHold() {
             <input type="hidden" name="request" value="any"/>
             <!-- TMPL_LOOP NAME="biblioloop" -->
               <input type="hidden" name="title_<!-- TMPL_VAR NAME="biblionumber">" value="<!-- TMPL_VAR NAME="title" ESCAPE="html">"/>
-              <input type="hidden" name="rank_<!-- TMPL_VAR NAME="biblionumber">" value="<!-- TMPL_VAR NAME="rank">"/>
+              <input type="hidden" name="rank_<!-- TMPL_VAR NAME="biblionumber">" value="<!-- TMPL_VAR NAME="rank">"/> 
             <!-- /TMPL_LOOP -->
         <!-- TMPL_ELSE -->
             <input type="hidden" name="biblionumber" value="<!-- TMPL_VAR NAME="biblionumber" -->" />
@@ -389,6 +389,9 @@ function checkMultiHold() {
             <th>Call no.</th>
             <th>Copy no.</th>
             <th>Information</th>
+		<!-- TMPL_IF NAME="hostitemsflag"-->
+		<th>Host record</th>
+		<!--/TMPL_IF-->
         </tr>
     <!-- TMPL_LOOP Name="itemloop" -->
         <tr class="<!-- TMPL_VAR NAME="backgroundcolor" -->">
@@ -454,6 +457,9 @@ function checkMultiHold() {
                     Not on hold
             <!-- /TMPL_IF -->
             </td>
+		<!-- TMPL_IF NAME="hostitemsflag" -->
+			<td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">Host Record</a></td>
+		<!-- /TMPL_IF -->
         </tr>
     <!-- /TMPL_LOOP --> <!-- itemloop -->
         </table>

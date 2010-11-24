@@ -66,6 +66,7 @@ BEGIN {
         GetItemsInfo
 	GetHostItemsInfo
         get_itemnumbers_of
+	get_hostitemnumbers_of
         GetItemnumberFromBarcode
         GetBarcodeFromItemnumber
 
@@ -1432,6 +1433,43 @@ sub get_itemnumbers_of {
 
     return \%itemnumbers_of;
 }
+
+=head2 get_hostitemnumbers_of
+
+  my @itemnumbers_of = get_hostitemnumbers_of($biblionumber);
+
+Given a biblionumber, return the list of corresponding itemnumbers that are linked to it via host fields
+
+Return a reference on a hash where key is a biblionumber and values are
+references on array of itemnumbers.
+
+=cut
+
+
+sub get_hostitemnumbers_of {
+	my ($biblionumber) = @_;
+	my $marcrecord = GetMarcBiblio($biblionumber);
+        my @returnhostitemnumbers;
+
+        #MARC21 mapping, UNIMARC to be added
+        foreach my $hostfield ( $marcrecord->field('773') ) {
+                my $hostbiblionumber = $hostfield->subfield("w");
+                my $linkeditemnumber = $hostfield->subfield("o");
+		my @itemnumbers;
+                if (my $itemnumbers = get_itemnumbers_of($hostbiblionumber)->{$hostbiblionumber})
+		{
+			@itemnumbers = @$itemnumbers;
+		}
+                foreach my $itemnumber (@itemnumbers){
+                        if ($itemnumber eq $linkeditemnumber){
+                                push (@returnhostitemnumbers,$itemnumber);
+                                last;
+                        }
+                }
+	}
+        return @returnhostitemnumbers;
+}
+
 
 =head2 GetItemnumberFromBarcode
 
