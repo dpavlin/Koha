@@ -230,7 +230,7 @@ function GetZ3950Terms(){
 
 function Changefwk(FwkList) {
 	var fwk = FwkList.options[FwkList.selectedIndex].value;
- 	window.location = "/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=<!--TMPL_VAR Name="biblionumber"-->&breedingid=<!-- TMPL_VAR name="breedingid" -->&frameworkcode="+fwk;
+ 	window.location = "/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=<!--TMPL_VAR Name="biblionumber"-->&breedingid=<!-- TMPL_VAR name="breedingid" -->&hostbiblionumber=<!-- TMPL_VAR Name="hostbiblionumber" -->&hostitemnumber=<!--TMPL_VAR Name="hostitemnumber" -->&frameworkcode="+fwk;
 
 }
 

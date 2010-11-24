@@ -348,8 +348,6 @@ sub create_input {
         );
     # always expand all subfields of a mandatory field
     $subfield_data{visibility} = "" if $tagslib->{$tag}->{mandatory};
-    # expand all subfields of 773 if there is a host item provided in the input
-    $subfield_data{visibility} ="" if ($tag eq 773 and $cgi->param('hostitemnumber'));
     # it's an authorised field
     if ( $tagslib->{$tag}->{$subfield}->{authorised_value} ) {
         $subfield_data{marc_value} =
@@ -681,14 +679,6 @@ sub build_tabs ($$$$$) {
             # if breeding is empty
             }
             else {
-               my $hostbiblionumber;
-               my $hostitemnumber;
-               my $hostrecord;
-               if ($tag eq 773){
-			$hostbiblionumber = $input->param('hostbiblionumber');
-			$hostitemnumber = $input->param('hostitemnumber');
-			$hostrecord = &GetMarcBiblio($hostbiblionumber);
-               }
                 my @subfields_data;
                 foreach my $subfield ( sort( keys %{ $tagslib->{$tag} } ) ) {
                     next if ( length $subfield != 1 );
@@ -705,35 +695,6 @@ sub build_tabs ($$$$$) {
                            # always include in the form regardless of the hidden setting - bug 2206
                     next
                       if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
-                    if ( $tag eq 773 and $hostbiblionumber){
-                                if ($subfield eq "w"){
-                                        push(
-                                                @subfields_data,
-                                        &create_input(
-                                            $tag, $subfield,$hostbiblionumber, $index_tag, $tabloop, $record,
-                                            $authorised_values_sth,$input
-                                        ));
-					next;
-                                }
-                                if ($subfield eq "a"){
-                                        push(
-                                        @subfields_data,
-                                        &create_input(
-                                            $tag, $subfield,$hostrecord->subfield('245',"a"), $index_tag, $tabloop, $record,
-                                            $authorised_values_sth,$input
-                                        ));
-					next;
-                                }
-                                if ($subfield eq "o"){
-                                        push(
-                                        @subfields_data,
-                                        &create_input(
-                                            $tag, $subfield,$hostitemnumber, $index_tag, $tabloop, $record,
-                                            $authorised_values_sth,$input
-                                        ));
-					next;
-                                }
-                    }
 			push(
                         @subfields_data,
                         &create_input(
@@ -872,6 +833,8 @@ my $mode          = $input->param('mode');
 my $frameworkcode = $input->param('frameworkcode');
 my $redirect      = $input->param('redirect');
 my $dbh           = C4::Context->dbh;
+my $hostbiblionumber = $input->param('hostbiblionumber');
+my $hostitemnumber = $input->param('hostitemnumber');
 
 my $userflags = ($frameworkcode eq 'FA') ? "fast_cataloging" : "edit_catalogue";
 
@@ -932,7 +895,6 @@ if ($breedingid) {
 #populate hostfield if hostbiblionumber is available
 if ($hostbiblionumber){
 	$record=MARC::Record->new();
-	$record->leader('');
         my $field = PrepHostMarcField($hostbiblionumber, $hostitemnumber);
 	$record->append_fields($field);
 }
@@ -1062,6 +1024,8 @@ elsif ( $op eq "delete" ) {
         biblioitemnumtagfield    => $biblioitemnumtagfield,
         biblioitemnumtagsubfield => $biblioitemnumtagsubfield,
         biblioitemnumber         => $biblioitemnumber,
+	hostbiblionumber	=> $hostbiblionumber,
+	hostitemnumber		=> $hostitemnumber
     );
 }
 
