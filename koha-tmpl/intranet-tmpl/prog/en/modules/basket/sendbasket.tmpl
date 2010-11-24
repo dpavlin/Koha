@@ -15,7 +15,7 @@ Reference Manager or ProCite.
 <MESSAGE>
 ---------------------------------------------
 <!-- TMPL_IF NAME="comment" -->
-<!-- TMPL_VAR NAME="comment" -->
+<!-- TMPL_VAR NAME="comment" ESCAPE="0" -->
 <!-- /TMPL_IF -->
 <!-- TMPL_LOOP NAME="BIBLIO_RESULTS" --><!-- TMPL_VAR NAME="title" --><!-- TMPL_IF name="subtitle" --> <!-- TMPL_VAR NAME="subtitle" --><!-- /TMPL_IF --><!-- TMPL_IF "HASAUTHORS" -->
 Author(s): <!-- TMPL_IF NAME="author" --><!-- TMPL_VAR NAME="author" --><!-- /TMPL_IF --><!-- TMPL_IF name="MARCAUTHORS" --><!-- TMPL_IF NAME="author" -->; <!-- /TMPL_IF --><!-- TMPL_LOOP NAME="MARCAUTHORS" --><!-- TMPL_LOOP NAME="MARCAUTHOR_SUBFIELDS_LOOP" --><!-- TMPL_VAR NAME="separator" --><!-- TMPL_VAR NAME="value" --><!-- /TMPL_LOOP --><!-- TMPL_UNLESS NAME="__last__" -->; <!-- TMPL_ELSE --><!-- /TMPL_UNLESS --><!-- /TMPL_LOOP --><!-- /TMPL_IF --><!-- /TMPL_IF --><!-- TMPL_IF name="ISBN" -->

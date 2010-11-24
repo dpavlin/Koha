@@ -98,8 +98,8 @@
 	<legend>Output</legend>
 <ol><li><label for="outputscreen">To screen into the browser: </label><input type="radio" checked="checked" name="output" id="outputscreen" value="screen" /> </li>
 <li><label for="outputfile">To a file:</label> 		<input type="radio" name="output" value="file" id="outputfile" /> <label class="inline" for="basename">Named: </label><input type="text" name="basename" id="basename" value="Export" /> <label class="inline" for="MIME">Into an application  
-		</label><!-- TMPL_VAR NAME="CGIextChoice" -->
-		<!-- TMPL_VAR NAME="CGIsepChoice" --></li></ol>
+		</label><!-- TMPL_VAR NAME="CGIextChoice" ESCAPE="0" -->
+		<!-- TMPL_VAR NAME="CGIsepChoice" ESCAPE="0" --></li></ol>
 	</fieldset>
 
 	<fieldset class="action">

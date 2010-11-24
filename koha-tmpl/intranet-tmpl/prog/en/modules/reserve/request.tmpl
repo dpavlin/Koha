@@ -184,7 +184,7 @@ function checkMultiHold() {
 			</fieldset>
         <!-- TMPL_ELSE -->
 			<fieldset>
-			<!-- TMPL_VAR NAME="CGIselectborrower" -->
+			<!-- TMPL_VAR NAME="CGIselectborrower" ESCAPE="0" -->
 			<input type="hidden" name="biblionumber" value="<!-- TMPL_VAR NAME="biblionumber"-->" /><fieldset class="action"><input type="submit" value="Select" /></fieldset></fieldset>
 
         <!-- /TMPL_UNLESS -->
@@ -280,7 +280,7 @@ function checkMultiHold() {
         </li>
         <li>
             <label for="pickup">Pickup at:</label>
-            <!-- TMPL_VAR NAME="CGIbranch" -->
+            <!-- TMPL_VAR NAME="CGIbranch" ESCAPE="0" -->
         </li>
 
 	<!-- TMPL_IF NAME="reserve_in_future" -->

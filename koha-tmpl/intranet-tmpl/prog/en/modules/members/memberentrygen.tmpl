@@ -180,7 +180,7 @@
                 <label for="btitle">
             <!-- /TMPL_IF-->
             Salutation: </label>
-            <!-- TMPL_VAR NAME="borrotitlepopup" -->
+            <!-- TMPL_VAR NAME="borrotitlepopup" ESCAPE="0" -->
             <!-- TMPL_IF NAME="mandatorytitle" --><span class="required">Required</span><!-- /TMPL_IF -->
             </li>
 		<!-- /TMPL_IF -->
@@ -380,7 +380,7 @@
       <label for="streettype">
       <!-- /TMPL_IF-->
       Street type: </label>
-      <!-- TMPL_VAR NAME="roadpopup" -->
+      <!-- TMPL_VAR NAME="roadpopup" ESCAPE="0" -->
 	  <!-- TMPL_IF NAME="mandatorystreettype" --><span class="required">Required</span><!-- /TMPL_IF -->
       </li>
     <!--/TMPL_IF--> 
@@ -734,7 +734,7 @@
         <label for="branchcode">
       <!-- /TMPL_IF-->
       Library: </label>
-      <!-- TMPL_VAR NAME="CGIbranch" -->
+      <!-- TMPL_VAR NAME="CGIbranch" ESCAPE="0" -->
 	  <!-- TMPL_IF NAME="mandatorybranchcode" --><span class="required">Required</span><!-- /TMPL_IF -->
     </li>
     <li>

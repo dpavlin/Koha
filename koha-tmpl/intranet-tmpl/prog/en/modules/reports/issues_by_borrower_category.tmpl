@@ -60,7 +60,7 @@
         <option value="<!--TMPL_VAR Name="value"-->" ><!--TMPL_VAR Name="description"--> </option>  
      <!--/TMPL_LOOP --> 
     </select></li>
-		<li><label for="branch">Select a branch:</label> <!-- TMPL_VAR NAME="CGIbranch" --></li></ol></fieldset>
+		<li><label for="branch">Select a branch:</label> <!-- TMPL_VAR NAME="CGIbranch" ESCAPE="0" --></li></ol></fieldset>
 		<fieldset class="action"><input type="submit" value="Submit" />
 		<input type="hidden" name="report_name" value="<!--TMPL_VAR NAME="report_name" -->" />
 		<input type="hidden" name="do_it" value="1" /></fieldset>

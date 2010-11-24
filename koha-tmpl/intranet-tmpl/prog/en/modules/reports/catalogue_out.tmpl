@@ -139,11 +139,11 @@
 		<label class="inline" for="basename">Named: </label><input type="text" name="basename" id="basename" value="Export" />
 		<label class="inline" for="MIME">Into an application </label>
         <select name="MIME" id="MIME">
-        <!-- TMPL_LOOP NAME="CGIextChoice" -->
+        <!-- TMPL_LOOP NAME="CGIextChoice" ESCAPE="0" -->
           <option value="<!-- TMPL_VAR NAME="type" -->"><!-- TMPL_VAR NAME="type" --></option>
         <!-- /TMPL_LOOP -->
         </select>
-        <!-- TMPL_VAR NAME="CGIsepChoice" -->
+        <!-- TMPL_VAR NAME="CGIsepChoice" ESCAPE="0" -->
 	</li>
 </ol>
 	</fieldset>

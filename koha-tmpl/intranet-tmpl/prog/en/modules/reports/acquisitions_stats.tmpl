@@ -242,20 +242,20 @@
 				<td>Vendor</td>
 				<td><input type="radio" checked="checked" name="Line" value="aqbooksellers.name" /></td>
 				<td><input type="radio" name="Column" value="aqbooksellers.name" /></td>
-				<td><!-- TMPL_VAR NAME="CGIBookSeller" --></td>
+				<td><!-- TMPL_VAR NAME="CGIBookSeller" ESCAPE="0" --></td>
 			</tr>
 			<tr>
 				<td>Item Type</td>
 				<td><input type="radio" name="Line" value="biblioitems.itemtype" /></td>
 				<td><input type="radio" name="Column" value="biblioitems.itemtype" /></td>
-				<td><!-- TMPL_VAR NAME="CGIItemType" --></td>
+				<td><!-- TMPL_VAR NAME="CGIItemType" ESCAPE="0" --></td>
 			</tr>
 
 			<tr>
 				<td>Budget</td>
 				<td><input type="radio" name="Line" value="aqbudgets.budget_code" /></td>
 				<td><input type="radio" name="Column" value="aqbudgets.budget_code" /></td>
-				<td><!-- TMPL_VAR NAME="CGIBudget" --></td>
+				<td><!-- TMPL_VAR NAME="CGIBudget" ESCAPE="0" --></td>
 			</tr>
 
 			<!-- TMPL_IF Name="hassort1" -->
@@ -263,7 +263,7 @@
 					<td>Sort1</td>
 					<td><input type="radio" name="Line" value="aqorders.sort1" /></td>
 					<td><input type="radio" name="Column" value="aqorders.sort1" /></td>
-					<td><!-- TMPL_VAR NAME="CGISort1" --> </td>
+					<td><!-- TMPL_VAR NAME="CGISort1" ESCAPE="0" --> </td>
 				</tr>
 			<!-- /TMPL_IF -->
 			<!-- TMPL_IF Name="hassort2" -->
@@ -271,7 +271,7 @@
 					<td>Sort2</td>
 					<td><input type="radio" name="Line" value="aqorders.sort2" /></td>
 					<td><input type="radio" name="Column" value="aqorders.sort2" /></td>
-					<td><!-- TMPL_VAR NAME="CGISort2" --> </td>
+					<td><!-- TMPL_VAR NAME="CGISort2" ESCAPE="0" --> </td>
 				</tr>
 			<!-- /TMPL_IF -->
 		</tbody>
@@ -286,8 +286,8 @@
 	<legend>Output</legend>
 <ol><li><label for="outputscreen">To screen into the browser: </label><input type="radio" checked="checked" name="output" id="outputscreen" value="screen" /> </li>
 <li><label for="outputfile">To a file:</label> 		<input type="radio" name="output" value="file" id="outputfile" /> <label class="inline" for="basename">Named: </label><input type="text" name="basename" id="basename" value="Export" /> <label class="inline" for="MIME">Into an application
-		</label><!-- TMPL_VAR NAME="CGIextChoice" -->
-		<!-- TMPL_VAR NAME="CGIsepChoice" --></li></ol>
+		</label><!-- TMPL_VAR NAME="CGIextChoice" ESCAPE="0" -->
+		<!-- TMPL_VAR NAME="CGIsepChoice" ESCAPE="0" --></li></ol>
 	</fieldset>
 
 	<fieldset class="action">

@@ -98,9 +98,9 @@
                 		<!-- /TMPL_IF -->
                 		<li><label for="liblibrarian<!-- TMPL_VAR NAME="row" -->">Text for librarian: </label><input id="liblibrarian<!-- TMPL_VAR NAME="row" -->" type="text" name="liblibrarian" value="<!-- TMPL_VAR NAME="liblibrarian" -->" size="40" maxlength="80" /></li>
                 		<li><label for="libopac<!-- TMPL_VAR NAME="row" -->">Text for OPAC: </label><input type="text" id="libopac<!-- TMPL_VAR NAME="row" -->" name="libopac" value="<!-- TMPL_VAR NAME="libopac" -->" size="40" maxlength="80" /></li>
-                		<li><label for="repeatable<!-- TMPL_VAR NAME="row" -->">Repeatable: </label><!-- TMPL_VAR NAME="repeatable" --></li>
-                		<li><label for="mandatory<!-- TMPL_VAR NAME="row" -->">Mandatory: </label><!-- TMPL_VAR NAME="mandatory" --></li>
-                		<li><label for="tab<!-- TMPL_VAR NAME="row" -->">Managed in tab: </label><!-- TMPL_VAR NAME="tab" --> (ignore means that the subfield does not display in the record editor)</li>
+                		<li><label for="repeatable<!-- TMPL_VAR NAME="row" -->">Repeatable: </label><!-- TMPL_VAR NAME="repeatable" ESCAPE="0"  --></li>
+                		<li><label for="mandatory<!-- TMPL_VAR NAME="row" -->">Mandatory: </label><!-- TMPL_VAR NAME="mandatory" ESCAPE="0"  --></li>
+                		<li><label for="tab<!-- TMPL_VAR NAME="row" -->">Managed in tab: </label><!-- TMPL_VAR NAME="tab" ESCAPE="0"  --> (ignore means that the subfield does not display in the record editor)</li>
                 	</ol>
             </fieldset>
 			
@@ -111,17 +111,17 @@
                 <ol><li><label for="defaultvalue<!-- TMPL_VAR NAME="row" -->">Default value:</label>
                     <input type="text" name="defaultvalue" id="defaultvalue<!-- TMPL_VAR NAME="row" -->" value="<!-- TMPL_VAR NAME="defaultvalue" -->" /></li>
                 <li><label for="hidden<!-- TMPL_VAR NAME="row" -->">hidden</label><input type="text" id="hidden<!-- TMPL_VAR NAME="row" -->" name="hidden" value="<!-- TMPL_VAR name="hidden" -->" size="2" /> (see online help)</li>
-                <li><label for="isurl<!-- TMPL_VAR NAME="row" -->">Is a URL:</label><!-- TMPL_VAR NAME="isurl" --> (if checked, it means that the subfield is a URL and can be clicked)</li>
+                <li><label for="isurl<!-- TMPL_VAR NAME="row" -->">Is a URL:</label><!-- TMPL_VAR NAME="isurl" ESCAPE="0"  --> (if checked, it means that the subfield is a URL and can be clicked)</li>
                 <li><label for="link<!-- TMPL_VAR NAME="row" -->">Link:</label><input type="text" id="link<!-- TMPL_VAR NAME="row" -->" name="link" value="<!-- TMPL_VAR NAME="link" -->" size="10" maxlength="80" /> (e.g., Title or Local-Number) <span class="error"><em>Warning: This value should not change after data has been added to your catalog</em></span></li>
-                <li><label for="kohafield<!-- TMPL_VAR NAME="row" -->">Koha link:</label><!-- TMPL_VAR NAME="kohafield" --></li>
+                <li><label for="kohafield<!-- TMPL_VAR NAME="row" -->">Koha link:</label><!-- TMPL_VAR NAME="kohafield" ESCAPE="0"  --></li>
 			</ol>
 	</fieldset>
 	 <fieldset class="rows">
                 <legend>Other Options: (choose one)</legend>
                     	<ol>
-                    		<li><label for="authorised_value<!-- TMPL_VAR NAME="row" -->">Authorized value:</label><!-- TMPL_VAR NAME="authorised_value" --></li>
-                    		<li><label for="authtypecode<!-- TMPL_VAR NAME="row" -->">Thesaurus:</label><!-- TMPL_VAR NAME="authtypes" --></li>
-                    		<li><label for="value_builder<!-- TMPL_VAR NAME="row" -->">Plugin:</label><!-- TMPL_VAR NAME="value_builder" --></li>
+                    		<li><label for="authorised_value<!-- TMPL_VAR NAME="row" -->">Authorized value:</label><!-- TMPL_VAR NAME="authorised_value" ESCAPE="0"  --></li>
+                    		<li><label for="authtypecode<!-- TMPL_VAR NAME="row" -->">Thesaurus:</label><!-- TMPL_VAR NAME="authtypes" ESCAPE="0"  --></li>
+                    		<li><label for="value_builder<!-- TMPL_VAR NAME="row" -->">Plugin:</label><!-- TMPL_VAR NAME="value_builder" ESCAPE="0"  --></li>
                     	</ol>
 				</fieldset>
             </div><br class="clear" /><!-- /more  -->

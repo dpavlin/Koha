@@ -17,7 +17,7 @@
                         <option value="start">starts with</option>
                         <option value="is">is exactly</option>
                     </select>
-                    <input type="text" name="value_mainstr" value="<!-- TMPL_VAR ESCAPE="HTML" name="value_mainstr" -->" />
+                    <input type="text" name="value_mainstr" value="<!-- TMPL_VAR name="value_mainstr" -->" />
                 </li>
                 <li>
                     <label for="mainentry">Main entry</label>
@@ -29,7 +29,7 @@
                         <option value="start">starts with</option>
                         <option value="is">is exactly</option>
                     </select>
-                    <input type="text" name="value_main" value="<!-- TMPL_VAR ESCAPE="HTML" name="value_main" -->" />
+                    <input type="text" name="value_main" value="<!-- TMPL_VAR name="value_main" -->" />
                 </li>
                 <li>
                     <label for="marclist">Anywhere</label>
@@ -41,7 +41,7 @@
                         <option value="start">starts with</option>
                         <option value="is">is exactly</option>
                     </select>
-                    <input type="text" name="value_any" value="<!-- TMPL_VAR ESCAPE="HTML" name="value_any" -->" />
+                    <input type="text" name="value_any" value="<!-- TMPL_VAR name="value_any" -->" />
                 </li>
 		<li>
 		<label for="orderby">Sort by </label>

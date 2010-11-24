@@ -229,26 +229,26 @@
 				<td>Patron category</td>
 				<td><input type="radio" name="Line" value="borrowers.categorycode" /></td>
 				<td><input type="radio" name="Column" value="borrowers.categorycode" /></td>
-				<td><!-- TMPL_VAR NAME="CGIBorCat" --></td>
+				<td><!-- TMPL_VAR NAME="CGIBorCat" ESCAPE="0" --></td>
 			</tr>
 			<tr>
 				<td>Item type</td>
 				<td><input type="radio" name="Line" value="itemtype" /></td>
 				<td><input type="radio" name="Column" value="itemtype" /></td>
-				<td ><!-- TMPL_VAR NAME="CGIItemType" --></td>
+				<td ><!-- TMPL_VAR NAME="CGIItemType" ESCAPE="0" --></td>
 			</tr>
 			<tr class="hilighted">
 				<td>Library</td>
 				<td><input type="radio" name="Line" value="branchcode" /></td>
 				<td><input type="radio" name="Column" value="branchcode" /></td>
-				<td><!-- TMPL_VAR NAME="CGIBranch" --></td>
+				<td><!-- TMPL_VAR NAME="CGIBranch" ESCAPE="0" --></td>
 			</tr>
 <!-- Modified according to statistics table
 			<tr>
 				<td>Issuing Library</td>
 				<td><input type="radio" name="Line" value="issuingbranch"></td>
 				<td><input type="radio" name="Column" value="issuingbranch"></td>
-				<td ><! TMPL_VAR NAME="CGIBranch" ></td>
+				<td ><! TMPL_VAR NAME="CGIBranch" ESCAPE="0" ></td>
 			</tr> -->
 <!--End Modified -->
 			<!-- TMPL_IF Name="hassort1" -->
@@ -256,7 +256,7 @@
 					<td>Sort1</td>
 					<td><input type="radio" name="Line" value="borrowers.sort1" /></td>
 					<td><input type="radio" name="Column" value="borrowers.sort1" /></td>
-					<td><!-- TMPL_VAR NAME="CGISort1" --> </td>
+					<td><!-- TMPL_VAR NAME="CGISort1" ESCAPE="0" --> </td>
 				</tr>
 			<!-- /TMPL_IF -->
 			<!-- TMPL_IF Name="hassort2" -->
@@ -264,7 +264,7 @@
 					<td>Sort2</td>
 					<td><input type="radio" name="Line" value="borrowers.sort2" /></td>
 					<td><input type="radio" name="Column" value="borrowers.sort2" /></td>
-					<td><!-- TMPL_VAR NAME="CGISort2" --> </td>
+					<td><!-- TMPL_VAR NAME="CGISort2" ESCAPE="0" --> </td>
 				</tr>
 			<!-- /TMPL_IF -->
 		</tbody>
@@ -275,8 +275,8 @@
 	<legend>Output</legend>
 <ol><li><label for="outputscreen">To screen into the browser: </label><input type="radio" checked="checked" name="output" id="outputscreen" value="screen" /> </li>
 <li><label for="outputfile">To a file:</label> 		<input type="radio" name="output" value="file" id="outputfile" /> <label class="inline" for="basename">Named: </label><input type="text" name="basename" id="basename" value="Export" /> <label class="inline" for="MIME">Into an application:  
-		</label><!-- TMPL_VAR NAME="CGIextChoice" -->
-		<!-- TMPL_VAR NAME="CGIsepChoice" --></li></ol>
+		</label><!-- TMPL_VAR NAME="CGIextChoice" ESCAPE="0" -->
+		<!-- TMPL_VAR NAME="CGIsepChoice" ESCAPE="0" --></li></ol>
 	</fieldset>
 
 	<fieldset class="action">

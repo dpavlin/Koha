@@ -705,7 +705,7 @@ function searchauthority() {
                         </label>
                     <!-- /TMPL_UNLESS -->
                     
-                    <!-- TMPL_VAR NAME="marc_value" -->
+                    <!-- TMPL_VAR NAME="marc_value" ESCAPE="0" -->
                     
                     <!-- TMPL_IF NAME="repeatable" -->
                         <a href="#" onclick="CloneSubfield('subfield<!-- TMPL_VAR NAME='tag' --><!-- TMPL_VAR NAME='subfield' -->'); return false;"><img src="/intranet-tmpl/prog/img/clone-subfield.png" alt="Clone" title="Clone this subfield" /></a>

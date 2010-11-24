@@ -104,7 +104,7 @@ YAHOO.util.Event.onAvailable("popmenu", function () {
     </td>
     <td>
         <label for="authcat"  > Select planning type:</label>
-        <!-- TMPL_VAR NAME="authcat_dropbox" -->
+        <!-- TMPL_VAR NAME="authcat_dropbox" ESCAPE="0" -->
         <input type="submit" name="option_submit" value="Select" />
     </td>
     </tr>
@@ -176,7 +176,7 @@ YAHOO.util.Event.onAvailable("popmenu", function () {
         <tr > 
             <!--/TMPL_IF -->
 
-        <td align='left'><!-- TMPL_VAR NAME="budget_name_indent"--></td>
+        <td align='left'><!-- TMPL_VAR NAME="budget_name_indent" ESCAPE="0" --></td>
         <td align='right'><span id='budget_tot_formatted_<!-- TMPL_VAR NAME="budget_id" -->'><!-- TMPL_VAR NAME="budget_amount_formatted"-->&nbsp;</span>
 
         <!-- NEXT DIV ELEMENT IS USED BY JS FOR CALC-ING AUTO-FILL AND ESTIMATED AMOUNTS -->
@@ -279,8 +279,8 @@ YAHOO.util.Event.onAvailable("popmenu", function () {
     <ol>
     <li><label for="basename">Output to a file named: </label><input type="text" name="basename" id="basename" value="Export" />
     <label class="inline" for="MIME">Into an application
-    </label><!-- TMPL_VAR NAME="CGIextChoice" -->
-    <!-- TMPL_VAR NAME="CGIsepChoice" --> &nbsp;&nbsp;&nbsp;
+    </label><!-- TMPL_VAR NAME="CGIextChoice" ESCAPE="0" -->
+    <!-- TMPL_VAR NAME="CGIsepChoice" ESCAPE="0" --> &nbsp;&nbsp;&nbsp;
     <input type="submit" value="Output"/>
     <input type="hidden" name="report_name" value="<!--TMPL_VAR NAME="report_name" -->" />
     <input type="hidden" name="output" value="file" />

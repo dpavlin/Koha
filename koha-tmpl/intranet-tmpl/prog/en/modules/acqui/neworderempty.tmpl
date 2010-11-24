@@ -140,10 +140,10 @@ ff.submit();
         <ol><li>
             <!-- TMPL_IF name="biblionumber" -->
             <span class="label">Title</span>
-                <input type="hidden" size="50" name="title" value="<!-- TMPL_VAR NAME="title" ESCAPE="HTML" -->" /> <span class="title"><!-- TMPL_VAR NAME="title" ESCAPE="html" --></span>
+                <input type="hidden" size="50" name="title" value="<!-- TMPL_VAR NAME="title" -->" /> <span class="title"><!-- TMPL_VAR NAME="title" --></span>
             <!-- TMPL_ELSE -->
             <label for="entertitle" class="required">Title: </label>
-                <input type="text" id="entertitle" size="50" name="title" value="<!-- TMPL_VAR NAME="title" ESCAPE="html" -->" />
+                <input type="text" id="entertitle" size="50" name="title" value="<!-- TMPL_VAR NAME="title" -->" />
             <!-- /TMPL_IF -->
         </li>
         <li>
@@ -206,8 +206,8 @@ ff.submit();
             <ol><!-- TMPL_LOOP NAME="iteminformation" --><li>
                 <div class="subfield_line" style="<!-- TMPL_VAR NAME='hidden' -->;" id="subfield<!-- TMPL_VAR NAME='serialid' --><!-- TMPL_VAR NAME='countitems' --><!-- TMPL_VAR NAME='subfield' --><!-- TMPL_VAR name="random" -->">
 
-                    <label><!-- TMPL_VAR NAME="subfield" --> - <!-- TMPL_IF name="mandatory" --><b><!-- /TMPL_IF --><!-- TMPL_VAR NAME="marc_lib" --><!-- TMPL_IF name="mandatory" --> *</b><!-- /TMPL_IF --></label>
-                    <!-- TMPL_VAR NAME="marc_value" -->
+                    <label><!-- TMPL_VAR NAME="subfield" ESCAPE="0" --> - <!-- TMPL_IF name="mandatory" --><b><!-- /TMPL_IF --><!-- TMPL_VAR NAME="marc_lib" ESCAPE="0" --><!-- TMPL_IF name="mandatory" --> *</b><!-- /TMPL_IF --></label>
+                    <!-- TMPL_VAR NAME="marc_value" ESCAPE="0" -->
                     <input type="hidden" name="itemid" value="1" />
                     <input type="hidden" name="kohafield" value="<!-- TMPL_VAR NAME="kohafield" -->" />
                     <input type="hidden" name="tag" value="<!-- TMPL_VAR NAME="tag" -->" />
@@ -340,7 +340,7 @@ ff.submit();
                 <label for="sort1">Planning value1: </label>
 
                 <!-- TMPL_IF Name="CGIsort1" -->
-                    <!-- TMPL_VAR Name="CGIsort1" -->
+                    <!-- TMPL_VAR Name="CGIsort1" ESCAPE="0" -->
                 <!-- TMPL_ELSE -->
 
                     <input type="text" id="sort1" size="20" name="sort1" value="<!-- TMPL_VAR NAME="sort1" -->" />
@@ -350,7 +350,7 @@ ff.submit();
                 <label for="sort2">Planning value2: </label>
 
                 <!-- TMPL_IF Name="CGIsort2" -->
-                    <!-- TMPL_VAR Name="CGIsort2" -->
+                    <!-- TMPL_VAR Name="CGIsort2" ESCAPE="0" -->
                 <!-- TMPL_ELSE -->
                     <input type="text" id="sort2" size="20" name="sort2" value="<!-- TMPL_VAR NAME="sort2" -->" />
                 <!--/TMPL_IF -->

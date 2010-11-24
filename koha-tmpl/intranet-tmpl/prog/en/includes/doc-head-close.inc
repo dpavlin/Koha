@@ -75,7 +75,7 @@
 <!-- TMPL_IF NAME="intranetuserjs" -->
     <script type="text/javascript">
     //<![CDATA[
-    <!-- TMPL_VAR NAME="intranetuserjs" -->
+    <!-- TMPL_VAR NAME="intranetuserjs" ESCAPE="0" -->
     //]]>
     </script>
 <!-- /TMPL_IF -->

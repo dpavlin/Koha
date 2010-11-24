@@ -70,7 +70,7 @@
                                         <!-- TMPL_IF NAME="select_field" -->
                                             <td align="center"><input type="checkbox" name="action" value="<!-- TMPL_VAR NAME="field_value" -->"></td>
                                         <!-- TMPL_ELSE -->
-                                            <td><!-- TMPL_VAR NAME="field_value" --></td>
+                                            <td><!-- TMPL_VAR NAME="field_value" ESCAPE="0" --></td>
                                         <!-- /TMPL_IF -->
                                         <!-- /TMPL_LOOP -->
                                         </tr>

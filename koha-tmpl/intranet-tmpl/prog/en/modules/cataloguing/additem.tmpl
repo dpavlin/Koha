@@ -232,8 +232,8 @@ function set_to_today(id, force) {
         <!-- TMPL_LOOP NAME="item" -->
                <li><div class="subfield_line" style="<!-- TMPL_VAR NAME='visibility' -->" id="subfield<!-- TMPL_VAR NAME='tag' --><!-- TMPL_VAR NAME='subfield' --><!-- TMPL_VAR name="random" -->">
 
-               <label><!-- TMPL_VAR NAME="subfield" --> - <!-- TMPL_IF name="mandatory" --><b><!-- /TMPL_IF --><!-- TMPL_VAR NAME="marc_lib" --><!-- TMPL_IF name="mandatory" --> *</b><!-- /TMPL_IF --></label>
-                <!-- TMPL_VAR NAME="marc_value" -->
+               <label><!-- TMPL_VAR NAME="subfield" --> - <!-- TMPL_IF name="mandatory" --><b><!-- /TMPL_IF --><!-- TMPL_VAR NAME="marc_lib" ESCAPE="0" --><!-- TMPL_IF name="mandatory" --> *</b><!-- /TMPL_IF --></label>
+                <!-- TMPL_VAR NAME="marc_value" ESCAPE="0" -->
                 <input type="hidden" name="tag"       value="<!-- TMPL_VAR NAME="tag" -->" />
                 <input type="hidden" name="subfield"  value="<!-- TMPL_VAR NAME="subfield" -->" />
                 <input type="hidden" name="mandatory" value="<!-- TMPL_VAR NAME="mandatory" -->" />

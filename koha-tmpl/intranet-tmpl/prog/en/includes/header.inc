@@ -9,7 +9,7 @@
                 <!-- TMPL_IF NAME="intranetbookbag" -->
                     <li><a href="#" id="cartmenulink">Cart<span id="basketcount"></span></a></li>
                 <!-- /TMPL_IF -->
-                <!-- TMPL_VAR name="IntranetNav" -->
+                <!-- TMPL_VAR name="IntranetNav" ESCAPE="0" -->
                 <li class="more">
                     <a id="showmore" href="/cgi-bin/koha/mainpage.pl">More</a>
                     <div id="moremenu">

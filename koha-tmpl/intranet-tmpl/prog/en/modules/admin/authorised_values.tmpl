@@ -174,7 +174,7 @@
 </span>
 </div>
 <!-- /TMPL_IF -->
-<form action="/cgi-bin/koha/admin/authorised_values.pl" method="post" id="category"><label for="searchfield">Show Category: </label><!-- TMPL_VAR name="tab_list" --> <input type="submit" value="Submit" /></form>
+<form action="/cgi-bin/koha/admin/authorised_values.pl" method="post" id="category"><label for="searchfield">Show Category: </label><!-- TMPL_VAR name="tab_list" ESCAPE="0" --> <input type="submit" value="Submit" /></form>
 <!-- TMPL_IF EXPR="category eq 'Bsort1'" -->
     <p>An authorized value attached to patrons, that can be used for stats purposes</p>
 <!-- /TMPL_IF -->
