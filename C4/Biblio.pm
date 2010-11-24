@@ -84,6 +84,7 @@ BEGIN {
       &GetFrameworkCode
       &GetPublisherNameFromIsbn
       &TransformKohaToMarc
+      &PrepHostMarcField
 
       &CountItemsIssued
     );
@@ -1662,6 +1663,30 @@ sub TransformKohaToMarc {
     }
     return $record;
 }
+
+=head2 PrepHostMarcField
+
+    $hostfield = PrepHostMarcField ( $hostbiblionumber )
+
+This function returns a host field populated with data from the host record, the field can then be added to an analytical record
+
+=cut
+
+sub PrepHostMarcField {
+	my ($hostbiblionumber,$hostitemnumber) = @_;
+        my $hostrecord = GetMarcBiblio($hostbiblionumber);
+
+	my $hostmarcfield = MARC::Field->new(
+			773, '', '',
+			'w' => $hostbiblionumber,
+                        'o' => $hostitemnumber,
+                        'a' => $hostrecord->subfield('245','a'),
+                        'x' => $hostrecord->subfield('245','x')
+                );
+
+    return $hostmarcfield;
+}
+
 
 =head2 TransformKohaToMarcOneField
 

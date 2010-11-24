@@ -55,16 +55,9 @@ if ($barcode && $biblionumber) {
 
     if ($hostitemnumber) {
 	my $hostbiblionumber = GetBiblionumberFromItemnumber($hostitemnumber);
-	my $hostrecord = GetMarcBiblio($hostbiblionumber);
 
 	if ($hostbiblionumber) {
-	        my $field = MARC::Field->new(
-			773, '', '',
-			'w' => $hostbiblionumber,
-			'o' => $hostitemnumber,
-               		'a' => $hostrecord->subfield('245','a'),
-	                'x' => $hostrecord->subfield('245','x')
-                );
+	        my $field = PrepHostMarcField($hostbiblionumber, $hostitemnumber);
 		$biblio->append_fields($field);
 
 		my $modresult = ModBiblio($biblio, $biblionumber, ''); 

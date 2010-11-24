@@ -929,6 +929,13 @@ if (($biblionumber) && !($breedingid)){
 if ($breedingid) {
     ( $record, $encoding ) = MARCfindbreeding( $breedingid ) ;
 }
+#populate hostfield if hostbiblionumber is available
+if ($hostbiblionumber){
+	$record=MARC::Record->new();
+	$record->leader('');
+        my $field = PrepHostMarcField($hostbiblionumber, $hostitemnumber);
+	$record->append_fields($field);
+}
 
 $is_a_modif = 0;
     
