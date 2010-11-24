@@ -32,7 +32,6 @@ use C4::BackgroundJob;
 use C4::ClassSource;
 use C4::Dates;
 use C4::Debug;
-use Switch;
 use MARC::File::XML;
 
 my $input = new CGI;
@@ -82,7 +81,6 @@ my @not_deleted;           # List of the itemnumbers that could not be deleted
 
 my %cookies = parse CGI::Cookie($cookie);
 my $sessionID = $cookies{'CGISESSID'}->value;
-my $dbh = C4::Context->dbh;
 
 
 #--- ----------------------------------------------------------------------------
@@ -164,9 +162,9 @@ if ($op eq "action") {
 #-------------------------------------------------------------------------------
 
 if ($op eq "show"){
-	my $filefh = $input->upload('uploadfile');
-	my $filecontent = $input->param('filecontent');
-	my @notfoundbarcodes;
+    my $filefh = $input->upload('uploadfile');
+    my $filecontent = $input->param('filecontent');
+    my @notfoundbarcodes;
 
     my @contentlist;
     if ($filefh){
@@ -175,48 +173,44 @@ if ($op eq "show"){
             push @contentlist, $content if $content;
         }
 
-	switch ($filecontent) {
-	    case "barcode_file" {
-		foreach my $barcode (@contentlist) {
+        if ($filecontent eq 'barcode_file') {
+            foreach my $barcode (@contentlist) {
 
-		    my $itemnumber = GetItemnumberFromBarcode($barcode);
-		    if ($itemnumber) {
-			push @itemnumbers,$itemnumber;
-		    } else {
-			push @notfoundbarcodes, $barcode;
-		    }
-		}
-
-	    }
-
-	    case "itemid_file" {
-		@itemnumbers = @contentlist;
-	    }
-	}
+                my $itemnumber = GetItemnumberFromBarcode($barcode);
+                if ($itemnumber) {
+                    push @itemnumbers,$itemnumber;
+                } else {
+                    push @notfoundbarcodes, $barcode;
+                }
+            }
+        }
+        elsif ( $filecontent eq 'itemid_file') {
+            @itemnumbers = @contentlist;
+        }
     } else {
-       if ( my $list=$input->param('barcodelist')){
-        push my @barcodelist, split(/\s\n/, $list);
+        if ( my $list=$input->param('barcodelist')){
+            push my @barcodelist, split(/\s\n/, $list);
 
-	foreach my $barcode (@barcodelist) {
+            foreach my $barcode (@barcodelist) {
 
-	    my $itemnumber = GetItemnumberFromBarcode($barcode);
-	    if ($itemnumber) {
-		push @itemnumbers,$itemnumber;
-	    } else {
-		push @notfoundbarcodes, $barcode;
-	    }
-	}
+                my $itemnumber = GetItemnumberFromBarcode($barcode);
+                if ($itemnumber) {
+                    push @itemnumbers,$itemnumber;
+                } else {
+                    push @notfoundbarcodes, $barcode;
+                }
+            }
 
+        }
     }
-}
     # Only display the items if there are no more than 1000
     if (scalar(@itemnumbers) <= 1000) {
-	$items_display_hashref=BuildItemsData(@itemnumbers);
+        $items_display_hashref=BuildItemsData(@itemnumbers);
     } else {
-	$template->param("too_many_items" => scalar(@itemnumbers));
-	# Even if we do not display the items, we need the itemnumbers
-	my @itemnumbers_hashref = map {{itemnumber => $_}} @itemnumbers;
-	$template->param("itemnumbers_hashref" => \@itemnumbers_hashref);
+        $template->param("too_many_items" => scalar(@itemnumbers));
+        # Even if we do not display the items, we need the itemnumbers
+        my @itemnumbers_hashref = map {{itemnumber => $_}} @itemnumbers;
+        $template->param("itemnumbers_hashref" => \@itemnumbers_hashref);
     }
 # now, build the item form for entering a new item
 my @loop_data =();
@@ -492,7 +486,7 @@ sub BuildItemsData{
 # Where subfield is not repeated
 # And where we are sure that field should correspond
 # And $tag>10
-sub UpdateMarcWith($$){
+sub UpdateMarcWith {
   my ($marcfrom,$marcto)=@_;
   #warn "FROM :",$marcfrom->as_formatted;
 	my (  $itemtag,   $itemtagsubfield) = &GetMarcFromKohaField("items.itemnumber", "");

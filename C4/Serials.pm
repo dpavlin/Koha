@@ -287,10 +287,10 @@ sub UpdateClaimdateIssues {
     my $dbh = C4::Context->dbh;
     $date = strftime( "%Y-%m-%d", localtime ) unless ($date);
     my $query = "
-        UPDATE serial SET claimdate=$date,status=7
-        WHERE  serialid in (" . join( ",", @$serialids ) . ")";
+        UPDATE serial SET claimdate = ?, status = 7
+        WHERE  serialid in (" . join( ",", map { '?' } @$serialids ) . ")";
     my $rq = $dbh->prepare($query);
-    $rq->execute;
+    $rq->execute($date, @$serialids);
     return $rq->rows;
 }
 
@@ -405,14 +405,17 @@ sub PrepareSerialsData {
     my $first;
     my $previousnote = "";
 
-    foreach my $subs (@$lines) {
-        $subs->{'publisheddate'} = (
-            $subs->{'publisheddate'}
-            ? format_date( $subs->{'publisheddate'} )
-            : "XXX"
-        );
+    foreach my $subs (@{$lines}) {
+        for my $datefield ( qw(publisheddate planneddate) ) {
+            # handle both undef and undef returned as 0000-00-00
+            if (!defined $subs->{$datefield} or $subs->{$datefield}=~m/^00/) {
+                $subs->{$datefield} = 'XXX';
+            }
+            else {
+                $subs->{$datefield} = format_date( $subs->{$datefield}  );
+            }
+        }
         $subs->{'branchname'} = GetBranchName( $subs->{'branchcode'} );
-        $subs->{'planneddate'}                  = format_date( $subs->{'planneddate'} );
         $subs->{ "status" . $subs->{'status'} } = 1;
         $subs->{"checked"}                      = $subs->{'status'} =~ /1|3|4|7/;
 
@@ -2079,15 +2082,15 @@ returns a count of items from serial matching the subscriptionid
 sub HasItems {
     my ($subscriptionid) = @_;
     my $dbh              = C4::Context->dbh;
-    my $query = qq|
+    my $query = q|
             SELECT COUNT(serialitems.itemnumber)
             FROM   serial 
 			LEFT JOIN serialitems USING(serialid)
-            WHERE  subscriptionid=? AND serialitems.serialid NOT NULL
+            WHERE  subscriptionid=? AND serialitems.serialid IS NOT NULL
         |;
     my $sth=$dbh->prepare($query);
     $sth->execute($subscriptionid);
-    my ($countitems)=$sth->fetchrow;
+    my ($countitems)=$sth->fetchrow_array();
     return $countitems;  
 }
 

@@ -106,7 +106,7 @@ my $dat = &GetBiblioData($biblionumber);
 my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
 my @subscriptions       = GetSubscriptions( $dat->{title}, $dat->{issn}, $biblionumber );
 my @subs;
-$dat->{'serial'}=1 if $subscriptionsnumber;
+
 foreach my $subscription (@subscriptions) {
     my %cell;
 	my $serials_to_display;
@@ -159,7 +159,7 @@ foreach my $item (@items) {
     $item->{'location'} = $shelflocations->{$shelfcode} if ( defined( $shelfcode ) && defined($shelflocations) && exists( $shelflocations->{$shelfcode} ) );
     my $ccode = $item->{'ccode'};
     $item->{'ccode'} = $collections->{$ccode} if ( defined( $ccode ) && defined($collections) && exists( $collections->{$ccode} ) );
-    foreach (qw(ccode enumchron copynumber uri)) {
+    foreach (qw(ccode enumchron copynumber itemnotes uri)) {
         $itemfields{$_} = 1 if ( $item->{$_} );
     }
 
@@ -212,7 +212,8 @@ $template->param(
 	itemdata_enumchron  => $itemfields{enumchron},
 	itemdata_uri        => $itemfields{uri},
 	itemdata_copynumber => $itemfields{copynumber},
-	volinfo				=> $itemfields{enumchron} || $dat->{'serial'} ,
+	volinfo				=> $itemfields{enumchron},
+    itemdata_itemnotes  => $itemfields{itemnotes},
 	z3950_search_params	=> C4::Search::z3950_search_args($dat),
 	C4::Search::enabled_staff_search_views,
 );

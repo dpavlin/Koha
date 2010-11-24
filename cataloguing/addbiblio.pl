@@ -45,7 +45,9 @@ if ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
 
 our($tagslib,$authorised_values_sth,$is_a_modif,$usedTagsLib,$mandatory_z3950);
 
-=item MARCfindbreeding
+=head1 FUNCTIONS
+
+=head2 MARCfindbreeding
 
     $record = MARCfindbreeding($breedingid);
 
@@ -152,7 +154,7 @@ sub MARCfindbreeding {
     return -1;
 }
 
-=item build_authorized_values_list
+=head2 build_authorized_values_list
 
 =cut
 
@@ -243,7 +245,7 @@ sub build_authorized_values_list ($$$$$$$) {
     );
 }
 
-=item CreateKey
+=head2 CreateKey
 
     Create a random value to set it into the input name
 
@@ -253,11 +255,11 @@ sub CreateKey(){
     return int(rand(1000000));
 }
 
-=item GetMandatoryFieldZ3950
+=head2 GetMandatoryFieldZ3950
 
     This function return an hashref which containts all mandatory field
     to search with z3950 server.
-    
+
 =cut
 
 sub GetMandatoryFieldZ3950($){
@@ -277,7 +279,7 @@ sub GetMandatoryFieldZ3950($){
     };
 }
 
-=item create_input
+=head2 create_input
 
  builds the <input ...> entry for a subfield.
 
@@ -299,7 +301,7 @@ sub create_input {
     }
 
     # if there is no value provided but a default value in parameters, get it
-    unless ($value) {
+    if ( $value eq '' ) {
         $value = $tagslib->{$tag}->{$subfield}->{defaultvalue};
 
         # get today date & replace YYYY, MM, DD if provided in the default value
@@ -364,7 +366,7 @@ sub create_input {
                     id=\"".$subfield_data{id}."\"
                     name=\"".$subfield_data{id}."\"
                     value=\"$value\"
-                    class=\"input_marceditor\"
+                    class=\"input_marceditor readonly\"
                     tabindex=\"1\"
                     size=\"5\"
                     maxlength=\"$max_length\"
@@ -380,7 +382,7 @@ sub create_input {
                     id=\"".$subfield_data{id}."\"
                     name=\"".$subfield_data{id}."\"
                     value=\"$value\"
-                    class=\"input_marceditor\"
+                    class=\"input_marceditor readonly\"
                     tabindex=\"1\"
                     size=\"67\"
                     maxlength=\"$max_length\"
@@ -394,7 +396,7 @@ sub create_input {
                     id=\"".$subfield_data{id}."\"
                     name=\"".$subfield_data{id}."\"
                     value=\"$value\"
-                    class=\"input_marceditor\"
+                    class=\"input_marceditor readonly\"
                     tabindex=\"1\"
                     size=\"67\"
                     maxlength=\"$max_length\"
@@ -514,7 +516,7 @@ sub create_input {
 }
 
 
-=item format_indicator
+=head2 format_indicator
 
 Translate indicator value for output form - specifically, map
 indicator = ' ' to ''.  This is for the convenience of a cataloger
@@ -1018,6 +1020,9 @@ elsif ( $op eq "delete" ) {
 }
 
 $template->param( title => $record->title() ) if ( $record ne "-1" );
+if (C4::Context->preference("marcflavour") eq "MARC21"){
+    $template->param(MARC21 => 1);
+}
 $template->param(
     popup => $mode,
     frameworkcode => $frameworkcode,

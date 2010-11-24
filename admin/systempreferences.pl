@@ -52,6 +52,8 @@ use C4::Languages qw(getTranslatedLanguages);
 use C4::ClassSource;
 use C4::Log;
 use C4::Output;
+use YAML::Syck qw( Dump LoadFile );
+
 
 # use Smart::Comments;
 
@@ -68,13 +70,11 @@ use C4::Output;
 my %tabsysprefs;
 
 # Acquisitions
-    $tabsysprefs{acquisitions}="Acquisitions";
     $tabsysprefs{gist}="Acquisitions";
     $tabsysprefs{emailPurchaseSuggestions}="Acquisitions";
     $tabsysprefs{RenewSerialAddsSuggestion}="Acquisitions";
     $tabsysprefs{AcqCreateItem}="Acquisitions";
     $tabsysprefs{OrderPdfFormat}="Acquisitions";
-    $tabsysprefs{OrderPdfTemplate}="Acquisitions";
     $tabsysprefs{CurrencyFormat}="Acquisitions";
 
 # Admin
@@ -83,20 +83,46 @@ $tabsysprefs{staffClientBaseURL}    = "Admin";
 $tabsysprefs{Version}               = "Admin";
 $tabsysprefs{OpacMaintenance}       = "Admin";
 $tabsysprefs{FrameworksLoaded}      = "Admin";
-$tabsysprefs{libraryAddress}        = "Admin";
 $tabsysprefs{delimiter}             = "Admin";
 $tabsysprefs{IndependantBranches}   = "Admin";
 $tabsysprefs{insecure}              = "Admin";
 $tabsysprefs{KohaAdmin}             = "Admin";
 $tabsysprefs{KohaAdminEmailAddress} = "Admin";
-$tabsysprefs{MIME}                  = "Admin";
 $tabsysprefs{timeout}               = "Admin";
 $tabsysprefs{Intranet_includes}     = "Admin";
 $tabsysprefs{AutoLocation}          = "Admin";
 $tabsysprefs{DebugLevel}            = "Admin";
 $tabsysprefs{SessionStorage}        = "Admin";
+
+# This script is depricated so all of these prefs are lumped here to avoid their being displayed in the local use prefs tab
+
 $tabsysprefs{noItemTypeImages}      = "Admin";
 $tabsysprefs{OPACBaseURL}           = "Admin";
+$tabsysprefs{AnonymousPatron}       = "Admin";
+$tabsysprefs{casAuthentication}     = "Admin";
+$tabsysprefs{casLogout}             = "Admin";
+$tabsysprefs{casServerUrl}          = "Admin";
+$tabsysprefs{Disable_Dictionary}    = "Admin";
+$tabsysprefs{EnableOpacSearchHistory}   = "Admin";
+$tabsysprefs{Intranetbookbag}       = "Admin";
+$tabsysprefs{maxitemsinSearchResults}   = "Admin";
+$tabsysprefs{noOPACUserLogin}       = "Admin";
+$tabsysprefs{'OAI-PMH:ConfFile'}    = "Admin";
+$tabsysprefs{OpacAddMastheadLibraryPulldown}    = "Admin";
+$tabsysprefs{opaclargeimage}        = "Admin";
+$tabsysprefs{OPACXSLTDetailsDisplay}    = "Admin";
+$tabsysprefs{OPACXSLTResultsDisplay}    = "Admin";
+$tabsysprefs{PDFFontType}           = "Admin";
+$tabsysprefs{PrintNoticesMaxLines}  = "Admin";
+$tabsysprefs{ReservesControlBranch} = "Admin";
+$tabsysprefs{ResultsDisplay}        = "Admin";
+$tabsysprefs{NoReturnSetLost}       = "Admin";
+$tabsysprefs{SearchURL}             = "Admin";
+$tabsysprefs{ShowPictures}          = "Admin";
+$tabsysprefs{soundon}               = "Admin";
+$tabsysprefs{SpineLabelShowPrintOnBibDetails}   = "Admin";
+$tabsysprefs{WebBasedSelfCheckHeader}           = "Admin";
+$tabsysprefs{WebBasedSelfCheckTimeout}          = "Admin";
 
 # Authorities
 $tabsysprefs{authoritysep}          = "Authorities";
@@ -112,7 +138,6 @@ $tabsysprefs{IntranetBiblioDefaultView}   = "Cataloging";
 $tabsysprefs{ISBD}                        = "Cataloging";
 $tabsysprefs{itemcallnumber}              = "Cataloging";
 $tabsysprefs{LabelMARCView}               = "Cataloging";
-$tabsysprefs{marc}                        = "Cataloging";
 $tabsysprefs{marcflavour}                 = "Cataloging";
 $tabsysprefs{MARCOrgCode}                 = "Cataloging";
 $tabsysprefs{z3950AuthorAuthFields}       = "Cataloging";
@@ -151,7 +176,6 @@ $tabsysprefs{finesMode}                      = "Circulation";
 $tabsysprefs{numReturnedItemsToShow}         = "Circulation";
 $tabsysprefs{emailLibrarianWhenHoldIsPlaced} = "Circulation";
 $tabsysprefs{globalDueDate}                  = "Circulation";
-$tabsysprefs{holdCancelLength}               = "Circulation";
 $tabsysprefs{itemBarcodeInputFilter}         = "Circulation";
 $tabsysprefs{WebBasedSelfCheck}              = "Circulation";
 $tabsysprefs{ShowPatronImageInWebBasedSelfCheck} = "Circulation";
@@ -160,6 +184,7 @@ $tabsysprefs{finesCalendar}                  = "Circulation";
 $tabsysprefs{previousIssuesDefaultSortOrder} = "Circulation";
 $tabsysprefs{todaysIssuesDefaultSortOrder}   = "Circulation";
 $tabsysprefs{HomeOrHoldingBranch}            = "Circulation";
+$tabsysprefs{HomeOrHoldingBranchReturn}      = "Circulation";
 $tabsysprefs{RandomizeHoldsQueueWeight}      = "Circulation";
 $tabsysprefs{StaticHoldsQueueWeight}         = "Circulation";
 $tabsysprefs{AllowOnShelfHolds}              = "Circulation";
@@ -182,7 +207,6 @@ $tabsysprefs{OverduesBlockCirc}              = "Circulation";
 
 
 # Staff Client
-$tabsysprefs{TemplateEncoding}        = "StaffClient";
 $tabsysprefs{template}                = "StaffClient";
 $tabsysprefs{intranetstylesheet}      = "StaffClient";
 $tabsysprefs{IntranetNav}             = "StaffClient";
@@ -236,7 +260,6 @@ $tabsysprefs{QueryFuzzy}              = "Searching";
 $tabsysprefs{QueryStemming}           = "Searching";
 $tabsysprefs{QueryWeightFields}       = "Searching";
 $tabsysprefs{expandedSearchOption}    = "Searching";
-$tabsysprefs{sortbynonfiling}         = "Searching";
 $tabsysprefs{QueryAutoTruncate}       = "Searching";
 $tabsysprefs{QueryRemoveStopwords}    = "Searching";
 $tabsysprefs{AdvancedSearchTypes}     = "Searching";
@@ -351,7 +374,6 @@ $tabsysprefs{AnonSuggestions}      = "OPAC";
 $tabsysprefs{suggestion}           = "OPAC";
 $tabsysprefs{OpacTopissue}         = "OPAC";
 $tabsysprefs{OpacBrowser}          = "OPAC";
-$tabsysprefs{kohaspsuggest}        = "OPAC";
 $tabsysprefs{OpacRenewalAllowed}   = "OPAC";
 $tabsysprefs{OPACItemHolds}        = "OPAC";
 $tabsysprefs{OPACGroupResults}     = "OPAC";
@@ -363,8 +385,6 @@ $tabsysprefs{OPACShowCheckoutName}   = "OPAC";
 $tabsysprefs{RoutingListAddReserves}  	   = "Serials";
 $tabsysprefs{OPACSerialIssueDisplayCount}  = "Serials";
 $tabsysprefs{StaffSerialIssueDisplayCount} = "Serials";
-$tabsysprefs{OPACDisplayExtendedSubInfo}   = "Serials";
-$tabsysprefs{OPACSubscriptionDisplay}      = "Serials";
 $tabsysprefs{RenewSerialAddsSuggestion}    = "Serials";
 $tabsysprefs{SubscriptionHistory}          = "Serials";
 
@@ -381,11 +401,10 @@ $tabsysprefs{FinesLog}        = "Logs";
 $tabsysprefs{'OAI-PMH'}           = "OAI-PMH";
 $tabsysprefs{'OAI-PMH:archiveID'} = "OAI-PMH";
 $tabsysprefs{'OAI-PMH:MaxCount'}  = "OAI-PMH";
-$tabsysprefs{'OAI-PMH:Set'}       = "OAI-PMH";
-$tabsysprefs{'OAI-PMH:Subset'}    = "OAI-PMH";
 
 # ILS-DI variables
 $tabsysprefs{'ILS-DI'} = "ILS-DI";
+$tabsysprefs{'ILS-DI:AuthorizedIPs'}    = "Admin";
 
 # Creator variables
 
@@ -427,12 +446,14 @@ sub StringSearch {
               ORDER BY VARIABLE" );
             $sth->execute( "%$searchstring%", "%$searchstring%" );
         } else {
-            my $strsth = "Select variable,value,explanation,type,options from systempreferences where variable not in (";
-            foreach my $syspref ( keys %tabsysprefs ) {
-                $strsth .= $dbh->quote($syspref) . ",";
+            my $strsth = "Select variable,value,explanation,type,options from systempreferences where variable in (";
+            my $first = 1;
+            for my $name ( get_local_prefs() ) {
+                $strsth .= ',' unless $first;
+                $strsth .= "'$name'";
+                $first = 0;
             }
-            $strsth =~ s/,$/) /;
-            $strsth .= " order by variable";
+            $strsth .= ") order by variable";
             $sth = $dbh->prepare($strsth);
             $sth->execute();
         }
@@ -766,7 +787,7 @@ if ( $op eq 'add_form' ) {
         $row_data->{delete} = "$script_name?op=delete_confirm&amp;searchfield=" . $results->[$i]{'variable'};
         push( @loop_data, $row_data );
     }
-    $tab = ( $tab ? $tab : "Local Use" );
+    $tab = ( $tab ? $tab : "local-use" );
     $template->param( loop => \@loop_data, $tab => 1 );
     if ( $offset > 0 ) {
         my $prevpage = $offset - $pagesize;
@@ -779,3 +800,79 @@ if ( $op eq 'add_form' ) {
     $template->param( tab => $tab, );
 }    #---- END $OP eq DEFAULT
 output_html_with_http_headers $input, $cookie, $template->output;
+
+
+# Return an array containing all preferences defined in current Koha instance
+# .pref files.
+
+sub get_prefs_from_files {
+    my $context       = C4::Context->new();
+    my $path_pref_en  = $context->config('intrahtdocs') .
+                        '/prog/en/modules/admin/preferences';
+    # Get all .pref file names
+    opendir ( my $fh, $path_pref_en );
+    my @pref_files = grep { /.pref/ } readdir($fh);
+    close $fh;
+
+    my @names = ();
+    my $append = sub {
+        my $prefs = shift;
+        for my $pref ( @$prefs ) {
+            for my $element ( @$pref ) {
+                if ( ref( $element) eq 'HASH' ) {
+                    my $name = $element->{pref};
+                    next unless $name;
+                    push @names, $name;
+                    next;
+                }
+            }
+        }
+    };
+    for my $file (@pref_files) {
+        my $pref = LoadFile( "$path_pref_en/$file" );
+        for my $tab ( keys %$pref ) {
+            my $content = $pref->{$tab};
+            if ( ref($content) eq 'ARRAY' ) {
+                $append->($content);
+                next;
+            }
+            for my $section ( keys %$content ) {
+                my $syspref = $content->{$section};
+                $append->($syspref);
+            }
+        }
+    }
+    return @names;
+}
+
+
+# Return an array containg all preferences defined in DB
+
+sub get_prefs_from_db {
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SELECT variable FROM systempreferences");
+    $sth->execute;
+    my @names = ();
+    while ( (my $name) = $sth->fetchrow_array ) {
+        push @names, $name if $name;
+    }
+    return @names;
+}
+
+
+# Return an array containing all local preferences: those which are defined in
+# DB and not defined in Koha .pref files.
+
+sub get_local_prefs {
+    my @prefs_file = get_prefs_from_files();
+    my @prefs_db = get_prefs_from_db();
+
+    my %prefs_file = map { $_ => 1 } @prefs_file;
+    my @names = ();
+    foreach my $name (@prefs_db) {
+        push @names, $name  unless $prefs_file{$name};
+    }
+
+    return @names;
+}
+

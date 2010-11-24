@@ -58,7 +58,7 @@ $debug and warn "Params are: filetype=$filetype, cardnumber=$cardnumber, borrowe
 
 =head1 NAME
 
-picture-upload.p. - Script for handling uploading of both single and bulk patronimages and importing them into the database.
+picture-upload.pl - Script for handling uploading of both single and bulk patronimages and importing them into the database.
 
 =head1 SYNOPSIS
 
@@ -95,7 +95,7 @@ if ( ($op eq 'Upload') && $uploadfile ) {       # Case is important in these ope
         }
         close $tfh;
         if ( $filetype eq 'zip' ) {
-            unless (system("unzip $tempfile -d $dirname") == 0) {
+            unless (system("unzip", $tempfile,  '-d', $dirname) == 0) {
                 $errors{'UZIPFAIL'} = $uploadfilename;
 	        $template->param( ERRORS => [ \%errors ] );
                 output_html_with_http_headers $input, $cookie, $template->output;   # This error is fatal to the import, so bail out here
@@ -295,8 +295,6 @@ sub handle_file {
     }
     return (%count);
 }
-
-=back
 
 =head1 AUTHORS
 

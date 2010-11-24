@@ -26,6 +26,7 @@
 neworderempty.pl
 
 =head1 DESCRIPTION
+
 this script allows to create a new record to order it. This record shouldn't exist
 on database.
 
@@ -340,7 +341,7 @@ $template->param(
     orderexists      => ( $new eq 'yes' ) ? 0 : 1,
     title            => $data->{'title'},
     author           => $data->{'author'},
-    publicationyear  => $data->{'publicationyear'},
+    publicationyear  => $data->{'publicationyear'} ? $data->{'publicationyear'} : $data->{'copyrightdate'},
     budget_loop      => $budget_loop,
     isbn             => $data->{'isbn'},
     seriestitle      => $data->{'seriestitle'},
@@ -363,9 +364,9 @@ $template->param(
 output_html_with_http_headers $input, $cookie, $template->output;
 
 
-=item MARCfindbreeding
+=head2 MARCfindbreeding
 
-    $record = MARCfindbreeding($breedingid);
+  $record = MARCfindbreeding($breedingid);
 
 Look up the import record repository for the record with
 record with id $breedingid.  If found, returns the decoded

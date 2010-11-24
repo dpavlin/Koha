@@ -247,7 +247,7 @@ if ($op eq 'save' || $op eq 'insert'){
     }
   }
   
-    if(C4::Context->preference('uppercasesurnames')) {
+    if($newdata{surname} && C4::Context->preference('uppercasesurnames')) {
         $newdata{'surname'} = uc($newdata{'surname'});
     }
 
@@ -429,8 +429,10 @@ foreach (qw(C A S P I X)) {
 	}
 	my %typehash;
 	$typehash{'typename'}=$_;
+    my $typedescription = "typename_".$typehash{'typename'};
 	$typehash{'categoryloop'}=\@categoryloop;
 	push @typeloop,{'typename' => $_,
+        $typedescription => 1,
 	  'categoryloop' => \@categoryloop};
 }  
 $template->param('typeloop' => \@typeloop);
@@ -648,6 +650,7 @@ $template->param(
   dateformat      => C4::Dates->new()->visual(),
   C4::Context->preference('dateformat') => 1,
   check_categorytype =>$check_categorytype,#to recover the category type with checkcategorytype function
+  category_type =>$category_type,
   modify          => $modify,
   nok     => $nok,#flag to konw if an error 
   CGIbranch => $CGIbranch,

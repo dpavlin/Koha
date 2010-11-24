@@ -2,7 +2,7 @@
 <!-- $Id: MARC21slim2DC.xsl,v 1.1 2003/01/06 08:20:27 adam Exp $ -->
 <xsl:stylesheet version="1.0"
   xmlns:marc="http://www.loc.gov/MARC21/slim"
-  xmlns:items="http://www.koha.org/items"
+  xmlns:items="http://www.koha-community.org/items"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   exclude-result-prefixes="marc items">
     <xsl:import href="MARC21slimUtils.xsl"/>
@@ -193,7 +193,7 @@
             <xsl:choose><xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><xsl:text>; </xsl:text></xsl:otherwise></xsl:choose>
         </xsl:for-each>
 
-        <xsl:for-each select="marc:datafield[@tag=490][@ind1=0]">
+        <xsl:for-each select="marc:datafield[@tag=490]">
              <a href="/cgi-bin/koha/catalogue/search.pl?q=se:{marc:subfield[@code='a']}">
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
@@ -222,16 +222,24 @@
         <xsl:if test="marc:datafield[@tag=260]">
         <span class="results_summary"><span class="label">Publisher: </span>
             <xsl:for-each select="marc:datafield[@tag=260]">
+                <xsl:if test="marc:subfield[@code='b']">
+                <a href="/cgi-bin/koha/catalogue/search.pl?q=pb:{marc:subfield[@code='b']}">
+                    <xsl:call-template name="subfieldSelect">
+                        <xsl:with-param name="codes">b</xsl:with-param>
+                    </xsl:call-template>
+               </a>
+               </xsl:if>
+               <xsl:text> </xsl:text>
                 <xsl:call-template name="chopPunctuation">
                   <xsl:with-param name="chopString">
                     <xsl:call-template name="subfieldSelect">
-                        <xsl:with-param name="codes">bcg</xsl:with-param>
+                        <xsl:with-param name="codes">acg</xsl:with-param>
                     </xsl:call-template>
                    </xsl:with-param>
                </xsl:call-template>
                     <xsl:choose><xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><xsl:text>; </xsl:text></xsl:otherwise></xsl:choose>
             </xsl:for-each>
-        </span> 
+        </span>
         </xsl:if>
 
         <!-- Edition Statement: Alternate Graphic Representation (MARC 880) -->
@@ -361,7 +369,7 @@
         </xsl:if>
 
         <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6']">
-            <span class="results_summary"><span class="label">Related Subjects: </span>
+            <span class="results_summary"><span class="label">Subject(s): </span>
             <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6']">
             <a>
             <xsl:choose>
@@ -375,7 +383,7 @@
             <xsl:call-template name="chopPunctuation">
                 <xsl:with-param name="chopString">
                     <xsl:call-template name="subfieldSelect">
-                        <xsl:with-param name="codes">abcdvxyz</xsl:with-param>
+                        <xsl:with-param name="codes">abcdtvxyz</xsl:with-param>
                         <xsl:with-param name="subdivCodes">vxyz</xsl:with-param>
                         <xsl:with-param name="subdivDelimiter">-- </xsl:with-param>
                     </xsl:call-template>

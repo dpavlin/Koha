@@ -99,7 +99,7 @@ if ($results){
 	$count =scalar(@$results);
 }
 my @resultsdata;
-my $to=($count>$to?$to:$count);
+$to=($count>$to?$to:$count);
 my $index=$from;
 foreach my $borrower(@$results[$from..$to-1]){
   #find out stats
@@ -157,7 +157,7 @@ $template->param(
 );
 $template->param(
     branchloop=>$branches,
-	categoryloop=>\@categories,
+    categories=>\@categories,
 );
 
 

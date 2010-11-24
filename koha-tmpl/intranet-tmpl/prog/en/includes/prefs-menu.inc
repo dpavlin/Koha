@@ -5,10 +5,10 @@
 <!-- TMPL_IF NAME="authorities" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Authority Control" href="/cgi-bin/koha/admin/preferences.pl?tab=authorities">Authorities</a></li>
 <!-- TMPL_IF NAME="cataloguing" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Cataloging" href="/cgi-bin/koha/admin/preferences.pl?tab=cataloguing">Cataloging</a></li>
 <!-- TMPL_IF NAME="circulation" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Circulation" href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">Circulation</a></li>
-<!-- TMPL_IF NAME="Creators" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Creators" href="/cgi-bin/koha/admin/preferences.pl?tab=creators">Creators</a></li>
+<!-- TMPL_IF NAME="creators" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Creators" href="/cgi-bin/koha/admin/preferences.pl?tab=creators">Creators</a></li>
 <!-- TMPL_IF NAME="enhanced-content" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Enhanced Content Settings" href="/cgi-bin/koha/admin/preferences.pl?tab=enhanced-content">Enhanced Content</a></li>
 <!-- TMPL_IF NAME="i18n-l10n" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Internationalization and Localization" href="/cgi-bin/koha/admin/preferences.pl?tab=i18n-l10n">I18N/L10N</a></li>
-<!-- TMPL_IF NAME="local-use" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a href="/cgi-bin/koha/admin/preferences.pl">Local Use</a></li>
+<!-- TMPL_IF NAME="local-use" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a href="/cgi-bin/koha/admin/systempreferences.pl">Local Use</a></li>
 <!-- TMPL_IF NAME="logs" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Transaction Logs" href="/cgi-bin/koha/admin/preferences.pl?tab=logs">Logs</a></li>
 <!-- TMPL_IF NAME="opac" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Online Public Access Catalog" href="/cgi-bin/koha/admin/preferences.pl?tab=opac">OPAC</a></li>
 <!-- TMPL_IF NAME="patrons" --><li class="active"><!-- TMPL_ELSE --><li><!-- /TMPL_IF --><a title="Patrons" href="/cgi-bin/koha/admin/preferences.pl?tab=patrons">Patrons</a></li>

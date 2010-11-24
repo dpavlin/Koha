@@ -89,7 +89,8 @@ sub shelfpage ($$$$$) {
         if ( $shelfnumber = $query->param('viewshelf') ) {
             if ( ShelfPossibleAction( $loggedinuser, $shelfnumber, 'manage' ) ) {
                 if ( $barcode = $query->param('addbarcode') ) {
-                    if ( $item = GetItem( 0, $barcode ) ) {
+                    $item = GetItem( 0, $barcode );
+                    if (defined $item && $item->{'itemnumber'}){
                         $biblio = GetBiblioFromItemNumber( $item->{'itemnumber'} );
                         AddToShelf( $biblio->{'biblionumber'}, $shelfnumber )
                           or push @paramsloop, { duplicatebiblio => $barcode };
@@ -386,11 +387,11 @@ __END__
 
 =head1 NAME
 
-    VirtualShelves/Page.pm
+VirtualShelves/Page.pm
 
 =head1 DESCRIPTION
 
-    Module used for both OPAC and intranet pages.
+Module used for both OPAC and intranet pages.
 
 =head1 CGI PARAMETERS
 
@@ -398,31 +399,31 @@ __END__
 
 =item C<modifyshelfcontents>
 
-    If this script has to modify the shelf content.
+If this script has to modify the shelf content.
 
 =item C<shelfnumber>
 
-    To know on which shelf to work.
+To know on which shelf to work.
 
 =item C<addbarcode>
 
 =item C<op>
 
-    Op can be:
-        * modif: show the template allowing modification of the shelves;
-        * modifsave: save changes from modif mode.
+ Op can be:
+    * modif: show the template allowing modification of the shelves;
+    * modifsave: save changes from modif mode.
 
 =item C<viewshelf>
 
-    Load template with 'viewshelves param' displaying the shelf's information.
+Load template with 'viewshelves param' displaying the shelf's information.
 
 =item C<shelves>
 
-    If the param shelves == 1, then add or delete a shelf.
+If the param shelves == 1, then add or delete a shelf.
 
 =item C<addshelf>
 
-    If the param shelves == 1, then addshelf is the name of the shelf to add.
+If the param shelves == 1, then addshelf is the name of the shelf to add.
 
 =back
 

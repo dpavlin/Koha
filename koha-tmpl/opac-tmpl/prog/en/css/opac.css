@@ -572,7 +572,10 @@ input.deleteshelf {
 }
 
 
-#toolbar input.editshelf:active,input.deleteshelf:active {
+#toolbar input.editshelf:active,
+input.editshelf:active,
+#toolbar input.deleteshelf:active,
+input.deleteshelf:active {
 	border : 0;
 }
 
@@ -943,10 +946,6 @@ h2 span.hint {
 }
 a.cancel {
 	padding-left : 1em;
-}
-
-a.hidemytags {
-	padding-left : 2em;
 }
 
 .resultscontrol, .resultscontrol select {
