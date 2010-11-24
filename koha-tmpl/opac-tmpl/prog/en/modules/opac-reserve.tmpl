@@ -99,6 +99,21 @@
         $(".copiesrow").hide();
     });
 
+    // When 'hide copies' radion button is clicked
+    $(".hidecopies").click(function() {
+        // Make sure all other specific copy table rows are hidden
+        biblioNum = suffixOf($(this).attr("id"), "_");
+        newCopiesRowId = "#copiesrow_" + biblioNum;
+
+        if (!changeSelection(newCopiesRowId, false)) {
+            return false;
+        }
+
+        // Hide the copies table row
+        $(".copiesrow").hide();
+    });
+
+
     // When 'Place Hold' button is clicked
     $(".placehold").click(function(){
         var biblionumbers = "";
@@ -387,14 +402,26 @@
                                        disabled="disabled"
                                 />
                               <!-- TMPL_ELSE -->
-                                <input type="radio" name="reqtype_<!-- TMPL_VAR NAME="biblionumber" -->"
-                                       id="reqany_<!-- TMPL_VAR NAME="biblionumber" -->"
-                                       class="selectany"
-                                       value="Any"
-                                       checked="checked"
-                                />
+					<!-- TMPL_IF NAME = "hostitemsflag" -->
+                                        <input type="radio" name="reqtype_<!-- TMPL_VAR NAME="biblionumber" -->"
+                                               id="reqany_<!-- TMPL_VAR NAME="biblionumber" -->"
+                                               class="hidecopies"
+                                               checked="checked"
+                                        />
+					<!-- TMPL_ELSE -->
+	                                <input type="radio" name="reqtype_<!-- TMPL_VAR NAME="biblionumber" -->"
+		                               id="reqany_<!-- TMPL_VAR NAME="biblionumber" -->"
+			                       class="selectany"
+				               value="Any"
+					       checked="checked"
+					/>
+					<!-- /TMPL_IF -->
                               <!-- /TMPL_UNLESS -->
-                              <label for="reqany_<!-- TMPL_VAR NAME="biblionumber" -->">Next available copy</label>
+				<!-- TMPL_IF NAME="hostitemsflag" -->
+					<label>Hide copies</label>
+				<!-- TMPL_ELSE -->
+	                              <label for="reqany_<!-- TMPL_VAR NAME="biblionumber" -->">Next available copy</label>
+				<!-- /TMPL_UNLESS -->
                             </td>
                           </tr>
                           <tr>
@@ -413,7 +440,11 @@
                                        value="Specific"
                                 />
                               <!-- /TMPL_UNLESS -->
-                              <label for="reqspecific_<!-- TMPL_VAR NAME="biblionumber"-->">A specific copy</label>
+				<!-- TMPL_IF NAME="hostitemsflag" -->
+                                      <label for="reqspecific_<!-- TMPL_VAR NAME="biblionumber"-->">Show Copies</label>
+				<!-- TMPL_ELSE -->
+	                              <label for="reqspecific_<!-- TMPL_VAR NAME="biblionumber"-->">A specific copy</label>
+				<!-- /TMPL_IF -->
                             </td>
                           </tr>
                         </table>

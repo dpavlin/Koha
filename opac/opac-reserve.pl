@@ -117,17 +117,15 @@ foreach my $biblioNumber (@biblionumbers) {
 
     my $marcrecord= GetMarcBiblio($biblioNumber);
 
-# adding items linked via host biblios
-    foreach my $hostfield ( $marcrecord->field('773')) {
-        my $hostbiblionumber = $hostfield->subfield("w");
-        my $linkeditemnumber = $hostfield->subfield("o");
-        my @hostitemInfos = GetItemsInfo($hostbiblionumber);
-        foreach my $hostitemInfo (@hostitemInfos){
-                if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
-                        push(@itemInfos, $hostitemInfo);
-                }
-         }
-    }
+	# flag indicating existence of at least one item linked via a host record
+	my $hostitemsflag;
+	# adding items linked via host biblios
+	my @hostitemInfos = GetHostItemsInfo($marcrecord);
+	if (@hostitemInfos){
+		$hostitemsflag =1;
+	        push (@itemInfos,@hostitemInfos);
+	}
+
 
 
     $biblioData->{itemInfos} = \@itemInfos;
@@ -196,9 +194,11 @@ if ( $query->param('place_reserve') ) {
         }
 
 	#item may belong to a host biblio, if yes change biblioNum to hosts bilbionumber
-	my $hostbiblioNum = GetBiblionumberFromItemnumber($itemNum);
-	if ($hostbiblioNum ne $biblioNum) {
-		$biblioNum = $hostbiblioNum;
+	if ($itemNum ne '') {
+		my $hostbiblioNum = GetBiblionumberFromItemnumber($itemNum);
+		if ($hostbiblioNum ne $biblioNum) {
+			$biblioNum = $hostbiblioNum;
+		}
 	}
 
         my $biblioData = $biblioDataHash{$biblioNum};
