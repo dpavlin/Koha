@@ -1334,8 +1334,8 @@ sub GetHostItemsInfo {
 
 	#MARC21 mapping, UNIMARC to be added
 	foreach my $hostfield ( $record->field('773') ) {
-        	my $hostbiblionumber = $hostfield->subfield("w");
-	        my $linkeditemnumber = $hostfield->subfield("o");
+        	my $hostbiblionumber = $hostfield->subfield("0");
+	        my $linkeditemnumber = $hostfield->subfield("9");
         	my @hostitemInfos = GetItemsInfo($hostbiblionumber);
 	        foreach my $hostitemInfo (@hostitemInfos){
         	        if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){
@@ -1453,8 +1453,8 @@ sub get_hostitemnumbers_of {
 
         #MARC21 mapping, UNIMARC to be added
         foreach my $hostfield ( $marcrecord->field('773') ) {
-                my $hostbiblionumber = $hostfield->subfield("w");
-                my $linkeditemnumber = $hostfield->subfield("o");
+                my $hostbiblionumber = $hostfield->subfield("0");
+                my $linkeditemnumber = $hostfield->subfield("9");
 		my @itemnumbers;
                 if (my $itemnumbers = get_itemnumbers_of($hostbiblionumber)->{$hostbiblionumber})
 		{

@@ -1569,9 +1569,9 @@ sub GetMarcHosts {
     $marcflavour ||="MARC21";
     if ( $marcflavour eq "MARC21" ) {
         $tag = "773";
-        $title_subf = "a";
-        $bibnumber_subf ="w";
-        $itemnumber_subf='o';
+        $title_subf = "t";
+        $bibnumber_subf ="0";
+        $itemnumber_subf='9';
     }
     elsif ($marcflavour eq "UNIMARC") {
         $tag = "461";
@@ -1675,13 +1675,50 @@ This function returns a host field populated with data from the host record, the
 sub PrepHostMarcField {
 	my ($hostbiblionumber,$hostitemnumber) = @_;
         my $hostrecord = GetMarcBiblio($hostbiblionumber);
+	my $item = C4::Items::GetItem($hostitemnumber);
+
+	#main entry
+	my $mainentry;
+	if ($hostrecord->subfield('100','a')){
+		$mainentry = $hostrecord->subfield('100','a');
+	} elsif ($hostrecord->subfield('110','a')){
+		$mainentry = $hostrecord->subfield('110','a');
+	} else {
+		$mainentry = $hostrecord->subfield('111','a');
+	}
+
+	#other fields
+	my $ed = $hostrecord->subfield('250','a');
+	my $qualinfo = $hostrecord->subfield('260','a').(", ".$hostrecord->subfield('260','a')).(", ".$hostrecord->subfield('260','c'));
+	my $barcode = $item->{'barcode'};
+	my $title = $hostrecord->subfield('245','a');
+	
+	# record control number, 001 with 003 and prefix
+	my $recctrlno;
+	if ($hostrecord->field('001')){
+		$recctrlno = $hostrecord->field('001')->data();
+		if ($hostrecord->field('003')){
+			$recctrlno = '('.$hostrecord->field('003')->data().')'.$recctrlno;
+		}
+	}
+
+	# issn/isbn
+	my $issn = $hostrecord->subfield('022','a');
+	my $isbn = $hostrecord->subfield('020','a');
+	
 
 	my $hostmarcfield = MARC::Field->new(
 			773, '', '',
-			'w' => $hostbiblionumber,
-                        'o' => $hostitemnumber,
-                        'a' => $hostrecord->subfield('245','a'),
-                        'x' => $hostrecord->subfield('245','x')
+			'0' => $hostbiblionumber,
+                        '9' => $hostitemnumber,
+                        'a' => $mainentry,
+			'b' => $ed,
+			'd' => $qualinfo,
+			'o' => $barcode,
+			't' => $title,
+			'w' => $recctrlno,
+			'x' => $issn,
+			'z' => $isbn
                 );
 
     return $hostmarcfield;

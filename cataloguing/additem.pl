@@ -303,7 +303,7 @@ if ($op eq "additem") {
     $nextop="additem";
 } elsif ($op eq "delinkitem"){
 	foreach my $field ($record->field('773')){
-		if ($field->subfield('o') eq $hostitemnumber){
+		if ($field->subfield('9') eq $hostitemnumber){
 			$record->delete_field($field);
 			last;
 		}
@@ -323,12 +323,12 @@ my @fields = $temp->fields();
 
 my @hostitemnumbers;
 foreach my $hostfield ($temp->field('773')){
-	if ($hostfield->subfield('w')){
-		my $hostrecord = GetMarcBiblio($hostfield->subfield('w'));
+	if ($hostfield->subfield('0')){
+		my $hostrecord = GetMarcBiblio($hostfield->subfield('0'));
 		foreach my $hostitem ($hostrecord->field('952')){
-			if ($hostitem->subfield('9') eq $hostfield->subfield('o')){
+			if ($hostitem->subfield('9') eq $hostfield->subfield('9')){
 				push (@fields, $hostitem);
-				push (@hostitemnumbers, $hostfield->subfield('o'));
+				push (@hostitemnumbers, $hostfield->subfield('9'));
 			}
 		}
 	}
