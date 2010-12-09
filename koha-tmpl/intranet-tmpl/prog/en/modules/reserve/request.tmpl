@@ -347,11 +347,13 @@ function checkMultiHold() {
 	</li>
 
         <!-- TMPL_UNLESS NAME="multi_hold" -->
+                <!-- TMPL_UNLESS NAME="hostitemsflag" -->
           <li> <label for="requestany">Place a hold on the next available copy </label>
                <input type="checkbox" id="requestany" name="request" checked="checked" value="Any" />
                <input type="hidden" name="biblioitem" value="<!-- TMPL_VAR NAME="biblioitemnumber" -->" />
                <input type="hidden" name="alreadyreserved" value="<!-- TMPL_VAR NAME="alreadyreserved" -->" />
           </li>
+                <!-- /TMPL_UNLESS -->
         <!-- /TMPL_UNLESS -->
 
 </ol>
@@ -362,6 +364,7 @@ function checkMultiHold() {
                     <input type="submit" class="warning" value="Place Hold" />
                 <!-- TMPL_ELSIF NAME="none_available" -->
                     <input type="submit" disabled="disabled" value="Place Hold" />
+                <!-- TMPL_ELSIF NAME="hostitemsflag" -->
                 <!-- TMPL_ELSE -->
                     <input type="submit" value="Place Hold" />
                 <!-- /TMPL_IF -->

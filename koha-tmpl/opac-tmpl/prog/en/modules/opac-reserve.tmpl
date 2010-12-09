@@ -131,6 +131,12 @@
             biblionumbers += biblioNum + "/";
             selections += biblioNum + "/";
 
+		//
+		if ($("#reqnone_" + biblioNum + ":checked").size()>0){
+			badBib = biblioNum;
+			return false;
+		}
+
             // If the 'specific copy' radio button is checked
             if ($("#reqspecific_" + biblioNum + ":checked").size() > 0) {
                 // Find the selected copy
@@ -404,7 +410,7 @@
                               <!-- TMPL_ELSE -->
 					<!-- TMPL_IF NAME = "hostitemsflag" -->
                                         <input type="radio" name="reqtype_<!-- TMPL_VAR NAME="biblionumber" -->"
-                                               id="reqany_<!-- TMPL_VAR NAME="biblionumber" -->"
+                                               id="reqnone_<!-- TMPL_VAR NAME="biblionumber" -->"
                                                class="hidecopies"
                                                checked="checked"
                                         />

@@ -292,6 +292,7 @@ foreach my $biblionumber (@biblionumbers) {
     }
 	my @hostitems = get_hostitemnumbers_of($biblionumber);
 	if (@hostitems){
+		$template->param('hostitemsflag' => 1);
 		push(@itemnumbers, @hostitems);
 	}
 
