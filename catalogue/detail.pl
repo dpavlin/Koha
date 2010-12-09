@@ -41,9 +41,13 @@ use C4::XSLT;
 # use Smart::Comments;
 
 my $query = CGI->new();
+
+my $analyze = $query->param('analyze');
+
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
-        template_name   => "catalogue/detail.tmpl",
+    template_name   => ($analyze? 'catalogue/analyze.tmpl':
+                      'catalogue/detail.tmpl'),
         query           => $query,
         type            => "intranet",
         authnotrequired => 0,
@@ -145,6 +149,8 @@ my (@itemloop, %itemfields);
 my $norequests = 1;
 my $authvalcode_items_itemlost = GetAuthValCode('items.itemlost',$fw);
 my $authvalcode_items_damaged  = GetAuthValCode('items.damaged', $fw);
+
+my $analytics_flag;
 foreach my $item (@items) {
 
     # can place holds defaults to yes
@@ -212,6 +218,13 @@ foreach my $item (@items) {
     if ($item->{biblionumber} ne $biblionumber){
         $item->{hostbiblionumber} = $item->{biblionumber};
     }
+	
+	#count if item is used in analytical bibliorecords
+	my $countanalytics= GetAnalyticsCount($item->{itemnumber});
+	if ($countanalytics > 0){
+		$analytics_flag=1;
+		$item->{countanalytics} = $countanalytics;
+	}
 
     push @itemloop, $item;
 }
@@ -233,6 +246,7 @@ $template->param(
     itemdata_itemnotes  => $itemfields{itemnotes},
 	z3950_search_params	=> C4::Search::z3950_search_args($dat),
         hostrecords         => $hostrecords,
+	analytics_flag	=> $analytics_flag,
 	C4::Search::enabled_staff_search_views,
 );
 
@@ -247,7 +261,7 @@ foreach ( keys %{$dat} ) {
 $template->param(
     itemloop        => \@itemloop,
     biblionumber        => $biblionumber,
-    detailview => 1,
+    ($analyze? 'analyze':'detailview') =>1,
     subscriptions       => \@subs,
     subscriptionsnumber => $subscriptionsnumber,
     subscriptiontitle   => $dat->{title},

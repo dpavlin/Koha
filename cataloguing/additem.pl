@@ -372,6 +372,12 @@ foreach my $field (@fields) {
 			last;
 		}
 	}
+
+	my $countanalytics=GetAnalyticsCount($this_row{itemnumber});
+        if ($countanalytics > 0){
+                $this_row{countanalytics} = $countanalytics;
+        }
+
     }
     if (%this_row) {
         push(@big_array, \%this_row);
@@ -394,6 +400,7 @@ for my $row ( @big_array ) {
     $row_data{'nomod'} = $row->{'nomod'};
     $row_data{'hostitemflag'} = $row->{'hostitemflag'};
     $row_data{'hostbiblionumber'} = $row->{'hostbiblionumber'};
+	$row_data{'countanalytics'} = $row->{'countanalytics'};
     push(@item_value_loop,\%row_data);
 }
 foreach my $subfield_code (sort keys(%witness)) {

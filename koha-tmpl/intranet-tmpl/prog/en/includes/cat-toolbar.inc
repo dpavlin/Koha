@@ -79,6 +79,7 @@ function confirm_items_deletion() {
 			{text: _("New Record"), url: "/cgi-bin/koha/cataloguing/addbiblio.pl" },
 			{text: _("New Item"), url: "/cgi-bin/koha/cataloguing/additem.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->#additema" },
 			{text: _("New Subscription"), url: "/cgi-bin/koha/serials/subscription-add.pl?biblionumber_for_new_subscription=<!-- TMPL_VAR NAME="biblionumber" -->"},
+                        {text: _("Analyze items"), url: "/cgi-bin/koha/catalogue/detail.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->&analyze=1" },
 		];
 	
 	    var editmenu = [

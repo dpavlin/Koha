@@ -74,6 +74,8 @@ BEGIN {
 		MoveItemFromBiblio 
 		GetLatestAcquisitions
         CartToShelf
+
+	GetAnalyticsCount
     );
 }
 
@@ -2355,6 +2357,30 @@ sub  _parse_unlinked_item_subfields_from_xml {
         }
     }
     return $unlinked_subfields;
+}
+
+=head2 GetAnalyticsCount
+
+  $count= &GetAnalyticsCount($itemnumber)
+
+counts Usage of itemnumber in Analytical bibliorecords. 
+
+=cut
+
+sub GetAnalyticsCount {
+    my ($itemnumber) = @_;
+    if (C4::Context->preference('NoZebra')) {
+        # Read the index Koha-Auth-Number for this authid and count the lines
+        my $result = C4::Search::NZanalyse("hi=$itemnumber");
+        my @tab = split /;/,$result;
+        return scalar @tab;
+    } else {
+        ### ZOOM search here
+        my $query;
+        $query= "hi=".$itemnumber;
+                my ($err,$res,$result) = C4::Search::SimpleSearch($query,0,10);
+        return ($result);
+    }
 }
 
 1;
