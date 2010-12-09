@@ -81,8 +81,8 @@ my @all_items = &GetItemsInfo( $biblionumber, 'opac' );
 
 # adding items linked via host biblios
    foreach my $hostfield ( $record->field('773')) {
-        my $hostbiblionumber = $hostfield->subfield("w");
-        my $linkeditemnumber = $hostfield->subfield("o");
+        my $hostbiblionumber = $hostfield->subfield("0");
+        my $linkeditemnumber = $hostfield->subfield("9");
         my @hostitemInfos = GetItemsInfo($hostbiblionumber);
         foreach my $hostitemInfo (@hostitemInfos){
                 if ($hostitemInfo->{itemnumber} eq $linkeditemnumber){

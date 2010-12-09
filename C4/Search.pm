@@ -1503,8 +1503,8 @@ sub searchResults {
 
         # adding linked items that belong to host records
         foreach my $hostfield ( $marcrecord->field('773')) {
-                my $hostbiblionumber = $hostfield->subfield("w");
-                my $linkeditemnumber = $hostfield->subfield("o");
+                my $hostbiblionumber = $hostfield->subfield("0");
+                my $linkeditemnumber = $hostfield->subfield("9");
                 if(!$hostbiblionumber eq undef){
                         my $hostbiblio = GetMarcBiblio($hostbiblionumber);
                         if(!$hostbiblio eq undef){
