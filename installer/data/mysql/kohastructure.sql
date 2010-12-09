@@ -342,6 +342,7 @@ CREATE TABLE `branches` (
   `branchaddress3` mediumtext,
   `branchzip` varchar(25) default NULL,
   `branchcity` mediumtext,
+  `branchstate` mediumtext,
   `branchcountry` text,
   `branchphone` mediumtext,
   `branchfax` mediumtext,
