@@ -13,9 +13,9 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License along with
+# Koha; if not, write to the Free Software Foundation, Inc., 59 Temple Place,
+# Suite 330, Boston, MA  02111-1307 USA
 
 =head1 NAME
 
@@ -43,7 +43,6 @@ the items attached to the biblio
 =cut
 
 use strict;
-#use warnings; FIXME - Bug 2505
 
 use C4::Auth;
 use C4::Context;
@@ -84,6 +83,8 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+$template->param( ocoins => GetCOinSBiblio($biblionumber) );
+
 #count of item linked
 my $itemcount = GetItemsCount($biblionumber);
 $template->param( count => $itemcount,
@@ -118,7 +119,7 @@ for ( my $tabloop = 0 ; $tabloop <= 10 ; $tabloop++ ) {
 
     # deal with leader
     unless ( $tagslib->{'000'}->{'@'}->{tab} ne $tabloop )
-    {    #  or ($tagslib->{'000'}->{'@'}->{hidden} =~ /-7|-4|-3|-2|2|3|5|8/ )) {
+    {    #  
         my %subfield_data;
         $subfield_data{marc_lib}      = $tagslib->{'000'}->{'@'}->{lib};
         $subfield_data{marc_value}    = $record->leader();

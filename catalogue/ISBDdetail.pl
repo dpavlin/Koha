@@ -90,6 +90,7 @@ $template->param (
 	isbdview => 1,
 	z3950_search_params	=> C4::Search::z3950_search_args(GetBiblioData($biblionumber)),
 	C4::Search::enabled_staff_search_views,
+    ocoins => GetCOinSBiblio($biblionumber),
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;
