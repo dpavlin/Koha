@@ -2001,6 +2001,41 @@ div.ft {
 .searchresults .commentline.yours {
 	background-color : rgb(239, 254, 213);
 	background-color : rgba(239, 254, 213, 0.4);
+
+select.advsearch {
+   margin-left:5em;
+}
+select.advsearchoperator {
+    position:absolute;
+}
+
+.authorSearch {
+    position: absolute;
+    display: none;
+    z-index: 2;
+    background-color: white;
+    border: 1px solid black;
+    padding: 4px;
+}
+.authorSearch li {
+    list-style-type: none;
+}
+.authorSearch ul {
+    padding-left: 0px; 
+}
+.subjectSearch {
+    position: absolute;
+    display: none;
+    z-index: 2;
+    background-color: white;
+    border: 1px solid black;
+    padding: 4px;
+}
+.subjectSearch li {
+    list-style-type: none;
+}
+.subjectSearch ul {
+    padding-left: 0px; 
 }
 
 #plainmarc table { border: 0; margin: .7em 0 0 0; font-family: monospace; font-size: 95%; }
