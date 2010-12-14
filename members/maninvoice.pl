@@ -42,12 +42,15 @@ my $data=GetMember('borrowernumber'=>$borrowernumber);
 my $add=$input->param('add');
 if ($add){
 #  print $input->header;
+	if(checkauth($input))
+	{
     my $barcode=$input->param('barcode');
     my $itemnum = GetItemnumberFromBarcode($barcode) if $barcode;
     my $desc=$input->param('desc');
     my $amount=$input->param('amount');
     my $type=$input->param('type');
-    my $error=manualinvoice($borrowernumber,$itemnum,$desc,$type,$amount);
+    my $note    = $input->param('note');
+    my $error   = manualinvoice( $borrowernumber, $itemnum, $desc, $type, $amount, $note );
 	if ($error){
 		my ($template, $loggedinuser, $cookie)
 		  = get_template_and_user({template_name => "members/maninvoice.tmpl",
@@ -66,6 +69,7 @@ if ($add){
 	else {
 		print $input->redirect("/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");
 		exit;
+    }
 	}
 } else {
 
