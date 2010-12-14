@@ -27,6 +27,23 @@ use C4::Debug;
 require Exporter;
 use vars qw($VERSION @ISA @EXPORT_OK %EXPORT_TAGS);
 
+eval {
+    my $servers = C4::Context->config('memcached_servers');
+    if ($servers) {
+        require Memoize::Memcached;
+        import Memoize::Memcached qw(memoize_memcached);
+ 
+        my $memcached = {
+            servers    => [ $servers ],
+            key_prefix => C4::Context->config('memcached_namespace') || 'koha',
+        };
+
+        memoize_memcached('_get_columns', memcached => $memcached, expire_time => 600000); #cache for 10 minutes
+        memoize_memcached('GetPrimaryKeys', memcached => $memcached, expire_time => 600000); #cache for 10 minutes
+    }
+};
+
+
 BEGIN {
 	# set the version for version checking
 	$VERSION = 0.5;
@@ -44,7 +61,7 @@ BEGIN {
 }
 
 my $tablename;
-my $hash;
+my $hashref;
 
 =head1 NAME
 
@@ -83,7 +100,7 @@ $columns_out is an array ref on field names is used to limit results on those fi
 
 $filtercolums is an array ref on field names : is used to limit expansion of research for strings
 
-$searchtype is string Can be "start_with" or "exact" 
+$searchtype is string Can be "field_start_with", "start_with" or "exact" 
 
 =cut
 
@@ -231,10 +248,14 @@ With
 
 sub _get_columns($) {
 	my ($tablename)=@_;
-	my $dbh=C4::Context->dbh;
-	my $sth=$dbh->prepare_cached(qq{SHOW COLUMNS FROM $tablename });
-	$sth->execute;
-    my $columns= $sth->fetchall_hashref(qw(Field));
+    unless (exists ($hashref->{$tablename})){
+        my $dbh=C4::Context->dbh;
+        my $sth=$dbh->prepare_cached(qq{SHOW COLUMNS FROM $tablename });
+        $sth->execute;
+        my $columns= $sth->fetchall_hashref(qw(Field));
+        $hashref->{$tablename}=$columns;
+    }
+    return $hashref->{$tablename};
 }
 
 =head2 _filter_columns
@@ -355,6 +376,7 @@ sub _filter_string{
 	my @columns_filtered= _filter_columns($tablename,$searchtype,$filtercolumns);
 	my $columns= _get_columns($tablename);
 	my (@values,@keys);
+    my $first=1;
 	foreach my $operand (@operands){
 		my @localkeys;
 		foreach my $field (@columns_filtered){
@@ -366,6 +388,10 @@ sub _filter_string{
 		}
 		my $sql= join (' OR ', @localkeys);
 		push @keys, $sql;
+        if ($first && $searchtype eq "field_start_with"){
+           $searchtype="start_with";
+           $first=0;
+        }
 	}
 
 	if (@keys){
@@ -402,7 +428,7 @@ sub _Process_Operands{
 		}
 		if ($searchtype eq "start_with"){
 			push @tmpkeys,("$field LIKE ?","$field LIKE ?");
-			push @localvaluesextended, ("$operand\%", " $operand\%") ;
+			push @localvaluesextended, ("$operand\%", "\% $operand\%") ;
 		}
 		push @values,@localvaluesextended;
 	}
