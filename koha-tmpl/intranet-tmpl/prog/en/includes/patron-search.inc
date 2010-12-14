@@ -50,12 +50,12 @@ YAHOO.util.Event.onContentReady("header_search", function() {
 	<form action="/cgi-bin/koha/members/member.pl" method="post">
     <input id="searchmember" size="25" class="focus" name="member" type="text" value="<!--TMPL_VAR Name="member"-->"/>
 	<!--TMPL_IF Name="branchloop"-->
-	<span class="filteraction" id="filteraction_off"> <a href="#" onclick="$('#filters').toggle();$('.filteraction').toggle();">[-]</a></span>
-	<span class="filteraction" id="filteraction_on"> <a href="#" onclick="$('#filters').toggle();$('.filteraction').toggle();">[+]</a></span>
+	<span class="filteraction" id="filteraction_off"> <a href="#" onClick="$('#filters').toggle();$('.filteraction').toggle();$('#filters :input').attr('disabled','disabled');">[-]</a></span>
+	<span class="filteraction" id="filteraction_on"> <a href="#" onClick="$('#filters').toggle();$('.filteraction').toggle();$('#filters :input').removeAttr('disabled');">[+]</a></span>
 	<!--/TMPL_IF -->
     order by:
     <select name="orderby" id="searchorderby">
-    <option value="surname,0">Surname</option>
+    <option value="">Surname</option>
     <option value="cardnumber,0">Cardnumber</option>
     </select>
     <input value="Search" class="submit" type="submit" />
@@ -74,7 +74,7 @@ YAHOO.util.Event.onContentReady("header_search", function() {
       <!-- /TMPL_LOOP --></select>
 	</p>
 	<!--/TMPL_IF -->
-</form>
+    </form>
 	</div>
 	<!-- TMPL_IF NAME="CAN_user_circulate" -->
 	<div id="circ_search" class="residentsearch" style="display:none;">
@@ -114,8 +114,15 @@ YAHOO.util.Event.onContentReady("header_search", function() {
 </div>
 <script type="text/javascript">//<![CDATA[
 $(document).ready(function() {
-	$("#filters").toggle();
-	$("#filteraction_off").toggle();
+	<TMPL_IF NAME="showfilter">
+	//$("#filters").toggle(); 
+	$('#filters :input').attr('enabled','enabled');
+    $("#filteraction_on").toggle(); 
+    <TMPL_ELSE>
+	$("#filters").toggle(); 
+	$('#filters :input').attr('disabled','disabled');
+    $("#filteraction_off").toggle(); 
+    </TMPL_IF>
 });
 //]]>
 </script>
