@@ -45,7 +45,9 @@ use C4::Members;
 use C4::Members::Attributes qw(:all);
 use C4::Members::AttributeTypes;
 use C4::Members::Messaging;
-
+use Date::Calc qw(Today_and_Now);
+use Getopt::Long;
+use File::Temp;
 use Text::CSV;
 # Text::CSV::Unicode, even in binary mode, fails to parse lines with these diacriticals:
 # ė
@@ -68,24 +70,41 @@ our $csv  = Text::CSV->new({binary => 1});  # binary needed for non-ASCII Unicod
 # push @feedback, {feedback=>1, name=>'backend', value=>$csv->backend, backend=>$csv->backend};
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
-        template_name   => "tools/import_borrowers.tmpl",
-        query           => $input,
-        type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { tools => 'import_patrons' },
-        debug           => 1,
-});
+	    template_name   => "tools/import_borrowers.tmpl",
+	    query           => $input,
+	    type            => "intranet",
+	    authnotrequired => $commandline,
+	    flagsrequired   => { tools => 'import_patrons' },
+	    debug           => 1,
+    });
 
-$template->param(columnkeys => $columnkeystpl);
+if (!$commandline) {
+    $template->param(columnkeys => $columnkeystpl);
+    $template->param( SCRIPT_NAME => $ENV{'SCRIPT_NAME'} );
+    ($extended) and $template->param(ExtendedPatronAttributes => 1);
 
-if ($input->param('sample')) {
-    print $input->header(
-        -type       => 'application/vnd.sun.xml.calc', # 'application/vnd.ms-excel' ?
-        -attachment => 'patron_import.csv',
-    );
-    $csv->combine(@columnkeys);
-    print $csv->string, "\n";
-    exit 1;
+    if ($input->param('sample')) {
+	print $input->header(
+	    -type       => 'application/vnd.sun.xml.calc', # 'application/vnd.ms-excel' ?
+	    -attachment => 'patron_import.csv',
+	);
+	$csv->combine(@columnkeys);
+	print $csv->string, "\n";
+	exit 1;
+    }
+
+    if ($input->param('report')) {
+	open (FH, $input->param('errors_filename'));
+	print $input->header(
+	    -type => 'text/plain',
+	    -attachment => 'import_borrowers_report.txt'
+	);
+	print <FH>;
+	close FH;
+	#TODO : We surely want to check that is it really a temp file that we are unlinking
+	unlink $input->param('errors_filename');
+	exit 1;
+    }
 }
 my $uploadborrowers = $input->param('uploadborrowers');
 my $matchpoint      = $input->param('matchpoint');
@@ -186,8 +205,7 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
                 $_->{surname}        = $borrower{surname} || 'UNDEF';
             }
             $invalid++;
-            (25 > scalar @errors) and push @errors, {missing_criticals=>\@missing_criticals};
-            # The first 25 errors are enough.  Keeping track of 30,000+ would destroy performance.
+            push @errors, {missing_criticals=>\@missing_criticals};
             next LINE;
         }
         if ($extended) {
@@ -288,7 +306,78 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
         'alreadyindb'     => $alreadyindb,
         'invalid'         => $invalid,
         'total'           => $imported + $alreadyindb + $invalid + $overwritten,
-    );
+    ) if (!$commandline);
+
+    if (scalar(@errors) > 25 or $commandline) {
+
+	my $total = $imported + $alreadyindb + $invalid + $overwritten;
+	my $output;
+
+	my $timestamp = C4::Dates->new()->output . " " . POSIX::strftime("%H:%M:%S",localtime);
+	$output .= "Timestamp : $timestamp\n";
+	$output .= "Import results\n";
+	$output .= "$imported imported records\n";
+	$output .= "$overwritten overwritten records\n";
+	$output .= "$alreadyindb not imported because already in borrowers table and overwrite disabled\n"; 
+	$output .= "(last was $lastalreadyindb)\n" if ($lastalreadyindb);
+	$output .= "$invalid not imported because they are not in the expected format\n"; 
+	$output .= "(last was $lastinvalid)\n" if ($lastinvalid);
+	$output .= "$total records parsed\n";
+
+
+	$output .= "\nError analysis\n";
+	foreach my $hash (@errors) {
+	   $output .= "Header row could not be parsed" if ($hash->{'badheader'});
+	   foreach my $array ($hash->{'missing_criticals'}) {
+	       foreach (@$array) {
+		    $output .= "Line $_->{'line'}: ";
+		    if ($hash->{'badparse'}) {
+			$output .= "could not be parsed!";
+		    } elsif ($hash->{'bad_date'}) { 
+			$output .= "has $_->{'key'} in unrecognized format: $_->{'value'} ";
+		    } else {
+			$output .= "Critical field $_->{'key'}: ";
+			if ($_->{'branch_map'} || $_->{'category_map'}) {
+			    $output .= "has unrecognized value: $_->{'value'}";
+			} else {
+			    $output .= " missing";
+			}
+			$output .= " (borrowernumber: $_->{'borrowernumber'}; surname: $_->{'surname'})";
+		    }
+		    $output .= "\n";
+		    $output .= $_->{'lineraw'} . "\n" if ($commandline);
+		}
+	   }
+	}
+
+    if (scalar(@errors) > 25 && !$commandline) {
+	my $tmpf = File::Temp->new(UNLINK => 0);
+	print $tmpf $output;
+	$template->param(download_errors => 1, errors_filename => $tmpf->filename);
+	close $tmpf;
+    }
+
+    if ($commandline) {
+	# Write log file
+	my $logfile = "/var/log/koha/reports/import_borrowers.log";
+	if (open (FH, ">>$logfile")) {
+	    print FH $output;
+	    close(FH);
+	} else {
+	    $output .= "Unable to write to log file : $logfile\n";
+	}
+
+
+	# Send email with log
+	 my $mail = MIME::Lite->new(
+		    To      => C4::Context->preference('KohaAdminEmailAddress'),
+		    Subject => "Import borrowers log email",
+		    Type    => 'text/plain',
+		    Data    => $output
+		);
+	$mail->send() or print "Unable to send log email";
+    }
+   }
 
 } else {
     if ($extended) {
