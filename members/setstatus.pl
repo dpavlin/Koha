@@ -43,6 +43,7 @@ my $borrowernumber=$input->param('borrowernumber');
 my $status = $input->param('status');
 my $reregistration = $input->param('reregistration') || '';
 
+undef $status unless ($status);
 my $dbh = C4::Context->dbh;
 my $dateexpiry;
 
@@ -50,7 +51,7 @@ if ( $reregistration eq 'y' ) {
 	# re-reregistration function to automatic calcul of date expiry
 	$dateexpiry = ExtendMemberSubscriptionTo( $borrowernumber );
 } else {
-	my $sth=$dbh->prepare("Update borrowers set debarred = ? where borrowernumber = ?");
+	my $sth=$dbh->prepare("UPDATE borrowers SET debarred = ?, debarredcomment = '' WHERE borrowernumber = ?");
 	$sth->execute($status,$borrowernumber);	
 	$sth->finish;
 	}
@@ -59,12 +60,16 @@ if($destination eq "circ"){
 	if($dateexpiry){
 		print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=$cardnumber&dateexpiry=$dateexpiry");
 	} else {
-		print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=$cardnumber");
+	    if($cardnumber){
+		    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=$cardnumber");
+	    }else{
+	        print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
+	    }
 	}
 } else {
 	if($dateexpiry){
-		print $input->redirect("/cgi-bin/koha/members/moremember.pl?bornum=$borrowernumber&dateexpiry=$dateexpiry");
+		print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$borrowernumber&dateexpiry=$dateexpiry");
 	} else {
-		print $input->redirect("/cgi-bin/koha/members/moremember.pl?bornum=$borrowernumber");
+		print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$borrowernumber");
 	}
 }

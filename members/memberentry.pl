@@ -70,7 +70,8 @@ my $destination    = $input->param('destination');
 my $cardnumber     = $input->param('cardnumber');
 my $check_member   = $input->param('check_member');
 my $nodouble       = $input->param('nodouble');
-$nodouble = 1 if $op eq 'modify'; # FIXME hack to represent fact that if we're
+my $duplicate      = $input->param('duplicate');
+$nodouble = 1 if ($op eq 'modify' or $op eq 'duplicate');    # FIXME hack to represent fact that if we're
                                   # modifying an existing patron, it ipso facto
                                   # isn't a duplicate.  Marking FIXME because this
                                   # script needs to be refactored.
@@ -99,8 +100,9 @@ foreach (@field_check) {
 	$template->param( "mandatory$_" => 1);    
 }
 $template->param("add"=>1) if ($op eq 'add');
+$template->param( "duplicate" => 1 ) if ( $op eq 'duplicate' );
 $template->param("checked" => 1) if (defined($nodouble) && $nodouble eq 1);
-($borrower_data = GetMember( 'borrowernumber'=>$borrowernumber )) if ($op eq 'modify' or $op eq 'save');
+( $borrower_data = GetMember( 'borrowernumber' => $borrowernumber ) ) if ( $op eq 'modify' or $op eq 'save' or $op eq 'duplicate' );
 my $categorycode  = $input->param('categorycode') || $borrower_data->{'categorycode'};
 my $category_type = $input->param('category_type');
 my $new_c_type = $category_type; #if we have input param, then we've already chosen the cat_type.
@@ -117,7 +119,8 @@ $category_type="A" unless $category_type; # FIXME we should display a error mess
 
 # initialize %newdata
 my %newdata;	# comes from $input->param()
-if ($op eq 'insert' || $op eq 'modify' || $op eq 'save') {
+if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' ) {
+
     my @names= ($borrower_data && $op ne 'save') ? keys %$borrower_data : $input->param();
     foreach my $key (@names) {
         if (defined $input->param($key)) {
@@ -125,10 +128,26 @@ if ($op eq 'insert' || $op eq 'modify' || $op eq 'save') {
             $newdata{$key} =~ s/\"/&quot;/g unless $key eq 'borrowernotes' or $key eq 'opacnote';
         }
     }
+        
+    ## Manipulate debarred
+    if($newdata{debarred}){
+        $newdata{debarred} = $newdata{datedebarred} ? $newdata{datedebarred} : "9999-12-31";
+    }elsif (exists ($newdata{debarred}) && !($newdata{debarred})){
+        undef ($newdata{debarred});
+        undef ($newdata{debarredcomment});
+    }elsif (exists ($newdata{debarredcomment}) && $newdata{debarredcomment} eq ""){
+        undef($newdata{debarredcomment});
+    }
+
+    # Manipulate flags :
+    # Delete comment if flag set to no
+    $newdata{gonenoaddresscomment} = "" if (defined $newdata{gonenoaddress} && $newdata{gonenoaddress} == 0);
+    $newdata{lostcomment} = "" if (defined $newdata{lost} && $newdata{lost} == 0);
+    
     my $dateobject = C4::Dates->new();
     my $syspref = $dateobject->regexp();		# same syspref format for all 3 dates
     my $iso     = $dateobject->regexp('iso');	#
-    foreach (qw(dateenrolled dateexpiry dateofbirth)) {
+    foreach (qw(dateenrolled dateexpiry dateofbirth debarred)) {
         next unless exists $newdata{$_};
         my $userdate = $newdata{$_} or next;
         if ($userdate =~ /$syspref/) {
@@ -198,15 +217,16 @@ if (($op eq 'insert') and !$nodouble){
 }
 
   #recover all data from guarantor address phone ,fax... 
-if ( defined($guarantorid) and
-     ( $category_type eq 'C' || $category_type eq 'P' ) and
-     $guarantorid ne ''  and
+if ( defined($guarantorid) 
+    and ( $category_type eq 'C' || $category_type eq 'P' || $category_type eq 'A' )
+     and $guarantorid ne ''  and
      $guarantorid ne '0' ) {
     if (my $guarantordata=GetMember(borrowernumber => $guarantorid)) {
         $guarantorinfo=$guarantordata->{'surname'}." , ".$guarantordata->{'firstname'};
         if ( !defined($data{'contactname'}) or $data{'contactname'} eq '' or
              $data{'contactname'} ne $guarantordata->{'surname'} ) {
             $newdata{'contactfirstname'}= $guarantordata->{'firstname'};
+	        $data{'contactname'} = $guarantordata->{'surname'};
             $newdata{'contactname'}     = $guarantordata->{'surname'};
             $newdata{'contacttitle'}    = $guarantordata->{'title'};
 	        foreach (qw(streetnumber address streettype address2
@@ -278,7 +298,7 @@ if ($op eq 'save' || $op eq 'insert'){
   }
 }
 
-if ( ($op eq 'modify' || $op eq 'insert' || $op eq 'save') and ($step == 0 or $step == 3 )){
+if ( ($op eq 'modify' || $op eq 'insert' || $op eq 'save'|| $op eq 'duplicate') and ($step == 0 or $step == 3 )){
     if (exists ($newdata{'dateexpiry'}) && !($newdata{'dateexpiry'})){
         my $arg2 = $newdata{'dateenrolled'} || C4::Dates->today('iso');
         $newdata{'dateexpiry'} = GetExpiryDate($newdata{'categorycode'},$arg2);
@@ -387,6 +407,11 @@ if ($op eq "modify")  {
     $template->param( updtype => 'M',modify => 1 );
     $template->param( step_1=>1, step_2=>1, step_3=>1, step_4=>1, step_5 => 1, step_6 => 1) unless $step;
 }
+if ( $op eq "duplicate" ) {
+    $template->param( updtype => 'I' );
+    $template->param( step_1 => 1, step_2 => 1, step_3 => 1, step_4 => 1, step_5 => 1, step_6 => 1 ) unless $step;
+}
+
 # my $cardnumber=$data{'cardnumber'};
 $data{'cardnumber'}=fixup_cardnumber($data{'cardnumber'}) if $op eq 'add';
 if(!defined($data{'sex'})){
@@ -481,7 +506,7 @@ my $borrotitlepopup = CGI::popup_menu(-name=>'title',
         -default=>$default_borrowertitle
         );    
 
-my @relationships = split /,|\|/, C4::Context->preference('BorrowerRelationship');
+my @relationships = split (/,|\|/, C4::Context->preference('BorrowerRelationship'));
 my @relshipdata;
 while (@relationships) {
   my $relship = shift @relationships || '';
@@ -495,10 +520,9 @@ while (@relationships) {
 }
 
 my %flags = ( 'gonenoaddress' => ['gonenoaddress' ],
-        'lost'          => ['lost'],
-        'debarred'      => ['debarred']);
+        'lost'          => ['lost']);
 
- 
+
 my @flagdata;
 foreach (keys(%flags)) {
 	my $key = $_;
@@ -533,6 +557,13 @@ for my $branch (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branc
     $select_branches{$branch} = $branches->{$branch}->{'branchname'};
     $default = C4::Context->userenv->{'branch'} if (C4::Context->userenv && C4::Context->userenv->{'branch'});
 }
+
+if ($category_type eq 'A' || $category_type eq 'P') {
+    $template->param(
+	addtoorganization => 1
+		    );
+}
+
 # --------------------------------------------------------------------------------------------------------
   #in modify mod :default value from $CGIbranch comes from borrowers table
   #in add mod: default value come from branches table (ip correspendence)
@@ -599,7 +630,10 @@ if (C4::Context->preference('uppercasesurnames')) {
 	$data{'surname'}    =uc($data{'surname'}    );
 	$data{'contactname'}=uc($data{'contactname'});
 }
-foreach (qw(dateenrolled dateexpiry dateofbirth)) {
+
+$data{debarred} = C4::Overdues::CheckBorrowerDebarred($borrowernumber);
+$data{datedebarred} = $data{debarred} if ($data{debarred} ne "9999-12-31");  
+foreach (qw(dateenrolled dateexpiry dateofbirth debarred)) {
 	$data{$_} = format_date($data{$_});	# back to syspref for display
 	$template->param( $_ => $data{$_});
 }
