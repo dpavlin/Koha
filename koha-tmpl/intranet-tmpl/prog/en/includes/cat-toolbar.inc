@@ -119,6 +119,11 @@ function confirm_items_deletion() {
 			{ text: _("MARC (Unicode/UTF-8)"), url: "/cgi-bin/koha/catalogue/export.pl?format=utf8&op=export&bib=<!-- TMPL_VAR NAME="biblionumber" -->" }
 		];
 
+		var addtomenu = [
+		<!-- TMPL_IF NAME="intranetbookbag" -->{ text: _("Cart"), onclick: { fn: addToCart } },<!-- /TMPL_IF -->
+		{ text: _("List"),  onclick: { fn: addToShelf } }
+		];
+
 	    new YAHOO.widget.Button({
 	        type: "menu",
 	        label: _("Save"),
@@ -195,7 +200,6 @@ function confirm_items_deletion() {
 	<!-- TMPL_IF NAME="CAN_user_editcatalogue_edit_catalogue" -->
 	<li><a id="deletebiblio" href="/cgi-bin/koha/cataloguing/addbiblio.pl?op=delete&amp;biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">Delete</a></li>
 	<!-- /TMPL_IF -->	
-
 	<li><a id="addtoshelf" href="/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">Add to shelf</a></li>
 	<li><a id="printbiblio" href="/cgi-bin/koha/catalogue/detailprint.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->">Print</a></li>
 	<!-- TMPL_IF NAME="CAN_user_reserveforothers" -->
