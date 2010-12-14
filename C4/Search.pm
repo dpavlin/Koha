@@ -27,6 +27,7 @@ use XML::Simple;
 use C4::Dates qw(format_date);
 use C4::XSLT;
 use C4::Branch;
+use C4::Charset;
 use C4::Reserves;    # CheckReserves
 use C4::Debug;
 use URI::Escape;
@@ -118,6 +119,15 @@ sub FindDuplicate {
             $result->{author} =~ s/(and|or|not)//g;
             $query .= " and au,ext=$result->{author}";
         }
+    }
+
+    # If unimarc, then search duplicate on EAN
+    if ( C4::Context->preference("marcflavour") eq "UNIMARC" ) {
+	my @fields = $record->field('073');
+	foreach my $field (@fields) {
+	    my $ean = $field->subfield('a');
+	    $query .= " or ean=$ean";
+	}
     }
 
     # FIXME: add error handling
@@ -669,14 +679,14 @@ sub _detect_truncation {
     $operand =~ s/^ //g;
     my @wordlist = split( /\s/, $operand );
     foreach my $word (@wordlist) {
-        if ( $word =~ s/^\*([^\*]+)\*$/$1/ ) {
-            push @rightlefttruncated, $word;
+        if (( index( $word, "*" ) ==length($word)-1) && (index( $word, "*" )==0)) {
+            push @rightlefttruncated, substr($word,1,-1);
         }
-        elsif ( $word =~ s/^\*([^\*]+)$/$1/ ) {
-            push @lefttruncated, $word;
+        elsif ( index( $word, "*" ) == length($word)-1  ) {
+            push @righttruncated, substr($word,0,-1);
         }
-        elsif ( $word =~ s/^([^\*]+)\*$/$1/ ) {
-            push @righttruncated, $word;
+        elsif ( index( $word, "*" ) ==0) {
+            push @lefttruncated, substr($word,1);
         }
         elsif ( index( $word, "*" ) < 0 ) {
             push @nontruncated, $word;
@@ -736,17 +746,22 @@ sub _build_weighted_query {
     # Keyword, or, no index specified
     if ( ( $index eq 'kw' ) || ( !$index ) ) {
         $weighted_query .=
-          "Title-cover,ext,r1=\"$operand\"";    # exact title-cover
-        $weighted_query .= " or ti,ext,r2=\"$operand\"";    # exact title
-        $weighted_query .= " or ti,phr,r3=\"$operand\"";    # phrase title
+          "Title-cover,first-in-field,phr,r1=\"$operand\"";    # exact title-cover
+        $weighted_query .= " or ti,first-in-field,phr,r2=\"$operand\"";    # exact title
+        $weighted_query .= " or au,first-in-field,phr,r3=\"$operand\"";    # phrase title
+        $weighted_query .= " or ti,phr,r3=\"$operand\"";    # exact title
+        $weighted_query .= " or au,phr,r3=\"$operand\"";    # phrase title
+        $weighted_query .= " or ti,wrdl,r4=\"$operand\"";
+        $weighted_query .= " or au,wrdl,r4=\"$operand\"";
           #$weighted_query .= " or any,ext,r4=$operand";               # exact any
           #$weighted_query .=" or kw,wrdl,r5=\"$operand\"";            # word list any
-        $weighted_query .= " or wrdl,fuzzy,r8=\"$operand\""
+        $weighted_query .= " or phr,r5=\"$operand\"";
+        $weighted_query .= " or wrdl,r7=\"$operand\"";
+        $weighted_query .= " or wrdl,fuzzy,r9=\"$operand\""
           if $fuzzy_enabled;    # add fuzzy, word list
         $weighted_query .= " or wrdl,right-Truncation,r9=\"$stemmed_operand\""
           if ( $stemming and $stemmed_operand )
           ;                     # add stemming, right truncation
-        $weighted_query .= " or wrdl,r9=\"$operand\"";
 
         # embedded sorting: 0 a-z; 1 z-a
         # $weighted_query .= ") or (sort1,aut=1";
@@ -771,9 +786,9 @@ sub _build_weighted_query {
 
     #TODO: build better cases based on specific search indexes
     else {
-        $weighted_query .= " $index,ext,r1=\"$operand\"";    # exact index
+        $weighted_query .= " $index,phr,r1=\"$operand\"";    # exact index
           #$weighted_query .= " or (title-sort-az=0 or $index,startswithnt,st-word,r3=$operand #)";
-        $weighted_query .= " or $index,phr,r3=\"$operand\"";    # phrase index
+        $weighted_query .= " or $index,wrdl,r3=\"$operand\"";    # phrase index
         $weighted_query .=
           " or $index,rt,wrdl,r3=\"$operand\"";    # word list index
     }
@@ -1079,7 +1094,8 @@ sub buildQuery {
 
             # COMBINE OPERANDS, INDEXES AND OPERATORS
             if ( $operands[$i] ) {
-		$operands[$i]=~s/^\s+//;
+		        $operands[$i]=~s/^\s+//;
+                next unless $operands[$i];
 
               # A flag to determine whether or not to add the index to the query
                 my $indexes_set;
@@ -1160,11 +1176,8 @@ sub buildQuery {
 "TRUNCATION: NON:>@$nontruncated< RIGHT:>@$righttruncated< LEFT:>@$lefttruncated< RIGHTLEFT:>@$rightlefttruncated< REGEX:>@$regexpr<"
                   if $DEBUG;
 
-                # Apply Truncation
-                if (
-                    scalar(@$righttruncated) + scalar(@$lefttruncated) +
-                    scalar(@$rightlefttruncated) > 0 )
-                {
+                        # Apply Truncation
+                if ( scalar(@$righttruncated) + scalar(@$lefttruncated) + scalar(@$rightlefttruncated) + scalar(@$regexpr) > 0 ) {
 
                # Don't field weight or add the index to the query, we do it here
                     $indexes_set = 1;
@@ -1256,6 +1269,7 @@ sub buildQuery {
     my $group_OR_limits;
     my $availability_limit;
     foreach my $this_limit (@limits) {
+        next unless $this_limit;
         if ( $this_limit =~ /available/ ) {
 #
 ## 'available' is defined as (items.onloan is NULL) and (items.itemlost = 0)
@@ -1266,11 +1280,9 @@ sub buildQuery {
             $limit_cgi  .= "&limit=available";
             $limit_desc .= "";
         }
-
         # group_OR_limits, prefixed by mc-
         # OR every member of the group
         elsif ( $this_limit =~ /mc/ ) {
-#        if ( $this_limit =~ /mc/ ) {
             $group_OR_limits .= " or " if $group_OR_limits;
             $limit_desc      .= " or " if $group_OR_limits;
             $group_OR_limits .= "$this_limit";
@@ -1429,11 +1441,17 @@ sub searchResults {
     # loop through all of the records we've retrieved
     for ( my $i = $offset ; $i <= $times - 1 ; $i++ ) {
         my $marcrecord = MARC::File::USMARC::decode( $marcresults[$i] );
-        $fw = $scan
-             ? undef
-             : $bibliotag < 10
-               ? GetFrameworkCode($marcrecord->field($bibliotag)->data)
-               : GetFrameworkCode($marcrecord->subfield($bibliotag,$bibliosubf));
+	    my $biblionumber;
+        if(not $scan){
+            if ( $bibliotag < 10 ) {
+                    $biblionumber = $marcrecord->field($bibliotag) ? $marcrecord->field($bibliotag)->data : undef;
+            } else {
+                    $biblionumber = $marcrecord->subfield($bibliotag,$bibliosubf);
+            }
+            $fw = (defined $biblionumber) ? GetFrameworkCode($biblionumber) : '';
+        }
+
+
         my $oldbiblio = TransformMarcToKoha( $dbh, $marcrecord, $fw );
         $oldbiblio->{subtitle} = GetRecordValue('subtitle', $marcrecord, $fw);
         $oldbiblio->{result_number} = $i + 1;
@@ -1527,10 +1545,9 @@ sub searchResults {
 	my $item_onhold_count     = 0;
         my $items_count           = scalar(@fields);
         my $maxitems =
-          ( C4::Context->preference('maxItemsinSearchResults') )
-          ? C4::Context->preference('maxItemsinSearchResults') - 1
+          ( C4::Context->preference('maxItemsInSearchResults') )
+          ? C4::Context->preference('maxItemsInSearchResults') - 1
           : 1;
-
         # loop through every item
         foreach my $field (@fields) {
             my $item;
@@ -1649,10 +1666,6 @@ sub searchResults {
             }
         }    # notforloan, item level and biblioitem level
         my ( $availableitemscount, $onloanitemscount, $otheritemscount );
-        $maxitems =
-          ( C4::Context->preference('maxItemsinSearchResults') )
-          ? C4::Context->preference('maxItemsinSearchResults') - 1
-          : 1;
         for my $key ( sort keys %$onloan_items ) {
             (++$onloanitemscount > $maxitems) and last;
             push @onloan_items_loop, $onloan_items->{$key};
@@ -1669,7 +1682,6 @@ sub searchResults {
         # XSLT processing of some stuff
 	use C4::Charset;
 	SetUTF8Flag($marcrecord);
-	$debug && warn $marcrecord->as_formatted;
         if (!$scan && $search_context eq 'opac' && C4::Context->preference("OPACXSLTResultsDisplay")) {
             # FIXME note that XSLTResultsDisplay (use of XSLT to format staff interface bib search results)
             # is not implemented yet
@@ -1701,9 +1713,9 @@ sub searchResults {
         $oldbiblio->{isbn} =~
           s/-//g;    # deleting - in isbn to enable amazon content
         push( @newresults, $oldbiblio )
-            if(not $hidelostitems
-               or (($items_count > $itemlost_count )
-                    && $hidelostitems));
+            if(not C4::Context->preference('hidelostitems')
+               or ( ( $items_count > $itemlost_count || $items_count == 0 )
+                    && C4::Context->preference('hidelostitems')));
     }
 
     return @newresults;
@@ -2424,6 +2436,37 @@ sub enabled_staff_search_views
 		can_view_MARC			=> C4::Context->preference('viewMARC'),			# 1 if the staff search allows the MARC view
 		can_view_ISBD			=> C4::Context->preference('viewISBD'),			# 1 if the staff search allows the ISBD view
 		can_view_labeledMARC	=> C4::Context->preference('viewLabeledMARC'),	# 1 if the staff search allows the Labeled MARC view
+	);
+}
+
+=head2 enabled_opac_search_views
+
+%hash = enabled_opac_search_views()
+
+This function returns a hash that contains two flags obtained from the system
+preferences, used to determine whether a particular opac search results view
+is enabled.
+
+=over 2
+
+=item C<Output arg:>
+
+    * $hash{can_view_MARC} is true only if the MARC view is enabled
+    * $hash{can_view_ISBD} is true only if the ISBD view is enabled
+
+=item C<usage in the script:>
+
+=back
+
+$template->param ( C4::Search::enabled_opac_search_views );
+
+=cut
+
+sub enabled_opac_search_views
+{
+	return (
+		can_opac_view_MARC		=> C4::Context->preference('OPACviewMARC'),		# 1 if the opac search allows the MARC view
+		can_opac_view_ISBD		=> C4::Context->preference('OPACviewISBD'),		# 1 if the opac search allows the ISBD view
 	);
 }
 
