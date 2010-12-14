@@ -57,13 +57,20 @@ my $basename = $input->param("basename");
 my $output   = $input->param("output") || "screen";
 my $src      = $input->param("src");    # this param allows us to be told where we were called from -fbcit
 
+my $permissionrequired;
+if ($src){
+    $permissionrequired={ circulate => 'view_borrowers_logs' };
+}
+else {
+    $permissionrequired={ tools => 'view_system_logs' };
+}
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "tools/viewlog.tmpl",
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
-        flagsrequired   => { tools => 'view_system_logs' },
+        flagsrequired   => $permissionrequired,
         debug           => 1,
     }
 );
