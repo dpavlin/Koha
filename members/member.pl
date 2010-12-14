@@ -51,7 +51,6 @@ my $patron = $input->Vars;
 foreach (keys %$patron){
 	delete $$patron{$_} unless($$patron{$_}); 
 }
-
 my @categories=C4::Category->all;
 my $branches=(defined $$patron{branchcode}?GetBranchesLoop($$patron{branchcode}):GetBranchesLoop());
 
@@ -74,14 +73,13 @@ if (C4::Context->preference("AddPatronLists")=~/code/){
 my $member=$input->param('member');
 my $orderbyparams=$input->param('orderby');
 my @orderby;
-if ($orderbyparams){
+if ($orderbyparams and not $quicksearch){
 	my @orderbyelt=split(/,/,$orderbyparams);
 	push @orderby, {$orderbyelt[0]=>$orderbyelt[1]||0};
 }
 else {
 	@orderby = ({surname=>0},{firstname=>0});
 }
-
 $member =~ s/,//g;   #remove any commas from search string
 $member =~ s/\*/%/g;
 
@@ -93,19 +91,31 @@ push @searchpatron, $patron if (keys %$patron);
 my $from= ($startfrom-1)*$resultsperpage;
 my $to=$from+$resultsperpage;
  #($results)=Search(\@searchpatron,{surname=>1,firstname=>1},[$from,$to],undef,["firstname","surname","email","othernames"]  ) if (@searchpatron);
- my $search_scope=($quicksearch?"field_start_with":"contain");
- ($results)=Search(\@searchpatron,\@orderby,undef,undef,["firstname","surname","email","othernames","cardnumber","userid"],$search_scope  ) if (@searchpatron);
+ my $search_scope=($quicksearch?"field_start_with":"start_with");
+ ($results)=Search(\@searchpatron,\@orderby,undef,undef,["firstname","surname","othernames","cardnumber","userid"],$search_scope  ) if (@searchpatron);
 if ($results){
+	for my $field ('categorycode','branchcode'){
+		next unless ($patron->{$field});
+		@$results = grep { $_->{$field} eq $patron->{$field} } @$results; 
+	}
 	$count =scalar(@$results);
 }
+
+if($count == 1){
+    print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=" . @$results[0]->{borrowernumber});
+    exit;
+}
+
 my @resultsdata;
 $to=($count>$to?$to:$count);
 my $index=$from;
+
 foreach my $borrower(@$results[$from..$to-1]){
   #find out stats
   my ($od,$issue,$fines)=GetMemberIssuesAndFines($$borrower{'borrowernumber'});
 
   $$borrower{'dateexpiry'}= C4::Dates->new($$borrower{'dateexpiry'},'iso')->output('syspref');
+    $$borrower{'address'}=getFullBorrowerAddress($$borrower{'borrowernumber'});
 
   my %row = (
     count => $index++,
@@ -157,7 +167,8 @@ $template->param(
 );
 $template->param(
     branchloop=>$branches,
-    categories=>\@categories,
+    categories => \@categories,
+    showfilter => ( $$patron{branchcode} || $$patron{categorycode}),
 );
 
 
