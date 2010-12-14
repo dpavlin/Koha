@@ -34,22 +34,31 @@
 use strict;
 #use warnings; FIXME - Bug 2505
 use CGI;
+use YAML;
 use C4::Context;
 use C4::Auth;
 use C4::Output;
 use C4::Members;
 use C4::Members::Attributes;
 use C4::Members::AttributeTypes;
-use C4::Dates;
+use C4::Dates qw(format_date);
 use C4::Reserves;
 use C4::Circulation;
 use C4::Koha;
 use C4::Letters;
 use C4::Biblio;
-use C4::Reserves;
+use C4::Items;
+use C4::Suggestions;
+use C4::Budgets;
+use C4::Search;
+use C4::Dates qw(format_date);
+use C4::Debug;
 use C4::Branch; # GetBranchName
 use C4::Form::MessagingPreferences;
 use C4::NewsChannels; #get slip news
+use C4::Overdues qw/CheckBorrowerDebarred/;
+use JSON;
+use List::MoreUtils qw/uniq/;
 
 #use Smart::Comments;
 #use Data::Dumper;
@@ -68,11 +77,13 @@ my $print = $input->param('print');
 my $override_limit = $input->param("override_limit") || 0;
 my @failedrenews = $input->param('failedrenew');
 my @failedreturns = $input->param('failedreturn');
+my @renewerrors   = $input->param('renewerror');    # expected to be json
+my @returnerrors  = $input->param('returnerror');   # expected to be json
 my $error = $input->param('error');
 my %renew_failed;
-for my $renew (@failedrenews) { $renew_failed{$renew} = 1; }
 my %return_failed;
-for my $failedret (@failedreturns) { $return_failed{$failedret} = 1; }
+for (@failedrenews) { $renew_failed{$_} = decode_json(shift @renewerrors); }
+for (@failedreturns) { $return_failed{GetItemnumberFromBarcode($_)} = decode_json(shift @returnerrors); }
 
 my $template_name;
 my $quickslip = 0;
@@ -144,10 +155,18 @@ foreach (qw(dateenrolled dateexpiry dateofbirth)) {
 		$data->{$_} = $userdate || '';
 		$template->param( $_ => $userdate );
 }
-$data->{'IS_ADULT'} = ( $data->{'categorycode'} ne 'I' );
 
-for (qw(debarred gonenoaddress lost borrowernotes)) {
+for (qw(gonenoaddress lost borrowernotes)) {
 	 $data->{$_} and $template->param(flagged => 1) and last;
+}
+
+my $debar = CheckBorrowerDebarred($borrowernumber);
+if($debar){
+    $template->param(userdebarred => 1,flagged=>1);
+    if( $debar ne "9999-12-31"){
+        $template->param(userdebarreddate => C4::Dates::format_date($debar));
+        $template->param(debarredcomment => $data->{debarredcomment});
+    }
 }
 
 $data->{'ethnicity'} = fixEthnicity( $data->{'ethnicity'} );
@@ -191,10 +210,10 @@ if ( $category_type eq 'A' || $category_type eq 'I') {
             }
         );
     }
+    warn Data::Dumper::Dumper(@guaranteedata);
     $template->param( guaranteeloop => \@guaranteedata );
     ( $template->param( adultborrower => 1 ) ) if ( $category_type eq 'A' || $category_type eq 'I' );
 }
-else {
     if ($data->{'guarantorid'}){
 	    my ($guarantor) = GetMember( 'borrowernumber' =>$data->{'guarantorid'});
 		$template->param(guarantor => 1);
@@ -205,7 +224,6 @@ else {
 	if ($category_type eq 'C'){
 		$template->param('C' => 1);
 	}
-}
 
 my %bor;
 $bor{'borrowernumber'} = $borrowernumber;
@@ -232,16 +250,28 @@ $template->param( lib2 => $lib2 ) if ($lib2);
 
 # current issues
 #
-my $issue = GetPendingIssues($borrowernumber);
-my $issuecount = scalar(@$issue);
+my @borrowernumbers = GetMemberRelatives($borrowernumber);
+push @borrowernumbers, $borrowernumber;
+my $issue       = GetPendingIssues(@borrowernumbers);
+my $issuecount  = scalar(@$issue);
 my $roaddetails = &GetRoadTypeDetails( $data->{'streettype'} );
 my $today       = POSIX::strftime("%Y-%m-%d", localtime);	# iso format
 my @issuedata;
+my @borrowers_with_issues;
 my $overdues_exist = 0;
 my $totalprice = 0;
 for ( my $i = 0 ; $i < $issuecount ; $i++ ) {
-    my $datedue = $issue->[$i]{'date_due'};
-    my $issuedate = $issue->[$i]{'issuedate'};
+
+    # Getting borrower details
+    my $memberdetails = GetMemberDetails($issue->[$i]{'borrowernumber'});
+    $issue->[$i]{'borrowername'} = $memberdetails->{'firstname'} . " " . $memberdetails->{'surname'};
+
+    # Adding this borrower to the list of borrowers with issue
+    push @borrowers_with_issues, $issue->[$i]{'borrowernumber'};
+
+    my $datedue    = $issue->[$i]{'date_due'};
+    my $issuedate  = $issue->[$i]{'issuedate'};
+    my $itemnumber = $issue->[$i]{'itemnumber'};
     $issue->[$i]{'date_due'}  = C4::Dates->new($issue->[$i]{'date_due'}, 'iso')->output('syspref');
     $issue->[$i]{'issuedate'} = C4::Dates->new($issue->[$i]{'issuedate'},'iso')->output('syspref');
     my $biblionumber = $issue->[$i]{'biblionumber'};
@@ -282,22 +312,64 @@ for ( my $i = 0 ; $i < $issuecount ; $i++ ) {
 
     #find the charge for an item
     my ( $charge, $itemtype ) =
-      GetIssuingCharges( $issue->[$i]{'itemnumber'}, $borrowernumber );
+      GetIssuingCharges( $itemnumber, $borrowernumber );
 
     my $itemtypeinfo = getitemtypeinfo($itemtype);
     $row{'itemtype_description'} = $itemtypeinfo->{description};
     $row{'itemtype_image'}       = $itemtypeinfo->{imageurl};
 
+    # find the collection of an item
+    my $collection;
+    my $authvals = GetAuthorisedValues('CCODE');
+    for ( @$authvals ) {
+        $collection = $_->{'lib'} if $_->{'authorised_value'} eq $row{'ccode'}
+    }
+    $row{'collection'} = $collection;
+
     $row{'charge'} = sprintf( "%.2f", $charge );
 
-	my ( $renewokay,$renewerror ) = CanBookBeRenewed( $borrowernumber, $issue->[$i]{'itemnumber'}, $override_limit );
-	$row{'norenew'} = !$renewokay;
-	$row{'can_confirm'} = ( !$renewokay && $renewerror ne 'on_reserve' );
-	$row{"norenew_reason_$renewerror"} = 1 if $renewerror;
-	$row{'renew_failed'}  = $renew_failed{ $issue->[$i]{'itemnumber'} };
-	$row{'return_failed'} = $return_failed{$issue->[$i]{'barcode'}};   
-    push( @issuedata, \%row );
+	my ( $renewokay,$renewerror ) = CanBookBeRenewed( $borrowernumber, $itemnumber);
+    if (defined $renewerror->{message}){
+            $row{"norenew_reason_".$renewerror->{message}} = 1;
+		    $row{'norenew'} = 1;
+    }
+    $row{$_} = $renewerror->{$_} for (qw(renewals renewalsallowed reserves));
+    $row{renewals} = $issue->[$i]{renewals};
+    $row{renewals} ||= 0;
+    my ( $restype, $reserves ) = CheckReserves( $issue->[$i]->{'itemnumber'} );
+    if ($restype){
+		    $row{'reserved'} = 1;
+            $row{$restype}=1
+    }
+	$row{'can_confirm'} = $row{'norenew'} && C4::Context->preference("AllowRenewalLimitOverride");#( !$renewokay && $renewerror->{message} ne 'on_reserve' );
+	$row{'renew_failed'}  = defined($renew_failed{ $itemnumber });
+	$row{'return_failed'} = defined($return_failed{$itemnumber});   
+    if ($row{'return_failed'}){
+            $row{'return_error_'.$return_failed{$issue->[$i]->{'itemnumber'}}->{message}}=1;
+            delete $return_failed{$issue->[$i]->{'itemnumber'}};
+    }
+    if ( $row{'renew_failed'}){
+            $row{'norenew_reason_'.$renew_failed{$issue->[$i]->{'itemnumber'}}->{message}}=1;
+    }
+ push( @issuedata, \%row );
 }
+
+# If we have more than one borrower, we display their names
+@borrowers_with_issues = uniq @borrowers_with_issues;
+$template->param('multiple_borrowers' => 1) if (@borrowers_with_issues > 1);
+
+
+#BUILDS the LOOP for reserves when returning books with reserves
+my @reserveswaiting;
+foreach my $itemnumber (keys %return_failed){
+   next unless $return_failed{$itemnumber}->{'reservesdata'};
+   my $hashdata=$return_failed{$itemnumber}->{'reservesdata'};
+   $hashdata->{circborrowernumber}=$borrowernumber;
+   $hashdata->{script_name}=$input->script_name();
+   push @reserveswaiting, $hashdata if (%$hashdata);
+}
+
+$template->param(reserves_waiting=>\@reserveswaiting);
 
 ### ###############################################################################
 # BUILD HTML
@@ -329,6 +401,9 @@ if ($borrowernumber) {
         if ( $num_res->{'found'} eq 'W' ) {
             $getreserv{color}   = 'reserved';
             $getreserv{waiting} = 1;
+            my @maxpickupdate = $num_res->{'waitingdate'} ? GetMaxPickupDate( $num_res->{'waitingdate'}, $borrowernumber, $num_res ) : '';
+            $getreserv{'maxpickupdate'} = sprintf( "%d-%02d-%02d", @maxpickupdate );
+            $getreserv{'formattedwaitingdate'} = format_date( $getreserv{'maxpickupdate'} );
         }
 
         # 		check transfers with the itemnumber foud in th reservation loop
@@ -359,6 +434,7 @@ if ($borrowernumber) {
             $getreserv{biblionumber}  = $num_res->{'biblionumber'};	
         }
         $getreserv{waitingposition} = $num_res->{'priority'};
+        $getreserv{reservenumber}    = $num_res->{'reservenumber'};	
 
         push( @reservloop, \%getreserv );
     }
@@ -368,6 +444,68 @@ if ($borrowernumber) {
         countreserv => scalar @reservloop,
 	 );
 }
+
+#######################################
+# SUGGESTIONS
+# manage borrowers suggestions
+sub GetCriteriumDesc {
+    my ( $criteriumvalue, $displayby ) = @_;
+    return ( $criteriumvalue eq 'ASKED' ? "Pending" : ucfirst( lc($criteriumvalue) ) ) if ( $displayby =~ /status/i );
+    return ( GetBranchName($criteriumvalue) )  if ( $displayby =~ /branchcode/ );
+    return ( GetSupportName($criteriumvalue) ) if ( $displayby =~ /itemtype/ );
+    if ( $displayby =~ /managedby/ || $displayby =~ /acceptedby/ || $displayby =~ /suggestedby/) {
+        my $borr = C4::Members::GetMember( borrowernumber => $criteriumvalue );
+        return "" unless $borr;
+        return $$borr{firstname} . ", " . $$borr{surname};
+    }
+    if ( $displayby =~ /budgetid/) {
+        my $budget = GetBudget($criteriumvalue);
+        return "" unless $budget;
+        return $$budget{budget_name};
+    }
+}
+    my $suggestion_ref={"suggestedby"=>$borrowernumber};
+    my $displayby = "STATUS";
+    my $criteria_list = GetDistinctValues( "suggestions." . $displayby );
+    my @allsuggestions;
+    my $countsuggestions=0;
+    my $reasonsloop = GetAuthorisedValues("SUGGEST");
+    foreach my $criteriumvalue ( map { $$_{'value'} } @$criteria_list ) {
+        my $definedvalue = defined $$suggestion_ref{$displayby} && $$suggestion_ref{$displayby} ne "";
+
+        next if ( $definedvalue && $$suggestion_ref{$displayby} ne $criteriumvalue );
+        $$suggestion_ref{$displayby} = $criteriumvalue;
+
+        #        warn $$suggestion_ref{$displayby}."=$criteriumvalue; $displayby";
+        #warn "===========================================";
+        #warn Data::Dumper::Dumper($suggestion_ref);
+        my $suggestions = &SearchSuggestion($suggestion_ref);
+        foreach my $suggestion (@$suggestions) {
+            $suggestion->{budget_name} = GetBudget( $suggestion->{budgetid} )->{budget_name} if $suggestion->{budgetid};
+            foreach my $date qw(suggesteddate manageddate accepteddate) {
+                if ( $suggestion->{$date} ne "0000-00-00" && $suggestion->{$date} ne "" ) {
+                    $suggestion->{$date} = format_date( $suggestion->{$date} );
+                } else {
+                    $suggestion->{$date} = "";
+                }
+            }
+            $countsuggestions++;
+        }
+push @allsuggestions,
+          { "suggestiontype" => $criteriumvalue || "suggest",
+            "suggestiontypelabel" => GetCriteriumDesc( $criteriumvalue, $displayby ) || "",
+            "suggestionscount"    => scalar(@$suggestions),
+            'suggestions_loop'    => $suggestions,
+            'reasonsloop'         => $reasonsloop,
+          };
+        delete $$suggestion_ref{$displayby} unless $definedvalue;
+    }
+        if($countsuggestions>0)
+        {
+        	$template->param("boolsuggestions" => 1);
+        }
+$template->param("suggestions" => \@allsuggestions, "countsuggestions"=>$countsuggestions);
+# SUGGESTIONS : end
 
 # current alert subscriptions
 my $alerts = getalert($borrowernumber);
@@ -398,7 +536,7 @@ $template->param( picture => 1 ) if $picture;
 
 my $branch=C4::Context->userenv->{'branch'};
 
-$template->param($data);
+SetMemberInfosInTemplate($borrowernumber, $template);
 
 if (C4::Context->preference('ExtendedPatronAttributes')) {
     $template->param(ExtendedPatronAttributes => 1);
