@@ -140,6 +140,7 @@ use strict;            # always use
 
 ## load Koha modules
 use C4::Context;
+use C4::Biblio;
 use C4::Output;
 use C4::Auth qw(:DEFAULT get_session);
 use C4::Search;
@@ -320,7 +321,11 @@ if ( $template_type eq 'advsearch' ) {
         $template->param( expanded_options => $cgi->param('expanded_options'));
     }
 
-    $template->param(virtualshelves => C4::Context->preference("virtualshelves"));
+    if ( C4::Context->preference("AdvancedSearchContent") ne '' ) {
+	$template->param( AdvancedSearchContent => C4::Context->preference("AdvancedSearchContent") ); 
+    }
+
+    $template->param( virtualshelves => C4::Context->preference("virtualshelves") );
 
     output_html_with_http_headers $cgi, $cookie, $template->output;
     exit;
@@ -341,7 +346,7 @@ my @sort_by;
 my $default_sort_by = C4::Context->preference('defaultSortField')."_".C4::Context->preference('defaultSortOrder') 
     if (C4::Context->preference('defaultSortField') && C4::Context->preference('defaultSortOrder'));
 
-@sort_by = split("\0",$params->{'sort_by'}) if $params->{'sort_by'};
+@sort_by = $cgi->param('sort_by');
 $sort_by[0] = $default_sort_by unless $sort_by[0];
 foreach my $sort (@sort_by) {
     $template->param($sort => 1);
@@ -349,8 +354,7 @@ foreach my $sort (@sort_by) {
 $template->param('sort_by' => $sort_by[0]);
 
 # Use the servers defined, or just search our local catalog(default)
-my @servers;
-@servers = split("\0",$params->{'server'}) if $params->{'server'};
+my @servers = $cgi->param('server');
 unless (@servers) {
     #FIXME: this should be handled using Context.pm
     @servers = ("biblioserver");
@@ -358,13 +362,11 @@ unless (@servers) {
 }
 # operators include boolean and proximity operators and are used
 # to evaluate multiple operands
-my @operators;
-@operators = split("\0",$params->{'op'}) if $params->{'op'};
+my @operators = $cgi->param('op');
 
 # indexes are query qualifiers, like 'title', 'author', etc. They
-# can be single or multiple parameters separated by comma: kw,right-Truncation 
-my @indexes;
-@indexes = split("\0",$params->{'idx'});
+# can be single or multiple parameters separated by comma: kw,right-Truncation
+my @indexes = $cgi->param('idx');
 
 # if a simple index (only one)  display the index used in the top search box
 if ($indexes[0] && !$indexes[1]) {
@@ -372,12 +374,10 @@ if ($indexes[0] && !$indexes[1]) {
 
 
 # an operand can be a single term, a phrase, or a complete ccl query
-my @operands;
-@operands = split("\0",$params->{'q'}) if $params->{'q'};
+my @operands = $cgi->param('q');
 
 # limits are use to limit to results to a pre-defined category such as branch or language
-my @limits;
-@limits = split("\0",$params->{'limit'}) if $params->{'limit'};
+my @limits = $cgi->param('limit');
 
 if($params->{'multibranchlimit'}) {
 push @limits, join(" or ", map { "branch: $_ "}  @{GetBranchesInCategory($params->{'multibranchlimit'})}) ;
@@ -441,6 +441,17 @@ my $expanded_facet = $params->{'expand'};
 my ( $error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_desc,$stopwords_removed,$query_type);
 
 my @results;
+
+if ($indexes[0] eq "bc" ||$operands[0]=~/^\s*bc[=: ]/){
+    my $bc=$operands[0];
+    $bc=~s/bc[=:]//;
+    my $itemnumber=C4::Items::GetItemnumberFromBarcode($bc);
+    if ($itemnumber){
+        my $item=C4::Items::GetItem($itemnumber);
+        print $cgi->redirect(qq#/cgi-bin/koha/cataloguing/additem.pl?op=edititem&biblionumber=$item->{biblionumber}&itemnumber=$item->{itemnumber}#);
+        exit 1;
+    }
+}
 
 ## I. BUILD THE QUERY
 my $lang = C4::Output::getlanguagecookie($cgi);
@@ -541,7 +552,13 @@ for (my $i=0;$i<@servers;$i++) {
 
 
         if ($hits) {
-            $template->param(total => $hits);
+
+            # Coins
+            foreach (@newresults) {
+            $_->{coins} = GetCOinSBiblio( $_->{'biblionumber'} );
+            }
+
+            $template->param( total => $hits );
             my $limit_cgi_not_availablity = $limit_cgi;
             $limit_cgi_not_availablity =~ s/&limit=available//g;
             $template->param(limit_cgi_not_availablity => $limit_cgi_not_availablity);
