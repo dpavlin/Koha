@@ -60,21 +60,21 @@
         <!-- TMPL_IF NAME="search_boxes_label" --><div style="text-indent: 4.5em;"><!-- TMPL_ELSE --><div><!-- /TMPL_IF -->
 			<!-- TMPL_IF NAME="expanded_options" -->
             <!-- TMPL_IF NAME="boolean" -->
-                <select name="op">
+                <select class="advsearchoperator" name="op">
                     <option value="and" selected="selected">and</option>
                     <option value="or">or</option>
                     <option value="not">not</option>
                 </select>
             <!-- /TMPL_IF --> 
 			<!-- /TMPL_IF -->
-			<!-- TMPL_INCLUDE NAME="search_indexes.inc" -->
+			 <!-- TMPL_IF NAME="AdvancedSearchContent" --><!--TMPL_VAR Name="AdvancedSearchContent"--><!-- TMPL_ELSE --><!-- TMPL_INCLUDE NAME="search_indexes.inc" --><!-- /TMPL_IF -->
 			<input type="text" size="30" name="q" title="Enter search terms" value="" />
             <!-- TMPL_IF NAME="expanded_options" -->
                 <!-- TMPL_IF NAME="add_field" -->
                     <a href="JavaScript:add_field();" id="ButtonPlus" title="Add another field">[+]</a>
 				<!-- /TMPL_IF -->
             	<!-- TMPL_IF NAME="scan_index" -->
-                	<label for="scan">Scan Indexes</label><input type="checkbox" name="scan" id="scan" value="1" />
+                	<label style="float:none" for="scan">Scan Indexes</label><input type="checkbox" name="scan" id="scan" value="1" />
             	<!-- /TMPL_IF -->
             <!-- /TMPL_IF -->
 		</div>
@@ -115,7 +115,6 @@
 <!-- /ITEMTYPE LIMITS -->
     </div>
 
-<!-- TMPL_IF NAME="expanded_options" -->
 <div id="basiclimits" class="container">
 <!-- BASIC LIMITS -->
  <fieldset>
@@ -145,7 +144,6 @@
 </fieldset>
 <!-- /BASIC LIMITS -->
 </div>
-<!-- /TMPL_IF -->
 
 
 <!-- TMPL_IF NAME="UNIMARC" -->
