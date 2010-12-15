@@ -402,7 +402,7 @@ my %default_values_for_mod_from_marc = (
     'items.cn_source'    => undef, 
     copynumber           => undef, 
     damaged              => 0,
-    dateaccessioned      => undef, 
+#    dateaccessioned      => undef,
     enumchron            => undef, 
     holdingbranch        => undef, 
     homebranch           => undef, 
@@ -428,6 +428,18 @@ sub ModItemFromMarc {
     my $item_marc = shift;
     my $biblionumber = shift;
     my $itemnumber = shift;
+
+    my $dbh           = C4::Context->dbh;
+    my $frameworkcode = GetFrameworkCode($biblionumber);
+    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber", $frameworkcode );
+
+    my $localitemmarc = MARC::Record->new;
+    $localitemmarc->append_fields( $item_marc->field($itemtag) );
+    my $item = &TransformMarcToKoha( $dbh, $localitemmarc, $frameworkcode, 'items' );
+    foreach my $item_field ( keys %default_values_for_mod_from_marc ) {
+        $item->{$item_field} = $default_values_for_mod_from_marc{$item_field} unless (exists $item->{$item_field});
+    }
+    my $unlinked_item_subfields = _get_unlinked_item_subfields( $localitemmarc, $frameworkcode );
 
     my $dbh = C4::Context->dbh;
     my $frameworkcode = GetFrameworkCode( $biblionumber );
@@ -937,7 +949,7 @@ sub GetLostItems {
 =head2 GetItemsForInventory
 
   $itemlist = GetItemsForInventory($minlocation, $maxlocation, 
-                 $location, $itemtype $datelastseen, $branch, 
+                 $location, $itemtype, $datelastseen, $branchcode, $branch,
                  $offset, $size, $statushash);
 
 Retrieve a list of title/authors/barcode/callnumber, for biblio inventory.
@@ -954,7 +966,7 @@ $statushash requires a hashref that has the authorized values fieldname (intems.
 =cut
 
 sub GetItemsForInventory {
-    my ( $minlocation, $maxlocation,$location, $itemtype, $ignoreissued, $datelastseen, $branch, $offset, $size, $statushash ) = @_;
+    my ( $minlocation, $maxlocation, $location, $itemtype, $ignoreissued, $datelastseen, $branchcode, $branch, $offset, $size, $statushash ) = @_;
     my $dbh = C4::Context->dbh;
     my ( @bind_params, @where_strings );
 
@@ -993,10 +1005,14 @@ END_SQL
         push @where_strings, 'items.location = ?';
         push @bind_params, $location;
     }
-    
-    if ( $branch ) {
+
+    if ( $branchcode ) {
+        if($branch eq "homebranch"){
         push @where_strings, 'items.homebranch = ?';
-        push @bind_params, $branch;
+        }else{
+            push @where_strings, 'items.holdingbranch = ?';
+        }
+        push @bind_params, $branchcode;
     }
     
     if ( $itemtype ) {
@@ -1241,7 +1257,7 @@ sub GetItemsInfo {
             "SELECT * FROM branches WHERE branchcode = ?
         "
         );
-        $bsth->execute( $data->{'holdingbranch'} );
+        $bsth->execute( $data->{ C4::Context->preference('HomeOrHoldingBranch') } );
         if ( my $bdata = $bsth->fetchrow_hashref ) {
             $data->{'branchname'} = $bdata->{'branchname'};
         }
@@ -1763,6 +1779,9 @@ sub _do_column_fixes_for_mod {
     if (exists $item->{'location'} && !exists $item->{'permanent_location'}) {
         $item->{'permanent_location'} = $item->{'location'};
     }
+    if (exists $item->{'timestamp'}) {
+        delete $item->{'timestamp'};
+    }
 }
 
 =head2 _get_single_item_column
@@ -1889,7 +1908,9 @@ sub _koha_new_item {
             uri = ?,
             enumchron           = ?,
             more_subfields_xml  = ?,
-            copynumber          = ?
+            copynumber          = ?,
+            stocknumber         = ?,
+            statisticvalue      = ?
           ";
     my $sth = $dbh->prepare($query);
    $sth->execute(
@@ -1926,6 +1947,8 @@ sub _koha_new_item {
             $item->{'enumchron'},
             $item->{'more_subfields_xml'},
             $item->{'copynumber'},
+            $item->{'stocknumber'},
+            $item->{'statisticvalue'}
     );
     my $itemnumber = $dbh->{'mysql_insertid'};
     if ( defined $sth->errstr ) {
@@ -2024,10 +2047,13 @@ sub DelItemCheck {
     my $sth=$dbh->prepare("select * from issues i where i.itemnumber=?");
     $sth->execute($itemnumber);
 
-    my $onloan=$sth->fetchrow;
-
-    if ($onloan){
-        $error = "book_on_loan" 
+    my $item = GetItem($itemnumber);
+    my $onloan = $sth->fetchrow;
+    if ($onloan) {
+        $error = "book_on_loan";
+    }
+    elsif (C4::Context->preference("IndependantBranches") and (C4::Context->userenv->{branch} ne $item->{C4::Context->preference("HomeOrHoldingBranch")||'homebranch'})){
+        $error = "not_same_branch";
     }else{
         # check it doesnt have a waiting reserve
         $sth=$dbh->prepare("SELECT * FROM reserves WHERE (found = 'W' or found = 'T') AND itemnumber = ?");
@@ -2136,17 +2162,20 @@ sub _marc_from_item_hash {
                                 : ()  } keys %{ $item } }; 
 
     my $item_marc = MARC::Record->new();
-    foreach my $item_field (keys %{ $mungeditem }) {
-        my ($tag, $subfield) = GetMarcFromKohaField($item_field, $frameworkcode);
-        next unless defined $tag and defined $subfield; # skip if not mapped to MARC field
-        if (my $field = $item_marc->field($tag)) {
-            $field->add_subfields($subfield => $mungeditem->{$item_field});
-        } else {
-            my $add_subfields = [];
-            if (defined $unlinked_item_subfields and ref($unlinked_item_subfields) eq 'ARRAY' and $#$unlinked_item_subfields > -1) {
-                $add_subfields = $unlinked_item_subfields;
+    foreach my $item_field ( keys %{$mungeditem} ) {
+        my ( $tag, $subfield ) = GetMarcFromKohaField( $item_field, $frameworkcode );
+        next unless defined $tag and defined $subfield;    # skip if not mapped to MARC field
+        my @values = split(/\s?\|\s?/, $mungeditem->{$item_field}, -1);
+        foreach my $value (@values){
+            if ( my $field = $item_marc->field($tag) ) {
+                    $field->add_subfields( $subfield => $value );
+            } else {
+                my $add_subfields = [];
+                if (defined $unlinked_item_subfields and ref($unlinked_item_subfields) eq 'ARRAY' and $#$unlinked_item_subfields > -1) {
+                    $add_subfields = $unlinked_item_subfields;
             }
-            $item_marc->add_fields( $tag, " ", " ", $subfield =>  $mungeditem->{$item_field}, @$add_subfields);
+            $item_marc->add_fields( $tag, " ", " ", $subfield => $value, @$add_subfields );
+            }
         }
     }
 
