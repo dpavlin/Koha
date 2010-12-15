@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-
 # Copyright 2000-2002 Katipo Communications
 #
 # This file is part of Koha.
@@ -42,6 +41,7 @@ It need :
 =cut
 
 use strict;
+
 #use warnings; FIXME - Bug 2505
 use C4::Auth;
 use CGI;
@@ -64,7 +64,7 @@ sub plugin_parameters {
 sub plugin_javascript {
     my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
     my $function_name = $field_number;
-    my $res = "
+    my $res           = "
     <script type=\"text/javascript\">
         function Focus$function_name(subfield_managed) {
             return 1;
@@ -75,27 +75,7 @@ sub plugin_javascript {
         }
     
         function Clic$function_name(index) {
-        // find the 010a value and the 210c. it will be used in the popup to find possibles collections
-            var isbn_found   = 0;
-            var editor_found = 0;
-            
-            var inputs = document.getElementsByTagName('input');
-            
-            for(var i=0 , len=inputs.length ; i \< len ; i++ ){
-                if(inputs[i].id.match(/^tag_010_subfield_a_.*/)){
-                    isbn_found = inputs[i].value;
-                }
-                if(inputs[i].id.match(/^tag_210_subfield_c_.*/)){
-                    editor_found = inputs[i].value;
-                }
-                if(editor_found && isbn_found){
-                    break;
-                }
-            }
-                    
-            defaultvalue = document.getElementById(\"$field_number\").value;
-            window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_225a.pl&index=\"+index+\"&result=\"+defaultvalue+\"&editor_found=\"+editor_found,\"unimarc225a\",'width=500,height=400,toolbar=false,scrollbars=no');
-    
+            window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_210c_bis.pl&index=\"+index,\"unimarc210c\",'width=500,height=400,toolbar=false,scrollbars=no');
         }
     </script>
 ";
@@ -109,11 +89,9 @@ sub plugin {
     my $result       = $input->param('result');
     my $editor_found = $input->param('editor_found');
     my $authoritysep = C4::Context->preference("authoritysep");
-    
+
     my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-        {
-            template_name =>
-              "cataloguing/value_builder/unimarc_field_225a.tmpl",
+        {   template_name   => "cataloguing/value_builder/unimarc_field_210c_bis.tmpl",
             query           => $input,
             type            => "intranet",
             authnotrequired => 0,
@@ -122,39 +100,8 @@ sub plugin {
         }
     );
 
-# builds collection list : search isbn and editor, in parent, then load collections from bibliothesaurus table
-# if there is an isbn, complete search
-    my @collections;
-    
-    my @value     = ($editor_found,"","");
-    my @tags      = ("mainentry","","");
-    my @and_or    = ('and','','');
-    my @operator  = ('is','','');
-    my @excluding = ('','','');
-    
-    
-    my ($results,$total) = SearchAuthorities( \@tags,\@and_or,
-                                            \@excluding, \@operator, \@value,
-                                            0, 20,"EDITORS", "HeadingAsc");
-    foreach my $editor (@$results){
-        my $authority = GetAuthority($editor->{authid});
-        foreach my $col ($authority->subfield('200','c')){
-            push @collections, $col;
-        }
-            
-    } 
-    @collections = sort @collections;
-    #	my @collections = ["test"];
-    my $collection = CGI::scrolling_list(
-        -name     => 'f1',
-        -values   => \@collections,
-        -default  => "$result",
-        -size     => 1,
-        -multiple => 0,
-    );
-    $template->param(
+   $template->param(
         index      => $index,
-        collection => $collection
     );
     output_html_with_http_headers $input, $cookie, $template->output;
 }
