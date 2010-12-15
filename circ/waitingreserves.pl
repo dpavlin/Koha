@@ -26,6 +26,7 @@ use C4::Branch; # GetBranchName
 use C4::Auth;
 use C4::Dates qw/format_date/;
 use C4::Circulation;
+use C4::Reserves; # qw/GetMaxPickUpDelay/;
 use C4::Members;
 use C4::Biblio;
 use C4::Items;
@@ -112,14 +113,23 @@ foreach my $num (@getreserves) {
     $gettitle->{'itemtype'} = C4::Context->preference('item-level_itypes') ? $gettitle->{'itype'} : $gettitle->{'itemtype'};
     my $getborrower  = GetMemberDetails( $num->{'borrowernumber'} );
     my $itemtypeinfo = getitemtypeinfo( $gettitle->{'itemtype'} );  # using the fixed up itype/itemtype
-    $getreserv{'waitingdate'} = format_date( $num->{'waitingdate'} );
+    if ($num->{waitingdate}){
+	my @maxpickupdate=GetMaxPickupDate($num->{'waitingdate'},$borrowernumber, $num);
+	$getreserv{'waitingdate'} = format_date( $num->{'waitingdate'} );
 
-    my ( $waiting_year, $waiting_month, $waiting_day ) = split (/-/, $num->{'waitingdate'});
-    ( $waiting_year, $waiting_month, $waiting_day ) =
-      Add_Delta_Days( $waiting_year, $waiting_month, $waiting_day,
-        C4::Context->preference('ReservesMaxPickUpDelay'));
-    my $calcDate = Date_to_Days( $waiting_year, $waiting_month, $waiting_day );
+	$getreserv{'maxpickupdate'} = sprintf("%d-%02d-%02d", @maxpickupdate);
 
+	my $calcDate = Date_to_Days( @maxpickupdate );
+
+        if ( $today > $calcDate ) {
+            $getreserv{'messcompa'} = 1;
+            push @overloop, \%getreserv;
+            $overcount++;
+        } else {
+            push @reservloop, \%getreserv;
+            $reservcount++;
+        }
+    }
     $getreserv{'itemtype'}       = $itemtypeinfo->{'description'};
     $getreserv{'title'}          = $gettitle->{'title'};
     $getreserv{'itemnumber'}     = $gettitle->{'itemnumber'};
@@ -128,6 +138,7 @@ foreach my $num (@getreserves) {
     $getreserv{'homebranch'}     = GetBranchName($gettitle->{'homebranch'});
     $getreserv{'holdingbranch'}  = $gettitle->{'holdingbranch'};
     $getreserv{'itemcallnumber'} = $gettitle->{'itemcallnumber'};
+
     if ( $gettitle->{'homebranch'} ne $gettitle->{'holdingbranch'} ) {
         $getreserv{'dotransfer'} = 1;
     }
@@ -138,15 +149,6 @@ foreach my $num (@getreserves) {
     if ( $getborrower->{'emailaddress'} ) {
         $getreserv{'borrowermail'}  = $getborrower->{'emailaddress'};
     }
- 
-    if ($today > $calcDate) {
-        push @overloop,   \%getreserv;
-        $overcount++;
-    }else{
-        push @reservloop, \%getreserv;
-        $reservcount++;
-    }
-    
 }
 
 $template->param(
