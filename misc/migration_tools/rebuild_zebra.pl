@@ -34,7 +34,7 @@ my $as_xml;
 my $process_zebraqueue;
 my $do_not_clear_zebraqueue;
 my $verbose_logging;
-my $zebraidx_log_opt = " -v none,fatal,warn ";
+my $zebraidx_log_opt = " -v none,fatal ";
 my $result = GetOptions(
     'd:s'           => \$directory,
     'reset'         => \$reset,
@@ -61,12 +61,6 @@ if (not $result or $want_help) {
 
 if (not $biblios and not $authorities) {
     my $msg = "Must specify -b or -a to reindex bibs or authorities\n";
-    $msg   .= "Please do '$0 --help' to see usage.\n";
-    die $msg;
-}
-
-if ($authorities and $as_xml) {
-    my $msg = "Cannot specify both -a and -x\n";
     $msg   .= "Please do '$0 --help' to see usage.\n";
     die $msg;
 }
@@ -237,10 +231,10 @@ sub index_records {
     }
 	my $record_fmt = ($as_xml) ? 'marcxml' : 'iso2709' ;
     if ($process_zebraqueue) {
-        do_indexing($record_type, 'delete', "$directory/del_$record_type", $reset, $noshadow, $record_fmt, $zebraidx_log_opt) 
-            if $num_records_deleted;
         do_indexing($record_type, 'update', "$directory/upd_$record_type", $reset, $noshadow, $record_fmt, $zebraidx_log_opt)
             if $num_records_exported;
+        do_indexing($record_type, 'delete', "$directory/del_$record_type", $reset, $noshadow, $record_fmt, $zebraidx_log_opt) 
+            if $num_records_deleted;
     } else {
         do_indexing($record_type, 'update', "$directory/$record_type", $reset, $noshadow, $record_fmt, $zebraidx_log_opt)
             if ($num_records_exported or $skip_export);
@@ -424,7 +418,8 @@ sub get_raw_marc_record {
     my $marc; 
     if ($record_type eq 'biblio') {
         if ($noxml) {
-            my $fetch_sth = $dbh->prepare_cached("SELECT marc FROM biblioitems WHERE biblionumber = ?");
+            my $fetch_sth = $dbh->prepare_cached("SELECT marc FROM biblioitems WHERE biblionumber = ?
+                                                  UNION SELECT marc from deletedbiblioitems where biblionumber=?");
             $fetch_sth->execute($record_number);
             if (my ($blob) = $fetch_sth->fetchrow_array) {
                 $marc = MARC::Record->new_from_usmarc($blob);
@@ -435,7 +430,7 @@ sub get_raw_marc_record {
                         # trying to process a record update
             }
         } else {
-            eval { $marc = GetMarcBiblio($record_number); };
+            eval { $marc = GetMarcBiblio($record_number,"include_deleted_table"); };
             if ($@) {
                 # here we do warn since catching an exception
                 # means that the bib was found but failed
@@ -451,7 +446,7 @@ sub get_raw_marc_record {
             return;
         }
     }
-    return $marc;
+        return $marc;
 }
 
 sub fix_leader {
@@ -479,10 +474,11 @@ sub fix_biblio_ids {
     my $biblioitemnumber;
     if (@_) {
         $biblioitemnumber = shift;
-    } else {    
+    } else {
         my $sth = $dbh->prepare(
-            "SELECT biblioitemnumber FROM biblioitems WHERE biblionumber=?");
-        $sth->execute($biblionumber);
+            "SELECT biblioitemnumber FROM biblioitems WHERE biblionumber=?
+             UNION SELECT biblioitemnumber FROM deletedbiblioitems WHERE biblionumber=?");
+        $sth->execute($biblionumber,$biblionumber);
         ($biblioitemnumber) = $sth->fetchrow_array;
         $sth->finish;
         unless ($biblioitemnumber) {
@@ -514,6 +510,7 @@ sub fix_authority_id {
         $marc->insert_fields_ordered(MARC::Field->new('001',$authid));
     }
 }
+
 
 sub fix_unimarc_100 {
     # FIXME - again, if this is necessary, it belongs in C4::AuthoritiesMarc.
