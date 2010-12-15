@@ -460,26 +460,37 @@ sub marcrecord2csv {
 		}
 	    }
 	    push (@fieldstab, join($subfieldseparator, @tmpfields));  		
-	# Or a field
-	} else {
-	    my @fields = ($record->field($marcfield));
-	    my $authvalues = GetKohaAuthorisedValuesFromField($marcfield, undef, $frameworkcode, undef);
+   	    # Or a field
 
-	    my @valuesarray;
-	    foreach (@fields) {
-		my $value;
+        } else {
+            my @fields = ( $record->field($marcfield) );
+            my $authvalues = GetKohaAuthorisedValuesFromField( $marcfield, undef, $frameworkcode, undef );
 
-		# Getting authorised value
-		$value = defined $authvalues->{$_->as_string} ? $authvalues->{$_->as_string} : $_->as_string;
+            my @valuesarray;
+            foreach (@fields) {
+                my $value;
 
-		# Field processing
-		eval $fieldprocessing if ($fieldprocessing);
+               # If it is a control field
+               if ($_->is_control_field) {
+                   $value = defined $authvalues->{$_->as_string} ? $authvalues->{$_->as_string} : $_->as_string;
+               } else {
+                   # If it is a field, we gather all subfields, joined by the subfield separator
+                   my @subvaluesarray;
+                   my @subfields = $_->subfields;
+                   foreach my $subfield (@subfields) {
+                       push (@subvaluesarray, defined $authvalues->{$subfield->[1]} ? $authvalues->{$subfield->[1]} : $subfield->[1]);
+                   }
+                   $value = join ($subfieldseparator, @subvaluesarray);
+               }
 
-		push @valuesarray, $value;
-	    }
-	    push (@fieldstab, join($fieldseparator, @valuesarray)); 
-	 }
-    };
+                # Field processing
+                eval $fieldprocessing if ($fieldprocessing);
+
+                push @valuesarray, $value;
+            }
+            push( @fieldstab, join( $fieldseparator, @valuesarray ) );
+        }
+    }
 
     $csv->combine(@fieldstab);
     $output .= $csv->string() . "\n";
