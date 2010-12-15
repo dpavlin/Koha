@@ -87,7 +87,9 @@ if ( $request eq "KillWaiting" ) {
 }
 elsif ( $request eq "SetWaiting" ) {
     my $item = $query->param('itemnumber');
-    ModReserveAffect( $item, $borrowernumber );
+    my $itemhash=C4::Items::GetItem($item);
+    my ( $reservetype, $reserve ) = C4::Reserves::CheckReserves( undef, $itemhash->{barcode} );
+    ModReserveAffect( $item, $borrowernumber,$tobranchcd ne C4::Context->userenv->{'branch'}, $reserve->{reservenumber});
     $ignoreRs    = 1;
     $setwaiting  = 1;
     $reqmessage  = 1;

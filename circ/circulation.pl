@@ -30,27 +30,33 @@ use C4::Dates qw/format_date/;
 use C4::Branch; # GetBranches
 use C4::Koha;   # GetPrinter
 use C4::Circulation;
+use C4::Overdues qw/CheckBorrowerDebarred/;
 use C4::Members;
 use C4::Biblio;
 use C4::Reserves;
 use C4::Context;
+use C4::Debug;
 use CGI::Session;
-
+use C4::Items;
+use JSON;
+use YAML;
 use Date::Calc qw(
   Today
   Add_Delta_YM
   Add_Delta_Days
   Date_to_Days
 );
+use List::MoreUtils qw/uniq/;
 
 
 #
 # PARAMETERS READING
 #
 my $query = new CGI;
-
-my $sessionID = $query->cookie("CGISESSID") ;
-my $session = get_session($sessionID);
+my $dbh = C4::Context->dbh;
+my $remotehost = $query->remote_host();
+my $sessionID  = $query->cookie("CGISESSID");
+my $session    = get_session($sessionID);
 
 # branch and printer are now defined by the userenv
 # but first we have to check if someone has tried to change them
@@ -88,9 +94,14 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user (
 
 my $branches = GetBranches();
 
-my @failedrenews = $query->param('failedrenew');    # expected to be itemnumbers 
+my @failedrenews  = $query->param('failedrenew');   # expected to be itemnumbers
+my @failedreturns = $query->param('failedreturn');  # expected to be barcodes
+my @renewerrors   = $query->param('renewerror');    # expected to be json
+my @returnerrors  = $query->param('returnerror');   # expected to be json
 my %renew_failed;
-for (@failedrenews) { $renew_failed{$_} = 1; }
+my %return_failed;
+for (@failedrenews) { $renew_failed{$_} = decode_json(shift @renewerrors); }
+for (@failedreturns) { $return_failed{GetItemnumberFromBarcode($_)} = decode_json(shift @returnerrors); }
 
 my $findborrower = $query->param('findborrower');
 $findborrower =~ s|,| |g;
@@ -125,14 +136,13 @@ my $organisation   = $query->param('organisations');
 my $print          = $query->param('print');
 my $newexpiry      = $query->param('dateexpiry');
 my $debt_confirmed = $query->param('debt_confirmed') || 0; # Don't show the debt error dialog twice
-
+$debug && warn $newexpiry;
 # Check if stickyduedate is turned off
 if ( $barcode ) {
     # was stickyduedate loaded from session?
     if ( $stickyduedate && ! $query->param("stickyduedate") ) {
         $session->clear( 'stickyduedate' );
         $stickyduedate  = $query->param('stickyduedate');
-        $duedatespec    = $query->param('duedatespec');
     }
 }
 
@@ -169,7 +179,7 @@ if($duedatespec_allow){
     $datedue = $globalduedate if ($globalduedate);
 }
 
-my $todaysdate = C4::Dates->new->output('iso');
+my $todaysdate = C4::Dates->new->output( 'iso' );
 
 # check and see if we should print
 if ( $barcode eq '' && $print eq 'maybe' ) {
@@ -231,8 +241,8 @@ if ($borrowernumber) {
 
     # Warningdate is the date that the warning starts appearing
     my (  $today_year,   $today_month,   $today_day) = Today();
-    my ($warning_year, $warning_month, $warning_day) = split /-/, $borrower->{'dateexpiry'};
-    my (  $enrol_year,   $enrol_month,   $enrol_day) = split /-/, $borrower->{'dateenrolled'};
+    my ($warning_year, $warning_month, $warning_day) = split (/-/, $borrower->{'dateexpiry'});
+    my (  $enrol_year,   $enrol_month,   $enrol_day) = split (/-/, $borrower->{'dateenrolled'});
     # Renew day is calculated by adding the enrolment period to today
     my (  $renew_year,   $renew_month,   $renew_day);
     if ($enrol_year*$enrol_month*$enrol_day>0) {
@@ -250,6 +260,7 @@ if ($borrowernumber) {
             flagged  => "1",
             noissues => "1",
             expired     => format_date($borrower->{dateexpiry}),
+            warning     => 1,
             renewaldate => format_date("$renew_year-$renew_month-$renew_day")
         );
     }
@@ -260,9 +271,9 @@ if ($borrowernumber) {
     {
         # borrower card soon to expire warn librarian
         $template->param("warndeparture" => format_date($borrower->{dateexpiry}),
-        flagged       => "1",);
+        flagged       => "1", "warning" => 1);
         if (C4::Context->preference('ReturnBeforeExpiry')){
-            $template->param("returnbeforeexpiry" => 1);
+            $template->param("returnbeforeexpiry" => 1, "warning => 1");
         }
     }
     $template->param(
@@ -270,12 +281,22 @@ if ($borrowernumber) {
         issuecount   => $issue,
         finetotal    => $fines
     );
+
+    my $debar = CheckBorrowerDebarred($borrowernumber);
+    if($debar){
+        $template->param(userdebarred => 1);
+        $template->param(debarredcomment => $borrower->{debarredcomment});
+        if( $debar ne "9999-12-31"){
+            $template->param(userdebarreddate => C4::Dates::format_date($debar));
+        }
+    }
 }
 
 #
 # STEP 3 : ISSUING
 #
 #
+my $confirm_required = 0;
 if ($barcode) {
     # always check for blockers on issuing
     my ( $error, $question ) =
@@ -321,7 +342,32 @@ if ($barcode) {
     # FIXME If the issue is confirmed, we launch another time GetMemberIssuesAndFines, now display the issue count after issue 
     my ( $od, $issue, $fines ) = GetMemberIssuesAndFines( $borrowernumber );
     $template->param( issuecount   => $issue );
+
+    # Is there a circulation note?
+    my $itemnumber = GetItemnumberFromBarcode($barcode);
+    my $biblionumber = GetBiblionumberFromItemnumber($itemnumber);
+    my $record = GetMarcBiblio($biblionumber);
+    my $frameworkcode = GetFrameworkCode($biblionumber);
+    my $circnotefield = GetRecordValue('circnote', $record, $frameworkcode);
+    if (defined @$circnotefield[0]) {
+	$template->param(circnote => @$circnotefield[0]->{'subfield'});
+    }
 }
+
+
+# Setting the right status if an hold has been confirmed
+#This should never be used in fact
+my $resbarcode = $query->param("resbarcode");
+if ($resbarcode) {
+        if ( my ( $reservetype, $reserve ) = C4::Reserves::CheckReserves( undef, $resbarcode ) ) {
+            if ( $reservetype eq "Waiting" || $reservetype eq "Reserved" ) {
+                my $transfer = C4::Context->userenv->{branch} ne $reserve->{branchcode};
+                ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber}, $transfer, $reserve->{"reservenumber"} );
+            }
+        }
+}
+
+
 
 # reload the borrower info for the sake of reseting the flags.....
 if ($borrowernumber) {
@@ -360,11 +406,18 @@ if ($borrowernumber) {
         $getreserv{itemcallnumber} = $getiteminfo->{'itemcallnumber'};
         $getreserv{biblionumber}   = $getiteminfo->{'biblionumber'};
         $getreserv{waitingat}      = GetBranchName( $num_res->{'branchcode'} );
+	my $materials = $getiteminfo->{'materials'};
+        $template->param(materials         => $materials);
         #         check if we have a waiting status for reservations
         if ( $num_res->{'found'} eq 'W' ) {
             $getreserv{color}   = 'reserved';
             $getreserv{waiting} = 1;
 #     genarate information displaying only waiting reserves
+        my @maxpickupdate = $num_res->{'waitingdate'} ? GetMaxPickupDate( $num_res->{'waitingdate'}, $borrowernumber, $num_res ) : '';
+        $getreserv{'maxpickupdate'} = sprintf( "%d-%02d-%02d", @maxpickupdate );
+        $getWaitingReserveInfo{'formattedwaitingdate'} = format_date( $getreserv{'maxpickupdate'} );
+        $getreserv{'formattedwaitingdate'} = format_date( $getreserv{'maxpickupdate'} );
+
         $getWaitingReserveInfo{title}        = $getiteminfo->{'title'};
         $getWaitingReserveInfo{biblionumber} = $getiteminfo->{'biblionumber'};
         $getWaitingReserveInfo{itemtype}     = $itemtypeinfo->{'description'};
@@ -420,51 +473,97 @@ my $previssues   = '';
 my @todaysissues;
 my @previousissues;
 
+my @borrowers_with_issues;
+my @relissues;
+my @relprevissues;
+my $displayrelissues;
+## ADDED BY JF: new itemtype issuingrules counter stuff
+my $issued_itemtypes_count;
+my @issued_itemtypes_count_loop;
+
 my $totalprice = 0;
 
-if ($borrower) {
-# get each issue of the borrower & separate them in todayissues & previous issues
-    my ($issueslist) = GetPendingIssues($borrower->{'borrowernumber'});
-    # split in 2 arrays for today & previous
-    foreach my $it ( @$issueslist ) {
-        my $itemtypeinfo = getitemtypeinfo( (C4::Context->preference('item-level_itypes')) ? $it->{'itype'} : $it->{'itemtype'} );
-        # set itemtype per item-level_itype syspref - FIXME this is an ugly hack
-        $it->{'itemtype'} = ( C4::Context->preference( 'item-level_itypes' ) ) ? $it->{'itype'} : $it->{'itemtype'};
+sub build_issue_data {
+    my $issueslist = shift;
+    my $relatives = shift;
 
-        ($it->{'charge'}, $it->{'itemtype_charge'}) = GetIssuingCharges(
-            $it->{'itemnumber'}, $borrower->{'borrowernumber'}
-        );
-        $it->{'charge'} = sprintf("%.2f", $it->{'charge'});
-        my ($can_renew, $can_renew_error) = CanBookBeRenewed( 
-            $borrower->{'borrowernumber'},$it->{'itemnumber'}
-        );
-        $it->{"renew_error_${can_renew_error}"} = 1 if defined $can_renew_error;
+  # split in 2 arrays for today & previous
+    foreach my $it (@$issueslist) {
+        my $itemtypeinfo = getitemtypeinfo( ( C4::Context->preference('item-level_itypes') ) ? $it->{'itype'} : $it->{'itemtype'} );
+
+	# Getting borrower details
+	my $memberdetails = GetMemberDetails($it->{'borrowernumber'});
+	$it->{'borrowername'} = $memberdetails->{'firstname'} . " " . $memberdetails->{'surname'};
+
+        # set itemtype per item-level_itype syspref - FIXME this is an ugly hack
+        $it->{'itemtype'} = ( C4::Context->preference('item-level_itypes') ) ? $it->{'itype'} : $it->{'itemtype'};
+
+        ( $it->{'charge'}, $it->{'itemtype_charge'} ) = GetIssuingCharges( $it->{'itemnumber'}, $borrower->{'borrowernumber'} );
+        $it->{'charge'} = sprintf( "%.2f", $it->{'charge'} );
+        my ( $can_renew, $can_renew_error ) = CanBookBeRenewed( $borrower->{'borrowernumber'}, $it->{'itemnumber'} );
+        if ( defined $can_renew_error->{message} ) {
+            $it->{ "renew_error_" . $can_renew_error->{message} } = 1;
+            $it->{'renew_error'} = 1;
+        }
+        $it->{renewals} ||= 0;
+        $it->{$_} = $can_renew_error->{$_} for (qw(renewalsallowed reserves));
         my ( $restype, $reserves ) = CheckReserves( $it->{'itemnumber'} );
-        $it->{'can_renew'} = $can_renew;
-        $it->{'can_confirm'} = !$can_renew && !$restype;
-        $it->{'renew_error'} = $restype;
-        $it->{'checkoutdate'} = C4::Dates->new($it->{'issuedate'},'iso')->output('syspref');
+        if ($restype) {
+            $it->{'reserved'} = 1;
+            $it->{$restype} = 1;
+        }
+        $it->{'can_renew'}    = $can_renew;
+        $it->{'can_confirm'}  = !$can_renew && !$restype;
+        $it->{'renew_error'}  = $restype;
+        $it->{'checkoutdate'} = $it->{'issuedate'};
 
         $totalprice += $it->{'replacementprice'};
-        $it->{'itemtype'} = $itemtypeinfo->{'description'};
+        $it->{'itemtype'}       = $itemtypeinfo->{'description'};
         $it->{'itemtype_image'} = $itemtypeinfo->{'imageurl'};
-        $it->{'dd'} = format_date($it->{'date_due'});
-        $it->{'displaydate'} = format_date($it->{'issuedate'});
-        $it->{'od'} = ( $it->{'date_due'} lt $todaysdate ) ? 1 : 0 ;
-        ($it->{'author'} eq '') and $it->{'author'} = ' ';
-        $it->{'renew_failed'} = $renew_failed{$it->{'itemnumber'}};
-
-        if ( $todaysdate eq $it->{'issuedate'} or $todaysdate eq $it->{'lastreneweddate'} ) {
-            push @todaysissues, $it;
-        } else {
-            push @previousissues, $it;
+        $it->{'dd'}             = format_date( $it->{'date_due'} );
+        $it->{'displaydate'}    = format_date( $it->{'issuedate'} );
+        ( $it->{'author'} eq '' ) and $it->{'author'} = ' ';
+        if ( defined( $return_failed{ $it->{'itemnumber'} } ) ) {
+            $it->{ 'return_error_' . $return_failed{ $it->{'itemnumber'} }->{message} } = 1;
+            delete $return_failed{ $it->{'itemnumber'} };
         }
+        if ( defined( $renew_failed{ $it->{'itemnumber'} } ) ) {
+            $it->{ 'renew_error_' . $renew_failed{ $it->{'itemnumber'} }->{message} } = 1;
+        }
+        $it->{'return_failed'} = defined( $return_failed{ $it->{'itemnumber'} } );
+        $it->{'branchdisplay'} = GetBranchName( ( C4::Context->preference('HomeOrHoldingBranch') eq 'holdingbranch' ) ? $it->{'holdingbranch'} : $it->{'homebranch'} );
+
+        # ADDED BY JF: NEW ITEMTYPE COUNT DISPLAY
+        $issued_itemtypes_count->{ $it->{'itemtype'} }++;
+	if ( $todaysdate eq $it->{'checkoutdate'} or $todaysdate eq $it->{'lastreneweddate'} ) {
+	    (!$relatives) ? push @todaysissues, $it : push @relissues, $it;
+	} else {
+	    (!$relatives) ? push @previousissues, $it : push @relprevissues, $it;
+	}
+
     }
-    if ( C4::Context->preference( "todaysIssuesDefaultSortOrder" ) eq 'asc' ) {
-        @todaysissues   = sort { $a->{'timestamp'} cmp $b->{'timestamp'} } @todaysissues;
-    }
-    else {
-        @todaysissues   = sort { $b->{'timestamp'} cmp $a->{'timestamp'} } @todaysissues;
+
+}
+
+if ($borrower) {
+
+    # Getting borrower relatives
+    my @relborrowernumbers = GetMemberRelatives($borrower->{'borrowernumber'});
+    #push @borrowernumbers, $borrower->{'borrowernumber'};
+
+    # get each issue of the borrower & separate them in todayissues & previous issues
+    my ($issueslist) = GetPendingIssues($borrower->{'borrowernumber'});
+    my ($relissueslist) = GetPendingIssues(@relborrowernumbers);
+
+    build_issue_data($issueslist, 0);
+    build_issue_data($relissueslist, 1);
+  
+    $displayrelissues = scalar($relissueslist);
+
+    if ( C4::Context->preference("todaysIssuesDefaultSortOrder") eq 'asc' ) {
+        @todaysissues = sort { $a->{'timestamp'} cmp $b->{'timestamp'} } @todaysissues;
+    } else {
+        @todaysissues = sort { $b->{'timestamp'} cmp $a->{'timestamp'} } @todaysissues;
     }
     if ( C4::Context->preference( "previousIssuesDefaultSortOrder" ) eq 'asc' ){
         @previousissues = sort { $a->{'date_due'} cmp $b->{'date_due'} } @previousissues;
@@ -473,7 +572,48 @@ if ($borrower) {
         @previousissues = sort { $b->{'date_due'} cmp $a->{'date_due'} } @previousissues;
     }
 }
+my @reserveswaiting;
+foreach my $itemnumber (keys %return_failed){
+   next unless $return_failed{$itemnumber}->{'reservesdata'};
+   my $hashdata=$return_failed{$itemnumber}->{'reservesdata'};
+   $hashdata->{circborrowernumber}=$borrowernumber;
+   $hashdata->{script_name}=$query->script_name();
+   push @reserveswaiting, $hashdata if (%$hashdata);
+}
 
+$template->param(reserves_waiting=>\@reserveswaiting);
+
+#### ADDED BY JF FOR COUNTS BY ITEMTYPE RULES
+# FIXME: This should utilize all the issuingrules options rather than just the defaults
+# and it should be moved to a module
+
+# how many of each is allowed?
+my $issueqty_sth = $dbh->prepare(
+    'SELECT itemtypes.description AS description,issuingrules.itemtype,maxissueqty ' .
+    'FROM issuingrules LEFT JOIN itemtypes ON (itemtypes.itemtype=issuingrules.itemtype) ' .
+    'WHERE categorycode=?'
+);
+$issueqty_sth->execute(q{*}); # This is a literal asterisk, not a wildcard.
+
+while ( my $data = $issueqty_sth->fetchrow_hashref() ) {
+
+    # subtract how many of each this borrower has
+    $data->{'count'} = $issued_itemtypes_count->{ $data->{'description'} };  
+    $data->{'left'}  =
+      ( $data->{'maxissueqty'} -
+          $issued_itemtypes_count->{ $data->{'description'} } );
+
+    # can't have a negative number of remaining
+    if ( $data->{'left'} < 0 ) { $data->{'left'} = '0' }
+    if ( $data->{maxissueqty} <= $data->{count} ) {
+        $data->{flag} = 1;
+    }
+    if ( $data->{maxissueqty} > 0 && $data->{itemtype} !~m/^(\*|CIRC)$/ ) {
+        push @issued_itemtypes_count_loop, $data;
+    }
+}
+
+#### / JF
 
 my @values;
 my %labels;
@@ -502,6 +642,7 @@ if ($borrowerslist) {
 
 #title
 my $flags = $borrower->{'flags'};
+    $debug && warn Dump($flags);
 foreach my $flag ( sort keys %$flags ) {
     $template->param( flagged=> 1);
     $flags->{$flag}->{'message'} =~ s#\n#<br />#g;
@@ -511,20 +652,19 @@ foreach my $flag ( sort keys %$flags ) {
             noissues => 'true',
         );
         if ( $flag eq 'GNA' ) {
-            $template->param( gna => 'true' );
+            $template->param( gna => 'true', gonenoaddresscomment => $borrower->{'gonenoaddresscomment'}, warning => 1 );
         }
         elsif ( $flag eq 'LOST' ) {
-            $template->param( lost => 'true' );
-        }
-        elsif ( $flag eq 'DBARRED' ) {
-            $template->param( dbarred => 'true' );
-        }
-        elsif ( $flag eq 'CHARGES' ) {
+            $template->param( lost => 'true', lostcomment => $borrower->{'lostcomment'}, warning => 1 );
+        } elsif ( $flag eq 'DEBARRED' ) {
+            $template->param( userdebarred => 'true', warning => 1, userdebarreddate=> format_date($flags->{DEBARRED}->{dateend}),debardebarredcomment=>$borrower->{'debarredcomment'});
+        } elsif ( $flag eq 'CHARGES' ) {
             $template->param(
                 charges    => 'true',
                 chargesmsg => $flags->{'CHARGES'}->{'message'},
                 chargesamount => $flags->{'CHARGES'}->{'amount'},
-                charges_is_blocker => 1
+                charges_is_blocker => 1,
+                warning => 1
             );
         }
         elsif ( $flag eq 'CREDITS' ) {
@@ -532,6 +672,7 @@ foreach my $flag ( sort keys %$flags ) {
                 credits    => 'true',
                 creditsmsg => $flags->{'CREDITS'}->{'message'},
                 creditsamount => sprintf("%.02f", -($flags->{'CREDITS'}->{'amount'})), # from patron's pov
+		        warning => 1
             );
         }
     }
@@ -542,6 +683,7 @@ foreach my $flag ( sort keys %$flags ) {
                 flagged    => 1,
                 chargesmsg => $flags->{'CHARGES'}->{'message'},
                 chargesamount => $flags->{'CHARGES'}->{'amount'},
+                warning => 1
             );
         }
         elsif ( $flag eq 'CREDITS' ) {
@@ -549,13 +691,15 @@ foreach my $flag ( sort keys %$flags ) {
                 credits    => 'true',
                 creditsmsg => $flags->{'CREDITS'}->{'message'},
                 creditsamount => sprintf("%.02f", -($flags->{'CREDITS'}->{'amount'})), # from patron's pov
+		warning => 1
             );
         }
         elsif ( $flag eq 'ODUES' ) {
             $template->param(
                 odues    => 'true',
                 flagged  => 1,
-                oduesmsg => $flags->{'ODUES'}->{'message'}
+                oduesmsg => $flags->{'ODUES'}->{'message'},
+                warning => 1
             );
 
             my $items = $flags->{$flag}->{'itemlist'};
@@ -610,9 +754,16 @@ if($lib_messages_loop){ $template->param(flagged => 1 ); }
 my $bor_messages_loop = GetMessages( $borrowernumber, 'B', $branch );
 if($bor_messages_loop){ $template->param(flagged => 1 ); }
 
+
 # Computes full borrower address
 my (undef, $roadttype_hashref) = &GetRoadTypes();
-my $address = $borrower->{'streetnumber'}.' '.$roadttype_hashref->{$borrower->{'streettype'}}.' '.$borrower->{'address'};
+my $address = $borrower->{'streetnumber'}.' ' if ($borrower->{'streetnumber'});
+$address    .= $roadttype_hashref->{$borrower->{'streettype'}}.' ' if ( $roadttype_hashref->{$borrower->{'streettype'}});
+$address    .= $borrower->{'address'};
+
+
+$duedatespec = "" if not ($stickyduedate or scalar $confirm_required);
+my @categories = C4::Category->all;
 
 $template->param(
     lib_messages_loop => $lib_messages_loop,
@@ -627,9 +778,9 @@ $template->param(
     printername       => $printer,
     firstname         => $borrower->{'firstname'},
     surname           => $borrower->{'surname'},
-    dateexpiry        => format_date($newexpiry),
+    printer                     => $printer,
+    printername                 => $printer,
     expiry            => format_date($borrower->{'dateexpiry'}),
-    categorycode      => $borrower->{'categorycode'},
     categoryname      => $borrower->{description},
     address           => $address,
     address2          => $borrower->{'address2'},
@@ -640,7 +791,6 @@ $template->param(
     zipcode           => $borrower->{'zipcode'},
     country           => $borrower->{'country'},
     phone             => $borrower->{'phone'} || $borrower->{'mobile'},
-    cardnumber        => $borrower->{'cardnumber'},
     amountold         => $amountold,
     barcode           => $barcode,
     stickyduedate     => $stickyduedate,
@@ -651,13 +801,21 @@ $template->param(
     totaldue          => sprintf('%.2f', $total),
     todayissues       => \@todaysissues,
     previssues        => \@previousissues,
+    relissues			=> \@relissues,
+    relprevissues		=> \@relprevissues,
+    displayrelissues		=> $displayrelissues,
     inprocess         => $inprocess,
     memberofinstution => $member_of_institution,
     CGIorganisations  => $CGIorganisations,
     is_child          => ($borrower->{'category_type'} eq 'C'),
     circview => 1,
     soundon           => C4::Context->preference("SoundOn"),
+    categoryloop				=> \@categories,
 );
+
+$template->param(newexpiry => format_date($newexpiry)) if (defined $newexpiry);
+
+SetMemberInfosInTemplate($borrowernumber, $template);
 
 # save stickyduedate to session
 if ($stickyduedate) {

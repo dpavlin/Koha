@@ -28,6 +28,13 @@ use C4::Circulation;
 use C4::Auth;
 use URI::Escape;
 use C4::Dates qw/format_date_in_iso/;
+use C4::Context;
+use C4::Overdues; #CheckBorrowerDebarred
+use C4::Members; #GetMemberDetail
+use C4::Items;
+use C4::Branch;
+use JSON;
+use C4::Reserves;
 my $input = new CGI;
 
 #Set Up User_env
@@ -48,6 +55,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 # find items to renew, all items or a selection of items
 #
 
+my $branches = GetBranches();
 my @data;
 if ($input->param('renew_all')) {
     @data = $input->param('all_items[]');
@@ -80,12 +88,12 @@ my $override_limit = $input->param("override_limit") || 0;
 my $failedrenews = q{};
 foreach my $itemno (@data) {
     # check status before renewing issue
-	my ($renewokay,$error) = CanBookBeRenewed($borrowernumber,$itemno,$override_limit);
-    if ($renewokay){
+	my ($renewokay,$error) = CanBookBeRenewed($borrowernumber,$itemno);
+    if ($renewokay||$override_limit){
         AddRenewal($borrowernumber,$itemno,$branch,$datedue);
     }
 	else {
-		$failedrenews.="&failedrenew=$itemno";        
+		$failedrenews.="&failedrenew=$itemno&renewerror=".encode_json($error);
 	}
 }
 my $failedreturn = q{};
@@ -93,7 +101,48 @@ foreach my $barcode (@barcodes) {
     # check status before renewing issue
    my ( $returned, $messages, $issueinformation, $borrower ) = 
     AddReturn($barcode, $branch, $exemptfine);
-   $failedreturn.="&failedreturn=$barcode" unless ($returned);
+    my $itemnumber=GetItemnumberFromBarcode($barcode);
+    if ($returned){
+        if (my ($reservetype,$reserve)=C4::Reserves::CheckReserves(undef,$barcode)){
+            if ($reservetype eq "Waiting" || $reservetype eq "Reserved"){
+                my $transfer=C4::Context->userenv->{branch} ne $reserve->{branchcode};
+                ModReserveAffect( $itemnumber, $reserve->{borrowernumber}, $transfer, $reserve->{"reservenumber"} );
+                my ( $message_reserve, $nextreservinfo ) = GetOtherReserves($itemnumber);
+
+                my ($borr) = GetMemberDetails( $nextreservinfo, 0 );
+                $messages->{reservesdata}={
+                        found          => 1,
+                        currentbranch  => $branches->{C4::Context->userenv->{branch}}->{'branchname'},
+                        destbranchname => $branches->{ $reserve->{'branchcode'} }->{'branchname'},
+                        name           => $borr->{'surname'} . ", " . $borr->{'title'} . " " . $borr->{'firstname'},
+                        borfirstname   => $borr->{'firstname'},
+                        borsurname     => $borr->{'surname'},
+                        bortitle       => $borr->{'title'},
+                        borphone       => $borr->{'phone'},
+                        boremail       => $borr->{'email'},
+                        boraddress     => $borr->{'address'},
+                        boraddress2    => $borr->{'address2'},
+                        borcity        => $borr->{'city'},
+                        borzip         => $borr->{'zipcode'},
+                        borcnum        => $borr->{'cardnumber'},
+                        debarred       => CheckBorrowerDebarred($borr->{borrowernumber}),
+                        gonenoaddress  => $borr->{'gonenoaddress'},
+                        barcode        => $barcode,
+                        transfertodo   => $transfer,
+                        destbranch	   => $reserve->{'branchcode'},
+                        reservenumber  => $reserve->{'reservenumber'},
+                        borrowernumber => $reserve->{'borrowernumber'},
+                        itemnumber     => $reserve->{'itemnumber'},
+                        biblionumber   => $reserve->{'biblionumber'},
+                        reservenotes   => $reserve->{'reservenotes'},
+                };
+                
+            }
+        }
+    }
+    if (!$returned ||$messages){
+        $failedreturn.="&failedreturn=$barcode&returnerror=".encode_json($messages);
+    }
 }
 
 #

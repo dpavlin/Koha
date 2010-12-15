@@ -113,28 +113,33 @@
         var badBib = null;
         $(".confirmjs:checked").each(function() {
             var biblioNum = $(this).val();
-            biblionumbers += biblioNum + "/";
-            selections += biblioNum + "/";
+            var separator="/";
+            biblionumbers += biblioNum + separator;
+
+            // Add the pickup location
+            var branchSel = $("#branch_" + biblioNum);
+            var branch = "";
+            if (branchSel.size() > 0) {
+                 branch = $(branchSel).val();
+            }
 
             // If the 'specific copy' radio button is checked
             if ($("#reqspecific_" + biblioNum + ":checked").size() > 0) {
                 // Find the selected copy
-                var item = $(".checkitem_" + biblioNum + ":checked");
-                if ($(item).size() == 0) {
+                var items = $(".checkitem_" + biblioNum + ":checked");
+                if ($(items).size() == 0) {
                     badBib = biblioNum;
                     return false;
                 } else {
-                  selections += $(item).val();
+                  $(items).each( function(idx,item){
+                    selections+=biblioNum+separator+item.value+separator+branch+separator;
+                  });
                 }
             }
-            selections += "/";
-
-            // Add the pickup location
-            var branchSel = $("#branch_" + biblioNum);
-            if (branchSel.size() > 0) {
-                selections += $(branchSel).val();
+            else {
+                selections=biblioNum+separator+separator+branch+separator;
             }
-            selections += "/";
+
             return true;
         });
 
@@ -261,10 +266,17 @@
                       <input class="single_bib" name="single_bib" type="hidden" value="<!-- TMPL_VAR NAME="biblionumber" -->"/>
                         <span class="confirmjs_hold" title="<!-- TMPL_VAR NAME="biblionumber" -->"></span>
                         <span class="confirm_nonjs">
+                          <!-- TMPL_IF Name="multi"-->
+                          <input type="checkbox" class="confirmbox checkitem <!-- TMPL_VAR NAME="checkitem_bib" -->"
+                                 name="<!-- TMPL_VAR NAME="checkitem_bib" -->" checked="checked"
+                                 id="<!-- TMPL_VAR NAME="checkitem_bib" -->"
+                                 value="any" />
+                          <!--TMPL_ELSE-->
                           <input type="radio" class="confirmbox checkitem <!-- TMPL_VAR NAME="checkitem_bib" -->"
                                  name="<!-- TMPL_VAR NAME="checkitem_bib" -->" checked="checked"
                                  id="<!-- TMPL_VAR NAME="checkitem_bib" -->"
                                  value="any" />
+                           <!-- /TMPL_IF -->
                           <label class="confirm_label" for="<!-- TMPL_VAR NAME="checkitem_bib" -->">Next available copy</label>
                         </span>
 					</td>
@@ -302,7 +314,7 @@
 						<!-- TMPL_VAR NAME="description" -->
                       </td>
                     <!-- /TMPL_UNLESS -->
-                    <!-- TMPL_IF NAME="showpriority" --><td><!-- TMPL_VAR name="rank" --> out of <!-- TMPL_VAR NAME="reservecount" --></td><!-- /TMPL_IF -->
+                    <!-- TMPL_IF NAME="showpriority" --><td>You are number <!-- TMPL_VAR name="rank" --> in line</td><!-- /TMPL_IF -->
 		    <!-- TMPL_IF NAME="reserve_in_future" -->
 		    <td>
 			<input name="reserve_date_<!-- TMPL_VAR NAME="biblionumber" -->" id="reserve_date_<!-- TMPL_VAR NAME="biblionumber" -->" size="10">
@@ -422,6 +434,7 @@
 
                     <!-- TMPL_UNLESS NAME="singleBranchMode" -->
                       <td>
+                    <!-- TMPL_IF NAME="OPACPickupLocation" -->
                         <select name="branch" id="branch_<!-- TMPL_VAR NAME="biblionumber" -->"
                           <!-- TMPL_UNLESS NAME="holdable" -->disabled="disabled"<!-- /TMPL_UNLESS --> >
                           <!-- TMPL_LOOP NAME="branchChoicesLoop" -->
@@ -432,6 +445,9 @@
                             <!-- /TMPL_IF -->
                           <!-- /TMPL_LOOP -->
                         </select>
+                    <!-- TMPL_ELSE -->
+                        <input type="hidden" name="branch" id="branch_<!-- TMPL_VAR NAME="biblionumber" -->" value="<!--TMPL_VAR Name="branch"-->" /> <!-- TMPL_VAR NAME="branchname" -->
+                    <!-- /TMPL_IF -->
                       </td>
                     <!-- /TMPL_UNLESS -->
                   </tr>
@@ -465,8 +481,15 @@
                             <tr class="<!-- TMPL_VAR NAME="backgroundcolor" -->">
                               <td>
                                 <!-- TMPL_IF NAME="available" -->
-                                  <input type="radio" class="checkitem checkitem_<!-- TMPL_VAR NAME="biblionumber" -->" name="checkitem_<!-- TMPL_VAR NAME="biblionumber" -->"
-                                         value="<!-- TMPL_VAR NAME="itemnumber" -->" />
+				  <!-- TMPL_UNLESS NAME="ReservedForThisBorrower" -->
+                                      <!-- TMPL_IF Name="canholdmultiple"-->
+	                                  <input type="checkbox" class="checkitem checkitem_<!-- TMPL_VAR NAME="biblionumber" -->" name="checkitem_<!-- TMPL_VAR NAME="biblionumber" -->"
+        	                                 value="<!-- TMPL_VAR NAME="itemnumber" -->" />
+                                      <!--TMPL_ELSE-->
+	                                  <input type="radio" class="checkitem checkitem_<!-- TMPL_VAR NAME="biblionumber" -->" name="checkitem_<!-- TMPL_VAR NAME="biblionumber" -->"
+        	                                 value="<!-- TMPL_VAR NAME="itemnumber" -->" />
+                                      <!-- /TMPL_IF -->
+				  <!-- /TMPL_UNLESS -->
                                 <!-- TMPL_ELSE -->
                                   <input disabled="disabled" type="radio" class="checkitem" name="checkitem" value="<!-- TMPL_VAR NAME="itemnumber" -->" />
                                   <img src="/opac-tmpl/<!-- TMPL_VAR NAME="theme" -->/famfamfam/silk/cross.png" alt="Cannot be put on hold" title="Cannot be put on hold" />

@@ -28,11 +28,12 @@ use C4::Output;
 use C4::Dates qw/format_date/;
 use C4::Context;
 use C4::Members;
+use C4::Overdues;
 use C4::Branch; # GetBranches
 use C4::Debug;
+use C4::Items;
 # use Data::Dumper;
 
-my $MAXIMUM_NUMBER_OF_RESERVES = C4::Context->preference("maxreserves");
 
 my $query = new CGI;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -77,7 +78,9 @@ if ((! $biblionumbers) && (! $query->param('place_reserve'))) {
 
 # Pass the numbers to the page so they can be fed back
 # when the hold is confirmed. TODO: Not necessary?
-$template->param( biblionumbers => $biblionumbers );
+$template->param( biblionumbers      => $biblionumbers,
+		  OPACPickupLocation => "" . C4::Context->preference("OPACPickupLocation"),
+             );
 
 # Each biblio number is suffixed with '/', e.g. "1/2/3/"
 my @biblionumbers = split /\//, $biblionumbers;
@@ -91,6 +94,7 @@ if (($#biblionumbers < 0) && (! $query->param('place_reserve'))) {
 my $branch = $query->param('branch') || C4::Context->userenv->{branch} || '' ;
 ($branches->{$branch}) or $branch = "";     # Confirm branch is real
 $template->param( branch => $branch );
+$template->param( branchname => $branches->{$branch}->{branchname} );
 
 # make branch selection options...
 my $CGIbranchloop = GetBranchesLoop($branch);
@@ -247,7 +251,7 @@ if ( $borr->{lost} && ($borr->{lost} eq 1) ) {
                      lost    => 1
                     );
 }
-if ( $borr->{debarred} && ($borr->{debarred} eq 1) ) {
+if ( CheckBorrowerDebarred($borrowernumber) ) {
     $noreserves = 1;
     $template->param(
                      message  => 1,
@@ -257,11 +261,6 @@ if ( $borr->{debarred} && ($borr->{debarred} eq 1) ) {
 
 my @reserves = GetReservesFromBorrowernumber( $borrowernumber );
 $template->param( RESERVES => \@reserves );
-if ( $MAXIMUM_NUMBER_OF_RESERVES && (scalar(@reserves) >= $MAXIMUM_NUMBER_OF_RESERVES) ) {
-    $template->param( message => 1 );
-    $noreserves = 1;
-    $template->param( too_many_reserves => scalar(@reserves));
-}
 foreach my $res (@reserves) {
     foreach my $biblionumber (@biblionumbers) {
         if ( $res->{'biblionumber'} == $biblionumber && $res->{'borrowernumber'} == $borrowernumber) {
@@ -336,12 +335,21 @@ foreach my $biblioNum (@biblionumbers) {
         }
     }
 
-    $biblioLoopIter{itemTypeDescription} = $itemTypes->{$biblioData->{itemtype}}{description};
+    $biblioLoopIter{itemtype}            = $biblioData->{itemtype};
+    $biblioLoopIter{itemTypeDescription} = $itemTypes->{ $biblioData->{itemtype} }{description};
 
     $biblioLoopIter{itemLoop} = [];
     my $numCopiesAvailable = 0;
-    foreach my $itemInfo (@{$biblioData->{itemInfos}}) {
-        my $itemNum = $itemInfo->{itemnumber};
+
+    # $canReserveMultiple is set to "yes" ( >0 ) if multiple items can be reserved
+    # it is set to 0 otherwise. depends on item-level_itypes syspref
+    # and the list of itypes that can be multiple reserved
+    my $canReserveMultiple = 0;
+    unless ( C4::Context->preference("item-level_itypes") ) {
+        $canReserveMultiple = CanHoldMultipleItems( $biblioLoopIter{itemtype} );
+    }
+    foreach my $itemInfo ( @{ $biblioData->{itemInfos} } ) {
+        my $itemNum      = $itemInfo->{itemnumber};
         my $itemLoopIter = {};
 
         $itemLoopIter->{itemnumber} = $itemNum;
@@ -353,6 +361,16 @@ foreach my $biblioNum (@biblionumbers) {
         if ($itemLevelTypes) {
             $itemLoopIter->{description} = $itemInfo->{description};
             $itemLoopIter->{imageurl} = $itemInfo->{imageurl};
+        }
+
+        # check if the itype is one that can be multiple reserved
+        if ( C4::Context->preference("item-level_itypes") ) {
+
+            # sum canReserveMultiple : if at least one item can be multiple reserved, then the flag will be >0
+            # FIXME : there can be complex & strange cases, where some items can be multiple reserved, and some can't
+            # this case is not managed. Note it may be only theoric, and have no real case
+            $itemLoopIter->{canholdmultiple} = CanHoldMultipleItems( $itemInfo->{itype} );
+            $canReserveMultiple = $canReserveMultiple + CanHoldMultipleItems( $itemInfo->{itype} );
         }
 
         # If the holdingbranch is different than the homebranch, we show the
@@ -371,9 +389,8 @@ foreach my $biblioNum (@biblionumbers) {
         }
 
         # checking reserve
-        my ($reservedate,$reservedfor,$expectedAt) = GetReservesFromItemnumber($itemNum);
-        my $ItemBorrowerReserveInfo = GetMemberDetails( $reservedfor, 0);
-
+        my ( $reservedate, $reservedfor, $expectedAt ) = GetReservesFromItemnumber($itemNum);
+        my $ItemBorrowerReserveInfo = GetMemberDetails( $reservedfor, 0 );
         if ( defined $reservedate ) {
             $itemLoopIter->{backgroundcolor} = 'reserved';
             $itemLoopIter->{reservedate}     = format_date($reservedate);
@@ -381,6 +398,8 @@ foreach my $biblioNum (@biblionumbers) {
             $itemLoopIter->{ReservedForSurname}        = $ItemBorrowerReserveInfo->{'surname'};
             $itemLoopIter->{ReservedForFirstname}      = $ItemBorrowerReserveInfo->{'firstname'};
             $itemLoopIter->{ExpectedAtLibrary}         = $expectedAt;
+            $itemLoopIter->{ReservedForThisBorrower}   = ( $reservedfor eq $borrowernumber );
+            warn "ReservedForThisBorrower: " . $itemLoopIter->{ReservedForThisBorrower};
         }
 
         $itemLoopIter->{notforloan} = $itemInfo->{notforloan};
@@ -418,17 +437,7 @@ foreach my $biblioNum (@biblionumbers) {
         # If there is no loan, return and transfer, we show a checkbox.
         $itemLoopIter->{notforloan} = $itemLoopIter->{notforloan} || 0;
 
-        my $branch = C4::Circulation::_GetCircControlBranch($itemLoopIter, $borr);
-
-        my $branchitemrule = GetBranchItemRule( $branch, $itemInfo->{'itype'} );
-        my $policy_holdallowed = 1;
-
-        if ( $branchitemrule->{'holdallowed'} == 0 ||
-                ( $branchitemrule->{'holdallowed'} == 1 && $borr->{'branchcode'} ne $itemInfo->{'homebranch'} ) ) {
-            $policy_holdallowed = 0;
-        }
-
-        if (IsAvailableForItemLevelRequest($itemNum) and $policy_holdallowed and CanItemBeReserved($borrowernumber,$itemNum)) {
+        if (IsAvailableForItemLevelRequest($itemNum) and CanItemBeReserved($borrowernumber,$itemNum)) {
             $itemLoopIter->{available} = 1;
             $numCopiesAvailable++;
         }
@@ -456,11 +465,16 @@ foreach my $biblioNum (@biblionumbers) {
         $biblioLoopIter{bib_available} = 1;
         $biblioLoopIter{holdable} = 1;
     }
-    if ($biblioLoopIter{already_reserved}) {
+#    $biblioLoopIter{multi} = $canReserveMultiple;
+    if ( $biblioLoopIter{already_reserved} && !$canReserveMultiple ) {
         $biblioLoopIter{holdable} = undef;
+        #warn "Already_Reserved";
     }
     if(not CanBookBeReserved($borrowernumber,$biblioNum)){
-        $biblioLoopIter{holdable} = undef;
+       $template->param( message => 1 );
+       $noreserves = 1;
+       $template->param( too_many_reserves => scalar(@reserves));
+       $biblioLoopIter{holdable} = undef;
     }
 
     push @$biblioLoop, \%biblioLoopIter;

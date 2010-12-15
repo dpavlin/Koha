@@ -36,16 +36,20 @@ use C4::Circulation;
 use C4::Dates qw/format_date/;
 use Date::Calc qw/Add_Delta_Days/;
 use C4::Calendar;
+use C4::Budgets qw/GetCurrency/;
 use C4::Print;
 use C4::Reserves;
 use C4::Biblio;
 use C4::Items;
 use C4::Members;
+use C4::Overdues qw/CheckBorrowerDebarred/;
 use C4::Branch; # GetBranches GetBranchName
 use C4::Koha;   # FIXME : is it still useful ?
 use C4::RotatingCollections;
+use C4::Debug;
 
 my $query = new CGI;
+my $remotehost = $query->remote_host();
 
 if (!C4::Context->userenv){
     my $sessionID = $query->cookie("CGISESSID");
@@ -133,6 +137,7 @@ if ( $query->param('resbarcode') ) {
     my $item           = $query->param('itemnumber');
     my $borrowernumber = $query->param('borrowernumber');
     my $resbarcode     = $query->param('resbarcode');
+    my $reservenumber = $query->param('reservenumber');
     my $diffBranchReturned = $query->param('diffBranch');
     my $iteminfo   = GetBiblioFromItemNumber($item);
     # fix up item type for display
@@ -140,18 +145,19 @@ if ( $query->param('resbarcode') ) {
     my $diffBranchSend = ($userenv_branch ne $diffBranchReturned) ? $diffBranchReturned : undef;
 # diffBranchSend tells ModReserveAffect whether document is expected in this library or not,
 # i.e., whether to apply waiting status
-    ModReserveAffect( $item, $borrowernumber, $diffBranchSend);
+    ModReserveAffect( $item, $borrowernumber, $diffBranchSend, $reservenumber );
+
 #   check if we have other reserves for this document, if we have a return send the message of transfer
-    my ( $messages, $nextreservinfo ) = GetOtherReserves($item);
+    my ( $reservemessages, $nextreservinfo ) = GetOtherReserves($item);
 
     my ($borr) = GetMemberDetails( $nextreservinfo, 0 );
     my $name   = $borr->{'surname'} . ", " . $borr->{'title'} . " " . $borr->{'firstname'};
-    if ( $messages->{'transfert'} ) {
+    if ( $reservemessages->{'transfert'} ) {
         $template->param(
             itemtitle      => $iteminfo->{'title'},
             itembiblionumber => $iteminfo->{'biblionumber'},
             iteminfo       => $iteminfo->{'author'},
-            tobranchname   => GetBranchName($messages->{'transfert'}),
+            tobranchname   => GetBranchName($reservemessages->{'transfert'}),
             name           => $name,
             borrowernumber => $borrowernumber,
             borcnum        => $borr->{'cardnumber'},
@@ -167,10 +173,12 @@ my $returned = 0;
 my $messages;
 my $issueinformation;
 my $itemnumber;
+my $biblio;
 my $barcode     = $query->param('barcode');
 my $exemptfine  = $query->param('exemptfine');
 my $dropboxmode = $query->param('dropboxmode');
 my $dotransfer  = $query->param('dotransfer');
+my $override    = $query->param('override');
 my $calendar    = C4::Calendar->new( branchcode => $userenv_branch );
 #dropbox: get last open day (today - 1)
 my $today       = C4::Dates->new();
@@ -184,7 +192,7 @@ if ($dotransfer){
 }
 
 # actually return book and prepare item table.....
-if ($barcode) {
+if ($barcode and not $query->param('cancel')) {
     $barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespace
     $barcode = barcodedecode($barcode) if C4::Context->preference('itemBarcodeInputFilter');
     $itemnumber = GetItemnumberFromBarcode($barcode);
@@ -207,11 +215,19 @@ if ($barcode) {
 # save the return
 #
     ( $returned, $messages, $issueinformation, $borrower ) =
-      AddReturn( $barcode, $userenv_branch, $exemptfine, $dropboxmode);     # do the return
+      AddReturn( $barcode, $userenv_branch, $exemptfine, $dropboxmode,$override);     # do the return
     my $homeorholdingbranchreturn = C4::Context->preference('HomeOrHoldingBranchReturn') or 'homebranch';
 
+            my @ips=split /,|\|/, C4::Context->preference("CI-3M:AuthorizedIPs");
+            #my $pid=fork();
+            #unless($pid && $remotehost=~qr(^$ips$)){
+            #if (!$pid && any{ $remotehost eq $_ }@ips ){
+            if (any{ $remotehost eq $_ }@ips ){
+                system("../services/magnetise.pl $remotehost in");
+                #die 0;
+            }
     # get biblio description
-    my $biblio = GetBiblioFromItemNumber($itemnumber);
+    $biblio = GetBiblioFromItemNumber($itemnumber);
     # fix up item type for display
     $biblio->{'itemtype'} = C4::Context->preference('item-level_itypes') ? $biblio->{'itype'} : $biblio->{'itemtype'};
 
@@ -242,7 +258,7 @@ if ($barcode) {
         $input{return_overdue} = 1 if ($duedate and $duedate lt $today->output('iso'));
         push( @inputloop, \%input );
     }
-    elsif ( !$messages->{'BadBarcode'} ) {
+    elsif ( !$messages->{'BadBarcode'} and ! $messages->{'Wrongbranch'} ) {
         $input{duedate}   = 0;
         $returneditems{0} = $barcode;
         $riduedate{0}     = 0;
@@ -259,6 +275,18 @@ if ($barcode) {
     }
 }
 $template->param( inputloop => \@inputloop );
+
+
+# Is there a circulation note?
+my $itemnumber = GetItemnumberFromBarcode($barcode);
+my $biblionumber = GetBiblionumberFromItemnumber($itemnumber);
+my $record = GetMarcBiblio($biblionumber);
+my $frameworkcode = GetFrameworkCode($biblionumber);
+my $circnotefield = GetRecordValue('circnote', $record, $frameworkcode);
+if (defined @$circnotefield[0]) {
+   $template->param(circnote => @$circnotefield[0]->{'subfield'});
+}
+
 
 my $found    = 0;
 my $waiting  = 0;
@@ -283,9 +311,13 @@ if ( $messages->{'NeedsTransfer'} ){
 }
 
 if ( $messages->{'Wrongbranch'} ){
-    $template->param(
-        wrongbranch => 1,
-    );
+	$template->param(
+		wrongbranch => $branches->{$messages->{'Wrongbranch'}->{'Wrongbranch'}}->{'branchname'},
+		rightbranch => $branches->{$messages->{'Wrongbranch'}->{'Rightbranch'}}->{'branchname'},
+		barcode     => $barcode,
+		exemptfine  => $exemptfine,
+		dropboxmode => $dropboxmode,
+	);
 }
 
 # case of wrong transfert, if the document wasn't transfered to the right library (according to branchtransfer (tobranch) BDD)
@@ -340,7 +372,7 @@ if ( $messages->{'ResFound'}) {
                 reserved     => 1,
             );
         }
-
+        my $debarred = CheckBorrowerDebarred($reserve->{borrowernumber});
         # same params for Waiting or Reserved
         $template->param(
             found          => 1,
@@ -357,17 +389,18 @@ if ( $messages->{'ResFound'}) {
             borcity        => $borr->{'city'},
             borzip         => $borr->{'zipcode'},
             borcnum        => $borr->{'cardnumber'},
-            debarred       => $borr->{'debarred'},
+            debarred       => $debarred,
             gonenoaddress  => $borr->{'gonenoaddress'},
             barcode        => $barcode,
-            destbranch     => $reserve->{'branchcode'},
+            reservenumber  => $reserve->{'reservenumber'},
+            destbranch	   => $reserve->{'branchcode'},
             borrowernumber => $reserve->{'borrowernumber'},
             itemnumber     => $reserve->{'itemnumber'},
             reservenotes   => $reserve->{'reservenotes'},
         );
     } # else { ; }  # error?
 }
-
+$borrower->{'flags'}= C4::Members::patronflags($borrower);
 # Error Messages
 my @errmsgloop;
 foreach my $code ( keys %$messages ) {
@@ -393,6 +426,35 @@ foreach my $code ( keys %$messages ) {
     elsif ( $code eq 'WasTransfered' ) {
         ;    # FIXME... anything to do here?
     }
+    elsif ( $code eq 'NotForLoan' ) {
+        my $fw               = GetFrameworkCode($biblio->{'biblionumber'});
+        my $category         = GetAuthValCode('items.notforloan',$fw);
+        my $authorizedvalues = GetAuthorisedValues($category, $messages->{$code});
+
+        foreach my $authvalue (@$authorizedvalues){
+            $err{notforloan} = $authvalue->{lib} if $authvalue->{'authorised_value'} eq $messages->{$code};
+        }
+    }
+    elsif ( $code eq 'Damaged' ) {
+        my $fw               = GetFrameworkCode($biblio->{'biblionumber'});
+        my $category         = GetAuthValCode('items.damaged',$fw);
+        my $authorizedvalues = GetAuthorisedValues($category, $messages->{$code});
+
+        foreach my $authvalue (@$authorizedvalues){
+            $err{damaged} = $authvalue->{lib} if $authvalue->{'authorised_value'} eq $messages->{$code};
+        }
+    }
+    elsif( $code eq 'Debarred' ){
+        $err{debarred}            = format_date($messages->{'Debarred'});
+        $err{debarcardnumber}     = $borrower->{cardnumber};
+        $err{debarborrowernumber} = $borrower->{borrowernumber};
+        $err{debarname}           = "$borrower->{firstname} $borrower->{surname}";
+    }
+    elsif( $code eq 'HaveFines' ){
+        $err{havefines}       = $borrower->{'flags'}->{'CHARGES'}->{'amount'} . %{GetCurrency()}->{symbol};
+        $err{finecardnumber} = $borrower->{cardnumber};
+        $err{finename}       = "$borrower->{firstname} $borrower->{surname}";
+    }
     elsif ( $code eq 'wthdrawn' ) {
         $err{withdrawn} = 1;
         $exit_required_p = 1;
@@ -414,7 +476,6 @@ foreach my $code ( keys %$messages ) {
     }
     elsif ( $code eq 'Wrongbranch' ) {
     }
-
     else {
         die "Unknown error code $code";    # note we need all the (empty) elsif's above, or we die.
         # This forces the issue of staying in sync w/ Circulation.pm
@@ -428,14 +489,10 @@ $template->param( errmsgloop => \@errmsgloop );
 
 # patrontable ....
 if ($borrower) {
-    my $flags = $borrower->{'flags'};
     my @flagloop;
-    my $flagset;
+    my $flags=$borrower->{flags};
     foreach my $flag ( sort keys %$flags ) {
         my %flaginfo;
-        unless ($flagset) { $flagset = 1; }
-        $flaginfo{redfont} = ( $flags->{$flag}->{'noissues'} );
-        $flaginfo{flag}    = $flag;
         if ( $flag eq 'CHARGES' ) {
             $flaginfo{msg}            = $flag;
             $flaginfo{charges}        = 1;
@@ -450,13 +507,28 @@ if ($borrower) {
             foreach my $item (@$items) {
                 my $biblio = GetBiblioFromItemNumber( $item->{'itemnumber'});
                 push @waitingitemloop, {
-                    biblionum => $biblio->{'biblionumber'},
-                    barcode   => $biblio->{'barcode'},
-                    title     => $biblio->{'title'},
-                    brname    => $branches->{ $biblio->{'holdingbranch'} }->{'branchname'},
+                    biblionumber=> $biblio->{'biblionumber'},
+                    author      => $biblio->{'author'},
+                    itemtype    => $item->{'ccode'},
+                    reservedate => format_date($item->{'reservedate'}),
+                    waitingdate => format_date($item->{'waitingdate'}),
+                    barcode     => $item->{'barcode'},
+                    maxpickupdate=> format_date( sprintf("%d-%02d-%02d",GetMaxPickupDate($item->{'waitingdate'}, $borrower->{borrowernumber},$item ))),
+                    title       => $biblio->{'title'},
+                    brname      => $branches->{ $item->{'branchcode'} }->{'branchname'},
+                    waitinghere => ($item->{'branchcode'} eq $userenv_branch)
                 };
             }
             $flaginfo{itemloop} = \@waitingitemloop;
+        }
+        elsif ( $flag =~ /DEBARRED|LOST|GNA/ ) {
+            if ($flag ne "GNA"){
+                $flag=lc($flag);
+            }
+            else{
+                $flag="gonenoaddress";
+            }
+            %flaginfo=( $flag =>1, $flag."comment"=>$borrower->{$flag."comment"},dateend=>$flags->{uc($flag)}->{dateend});
         }
         elsif ( $flag eq 'ODUES' ) {
             my $items = $flags->{$flag}->{'itemlist'};
@@ -483,7 +555,6 @@ if ($borrower) {
         push( @flagloop, \%flaginfo );
     }
     $template->param(
-        flagset          => $flagset,
         flagloop         => \@flagloop,
         riborrowernumber => $borrower->{'borrowernumber'},
         riborcnum        => $borrower->{'cardnumber'},
@@ -494,7 +565,7 @@ if ($borrower) {
 }
 
 #set up so only the last 8 returned items display (make for faster loading pages)
-my $returned_counter = ( C4::Context->preference('numReturnedItemsToShow') ) ? C4::Context->preference('numReturnedItemsToShow') : 8;
+my $returned_counter = ( C4::Context->preference('numReturnedItemsToShow') ) ? C4::Context->preference('numReturnedItemsToShow') : 10;
 my $count = 0;
 my @riloop;
 foreach ( sort { $a <=> $b } keys %returneditems ) {
@@ -521,19 +592,25 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
         else {
             $ri{borrowernumber} = $riborrowernumber{$_};
         }
-
         #        my %ri;
         my $biblio = GetBiblioFromItemNumber(GetItemnumberFromBarcode($bar_code));
+        my $item = GetItem(GetItemnumberFromBarcode($bar_code));
         # fix up item type for display
         $biblio->{'itemtype'} = C4::Context->preference('item-level_itypes') ? $biblio->{'itype'} : $biblio->{'itemtype'};
         $ri{itembiblionumber} = $biblio->{'biblionumber'};
         $ri{itemtitle}        = $biblio->{'title'};
         $ri{itemauthor}       = $biblio->{'author'};
-        $ri{itemtype}         = $biblio->{'itemtype'};
         $ri{itemnote}         = $biblio->{'itemnotes'};
-        $ri{ccode}            = $biblio->{'ccode'};
         $ri{itemnumber}       = $biblio->{'itemnumber'};
+        $ri{itemtype}         = $item->{'itype'};
+        $ri{ccode}            = $item->{'ccode'};
+        $ri{itemcallnumber}   = $item->{'itemcallnumber'};
+        $ri{homebranch}       = $item->{'homebranch'};
+        $ri{holdingbranch}    = $item->{'holdingbranch'};
         $ri{barcode}          = $bar_code;
+        my $shelflocations    = GetKohaAuthorisedValues('items.location','');
+        $ri{itemlocation}     = $shelflocations->{$biblio->{'location'}};
+        
     }
     else {
         last;

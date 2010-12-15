@@ -27,13 +27,16 @@ use C4::Koha;
 use C4::Biblio;
 use C4::Items;
 use C4::Members;
-use C4::Dates;
+use C4::IssuingRules;
+use C4::Dates qw/format_date/;
 use C4::Calendar;
 use C4::Accounts;
+use C4::Overdues ;
 use C4::ItemCirculationAlertPreference;
 use C4::Dates qw(format_date);
 use C4::Message;
 use C4::Debug;
+use YAML;
 use Date::Calc qw(
   Today
   Today_and_Now
@@ -42,6 +45,9 @@ use Date::Calc qw(
   Date_to_Days
   Day_of_Week
   Add_Delta_Days	
+  Delta_Days
+  check_date
+  Add_Delta_Days
 );
 use POSIX qw(strftime);
 use C4::Branch; # GetBranches
@@ -73,9 +79,6 @@ BEGIN {
 		&GetItemIssues
 		&GetBorrowerIssues
 		&GetIssuingCharges
-		&GetIssuingRule
-        &GetBranchBorrowerCircRule
-        &GetBranchItemRule
 		&GetBiblioIssues
 		&GetOpenIssue
 		&AnonymiseIssueHistory
@@ -98,6 +101,15 @@ BEGIN {
                 &CreateBranchTransferLimit
                 &DeleteBranchTransferLimits
 	);
+	
+	# subs to deal with offline circulation
+	push @EXPORT, qw(
+      &GetOfflineOperations
+		&GetOfflineOperation
+		&AddOfflineOperation
+		&DeleteOfflineOperation
+		&ProcessOfflineOperation
+	);	
 }
 
 =head1 NAME
@@ -346,116 +358,97 @@ sub TooMany {
 	my $item		= shift;
     my $cat_borrower    = $borrower->{'categorycode'};
     my $dbh             = C4::Context->dbh;
-	my $branch;
+	my $exactbranch;
 	# Get which branchcode we need
-	$branch = _GetCircControlBranch($item,$borrower);
-	my $type = (C4::Context->preference('item-level_itypes')) 
+	$exactbranch = _GetCircControlBranch($item,$borrower);
+	my $itype = (C4::Context->preference('item-level_itypes')) 
   			? $item->{'itype'}         # item-level
 			: $item->{'itemtype'};     # biblio-level
  
     # given branch, patron category, and item type, determine
     # applicable issuing rule
-    my $issuing_rule = GetIssuingRule($cat_borrower, $type, $branch);
+    my $branchfield = C4::Context->Preference('HomeOrHoldingBranch') || "homebranch";
+    #By default, Patron is supposed not to be able to borrow
+    my $toomany = 1;
 
-    # if a rule is found and has a loan limit set, count
-    # how many loans the patron already has that meet that
-    # rule
-    if (defined($issuing_rule) and defined($issuing_rule->{'maxissueqty'})) {
-        my @bind_params;
-        my $count_query = "SELECT COUNT(*) FROM issues
-                           JOIN items USING (itemnumber) ";
+    foreach my $branch ( $exactbranch, '*' ) {
+        foreach my $type ( $itype, '*' ) {
+            my $issuing_rule = GetIssuingRule( $cat_borrower, $type, $branch );
 
-        my $rule_itemtype = $issuing_rule->{itemtype};
-        if ($rule_itemtype eq "*") {
-            # matching rule has the default item type, so count only
-            # those existing loans that don't fall under a more
-            # specific rule
-            if (C4::Context->preference('item-level_itypes')) {
-                $count_query .= " WHERE items.itype NOT IN (
-                                    SELECT itemtype FROM issuingrules
-                                    WHERE branchcode = ?
-                                    AND   (categorycode = ? OR categorycode = ?)
-                                    AND   itemtype <> '*'
-                                  ) ";
-            } else { 
-                $count_query .= " JOIN  biblioitems USING (biblionumber) 
-                                  WHERE biblioitems.itemtype NOT IN (
-                                    SELECT itemtype FROM issuingrules
-                                    WHERE branchcode = ?
-                                    AND   (categorycode = ? OR categorycode = ?)
-                                    AND   itemtype <> '*'
-                                  ) ";
+            # if a rule is found and has a loan limit set, count
+            # how many loans the patron already has that meet that
+            # rule
+            if ( defined($issuing_rule) and defined( $issuing_rule->{'maxissueqty'} ) ) {
+                my @bind_params;
+                my $count_query = "SELECT COUNT(*) FROM issues
+                                   JOIN items USING (itemnumber) ";
+
+                my $rule_itemtype = $issuing_rule->{itemtype};
+                if ($rule_itemtype eq "*") {
+                    # matching rule has the default item type, so count all the items issued for that branch no
+                    # those existing loans that don't fall under a more
+                    # specific rule Not QUITE
+                    if (C4::Context->preference('item-level_itypes')) {
+                        $count_query .= " WHERE items.itype NOT IN (
+                                                SELECT itemtype FROM issuingrules
+                                                WHERE branchcode = ?
+                                                AND   (categorycode = ? OR categorycode = ?)
+                                                AND   itemtype <> '*'
+                                           )";
+                    } else {
+                        $count_query .= " JOIN  biblioitems USING (biblionumber)
+                                            WHERE biblioitems.itemtype NOT IN (
+                                                SELECT itemtype FROM issuingrules
+                                                WHERE branchcode = ?
+                                                AND   (categorycode = ? OR categorycode = ?)
+                                                AND   itemtype <> '*'
+                                           )";
+                    }
+                    push @bind_params, $issuing_rule->{branchcode};
+                    push @bind_params, $issuing_rule->{categorycode};
+                    push @bind_params, $cat_borrower;
+                } else {
+                    # rule has specific item type, so count loans of that
+                    # specific item type
+                    if (C4::Context->preference('item-level_itypes')) {
+                        $count_query .= " WHERE items.itype = ? ";
+                    } else { 
+                        $count_query .= " JOIN  biblioitems USING (biblionumber) 
+                                      WHERE biblioitems.itemtype= ? ";
+                    }
+                    push @bind_params, $type;
+                }
+
+                $count_query .= " AND borrowernumber = ? ";
+                push @bind_params, $borrower->{'borrowernumber'};
+                my $rule_branch = $issuing_rule->{branchcode};
+                if ( $rule_branch ne "*" ) {
+                    if ( C4::Context->preference('CircControl') eq 'PickupLibrary' ) {
+                        $count_query .= " AND issues.branchcode = ? ";
+                        push @bind_params, $branch;
+                    } elsif ( C4::Context->preference('CircControl') eq 'PatronLibrary' ) {
+                        ;    # if branch is the patron's home branch, then count all loans by patron
+                    } else {
+                        $count_query .= " AND items.$branchfield = ? ";
+                        push @bind_params, $branch;
+                    }
+                }
+
+                my $count_sth = $dbh->prepare($count_query);
+                $count_sth->execute(@bind_params);
+                my ($current_loan_count) = $count_sth->fetchrow_array;
+
+                my $max_loans_allowed = $issuing_rule->{'maxissueqty'};
+                if ( $current_loan_count >= $max_loans_allowed ) {
+                    return 1,$current_loan_count,$max_loans_allowed;
+                }
+                else {
+                    $toomany=0;
+                }
             }
-            push @bind_params, $issuing_rule->{branchcode};
-            push @bind_params, $issuing_rule->{categorycode};
-            push @bind_params, $cat_borrower;
-        } else {
-            # rule has specific item type, so count loans of that
-            # specific item type
-            if (C4::Context->preference('item-level_itypes')) {
-                $count_query .= " WHERE items.itype = ? ";
-            } else { 
-                $count_query .= " JOIN  biblioitems USING (biblionumber) 
-                                  WHERE biblioitems.itemtype= ? ";
-            }
-            push @bind_params, $type;
-        }
-
-        $count_query .= " AND borrowernumber = ? ";
-        push @bind_params, $borrower->{'borrowernumber'};
-        my $rule_branch = $issuing_rule->{branchcode};
-        if ($rule_branch ne "*") {
-            if (C4::Context->preference('CircControl') eq 'PickupLibrary') {
-                $count_query .= " AND issues.branchcode = ? ";
-                push @bind_params, $branch;
-            } elsif (C4::Context->preference('CircControl') eq 'PatronLibrary') {
-                ; # if branch is the patron's home branch, then count all loans by patron
-            } else {
-                $count_query .= " AND items.homebranch = ? ";
-                push @bind_params, $branch;
-            }
-        }
-
-        my $count_sth = $dbh->prepare($count_query);
-        $count_sth->execute(@bind_params);
-        my ($current_loan_count) = $count_sth->fetchrow_array;
-
-        my $max_loans_allowed = $issuing_rule->{'maxissueqty'};
-        if ($current_loan_count >= $max_loans_allowed) {
-            return ($current_loan_count, $max_loans_allowed);
         }
     }
-
-    # Now count total loans against the limit for the branch
-    my $branch_borrower_circ_rule = GetBranchBorrowerCircRule($branch, $cat_borrower);
-    if (defined($branch_borrower_circ_rule->{maxissueqty})) {
-        my @bind_params = ();
-        my $branch_count_query = "SELECT COUNT(*) FROM issues 
-                                  JOIN items USING (itemnumber)
-                                  WHERE borrowernumber = ? ";
-        push @bind_params, $borrower->{borrowernumber};
-
-        if (C4::Context->preference('CircControl') eq 'PickupLibrary') {
-            $branch_count_query .= " AND issues.branchcode = ? ";
-            push @bind_params, $branch;
-        } elsif (C4::Context->preference('CircControl') eq 'PatronLibrary') {
-            ; # if branch is the patron's home branch, then count all loans by patron
-        } else {
-            $branch_count_query .= " AND items.homebranch = ? ";
-            push @bind_params, $branch;
-        }
-        my $branch_count_sth = $dbh->prepare($branch_count_query);
-        $branch_count_sth->execute(@bind_params);
-        my ($current_loan_count) = $branch_count_sth->fetchrow_array;
-
-        my $max_loans_allowed = $branch_borrower_circ_rule->{maxissueqty};
-        if ($current_loan_count >= $max_loans_allowed) {
-            return ($current_loan_count, $max_loans_allowed);
-        }
-    }
-
-    # OK, the patron can issue !!!
-    return;
+    return $toomany;
 }
 
 =head2 itemissues
@@ -684,7 +677,10 @@ sub CanBookBeIssued {
         my $branch = _GetCircControlBranch($item,$borrower);
         my $itype = ( C4::Context->preference('item-level_itypes') ) ? $item->{'itype'} : $biblioitem->{'itemtype'};
         my $loanlength = GetLoanLength( $borrower->{'categorycode'}, $itype, $branch );
-        $duedate = CalcDateDue( C4::Dates->new( $issuedate, 'iso' ), $loanlength, $branch, $borrower );
+        unless ($loanlength or C4::Context->preference("AllowNotForLoanOverride")) {
+             $issuingimpossible{LOAN_LENGTH_UNDEFINED} = "$borrower->{'categorycode'}, $itype, $branch";
+        }
+        $duedate = CalcDateDue( C4::Dates->new( $issuedate, 'iso' ), $loanlength, $branch, $borrower ) ;
 
         # Offline circ calls AddIssue directly, doesn't run through here
         #  So issuingimpossible should be ok.
@@ -712,15 +708,22 @@ sub CanBookBeIssued {
         $issuingimpossible{CARD_LOST} = 1;
     }
     if ( $borrower->{flags}->{'DBARRED'} ) {
-        $issuingimpossible{DEBARRED} = 1;
+		if (my $dateenddebarred=$borrower->{flags}->{'DBARRED'}->{'dateend'}){
+        	$issuingimpossible{DEBARRED} = format_date($dateenddebarred);
+		}
+		else {
+        	$issuingimpossible{DEBARRED} = 1;
+		}
     }
     if ( $borrower->{'dateexpiry'} eq '0000-00-00') {
         $issuingimpossible{EXPIRED} = 1;
     } else {
-        my @expirydate=  split /-/,$borrower->{'dateexpiry'};
-        if($expirydate[0]==0 || $expirydate[1]==0|| $expirydate[2]==0 ||
-            Date_to_Days(Today) > Date_to_Days( @expirydate )) {
-            $issuingimpossible{EXPIRED} = 1;                                   
+        my @expirydate = split (/-/, $borrower->{'dateexpiry'});
+        if (   $expirydate[0] == 0
+            || $expirydate[1] == 0
+            || $expirydate[2] == 0
+            || Date_to_Days(Today) > Date_to_Days(@expirydate) ) {
+            $issuingimpossible{EXPIRED} = 1;
         }
     }
     #
@@ -762,17 +765,14 @@ sub CanBookBeIssued {
 #
     # JB34 CHECKS IF BORROWERS DONT HAVE ISSUE TOO MANY BOOKS
     #
-	my ($current_loan_count, $max_loans_allowed) = TooMany( $borrower, $item->{biblionumber}, $item );
-    # if TooMany max_loans_allowed returns 0 the user doesn't have permission to check out this book
-    if ($max_loans_allowed eq 0) {
+    my @toomany = TooMany( $borrower, $item->{biblionumber}, $item );
+
+    if ( $toomany[0] == 1 && scalar(@toomany)<3) {
         $needsconfirmation{PATRON_CANT} = 1;
-    } else {
-        if($max_loans_allowed){
-            $needsconfirmation{TOO_MANY} = 1;
-            $needsconfirmation{current_loan_count} = $current_loan_count;
-            $needsconfirmation{max_loans_allowed} = $max_loans_allowed;
-        }
+    } elsif (scalar(@toomany)==3) {
+        $needsconfirmation{TOO_MANY} = "$toomany[1] / $toomany[2]";
     }
+
 
     #
     # ITEM CHECKING
@@ -810,8 +810,18 @@ sub CanBookBeIssued {
             }
         }
     }
-    if ( $item->{'wthdrawn'} && $item->{'wthdrawn'} == 1 )
-    {
+    if ( $item->{'damaged'} && $item->{'damaged'} > 0 ){
+        $needsconfirmation{DAMAGED} = $item->{'damaged'};
+        my $fw                      = GetFrameworkCode($item->{biblionumber});
+        my $category                = GetAuthValCode('items.damaged',$fw);
+        my $authorizedvalues        = GetAuthorisedValues($category, $item->{damaged});
+        
+        foreach my $authvalue (@$authorizedvalues){
+            $needsconfirmation{DAMAGED} = $authvalue->{lib} if $authvalue->{'authorised_value'} eq $item->{'damaged'};
+        }
+        
+    }
+    if ( $item->{'wthdrawn'} && $item->{'wthdrawn'} == 1 ) {
         $issuingimpossible{WTHDRAWN} = 1;
     }
     if (   $item->{'restricted'}
@@ -819,15 +829,23 @@ sub CanBookBeIssued {
     {
         $issuingimpossible{RESTRICTED} = 1;
     }
+    my $userenv = C4::Context->userenv;
+    my $branch=$userenv->{branch};
+    my $hbr= $item->{ C4::Context->preference("HomeOrHoldingBranch") };
     if ( C4::Context->preference("IndependantBranches") ) {
-        my $userenv = C4::Context->userenv;
         if ( ($userenv) && ( $userenv->{flags} % 2 != 1 ) ) {
             $issuingimpossible{ITEMNOTSAMEBRANCH} = 1
-              if ( $item->{C4::Context->preference("HomeOrHoldingBranch")} ne $userenv->{branch} );
+              if ( $hbr ne $branch );
             $needsconfirmation{BORRNOTSAMEBRANCH} = GetBranchName( $borrower->{'branchcode'} )
               if ( $borrower->{'branchcode'} ne $userenv->{branch} );
         }
     }
+    my $branchtransferfield=C4::Context->preference("BranchTransferLimitsType") eq "ccode" ? "ccode" : "itype";
+    if  ( C4::Context->preference("UseBranchTransferLimits")
+                and !IsBranchTransferAllowed( $branch, $hbr, $item->{ $branchtransferfield } ) ) {
+        $needsconfirmation{BRANCH_TRANSFER_NOT_ALLOWED} = $hbr;
+    }
+
 
     #
     # CHECK IF BOOK ALREADY ISSUED TO THIS BORROWER
@@ -868,30 +886,21 @@ sub CanBookBeIssued {
 		my ( $resborrower ) = C4::Members::GetMemberDetails( $resbor, 0 );
 		my $branches  = GetBranches();
 		my $branchname = $branches->{ $res->{'branchcode'} }->{'branchname'};
-        if ( $resbor ne $borrower->{'borrowernumber'} && $restype eq "Waiting" )
-        {
-            # The item is on reserve and waiting, but has been
-            # reserved by some other patron.
-            $needsconfirmation{RESERVE_WAITING} = 1;
-            $needsconfirmation{'resfirstname'} = $resborrower->{'firstname'};
-            $needsconfirmation{'ressurname'} = $resborrower->{'surname'};
-            $needsconfirmation{'rescardnumber'} = $resborrower->{'cardnumber'};
-            $needsconfirmation{'resborrowernumber'} = $resborrower->{'borrowernumber'};
-            $needsconfirmation{'resbranchname'} = $branchname;
-            $needsconfirmation{'reswaitingdate'} = format_date($res->{'waitingdate'});
-        }
-        elsif ( $restype eq "Reserved" ) {
-            # The item is on reserve for someone else.
-            $needsconfirmation{RESERVED} = 1;
-            $needsconfirmation{'resfirstname'} = $resborrower->{'firstname'};
-            $needsconfirmation{'ressurname'} = $resborrower->{'surname'};
-            $needsconfirmation{'rescardnumber'} = $resborrower->{'cardnumber'};
-            $needsconfirmation{'resborrowernumber'} = $resborrower->{'borrowernumber'};
-            $needsconfirmation{'resbranchname'} = $branchname;
-            $needsconfirmation{'resreservedate'} = format_date($res->{'reservedate'});
+        if( $resbor ne $borrower->{'borrowernumber'}){
+            if ( $restype eq "Waiting" ) {
+                # The item is on reserve and waiting, but has been
+                # reserved by some other patron.
+                $needsconfirmation{RESERVE_WAITING} =
+    "$resborrower->{'firstname'} $resborrower->{'surname'} ($resborrower->{'cardnumber'}, $branchname)";
+            }
+            elsif ( $restype eq "Reserved" ) {
+                # The item is on reserve for someone else.
+                $needsconfirmation{RESERVED} =
+    "$res->{'reservedate'} : $resborrower->{'firstname'} $resborrower->{'surname'} ($resborrower->{'cardnumber'})";
+            }
         }
     }
-	return ( \%issuingimpossible, \%needsconfirmation );
+    return ( \%issuingimpossible, \%needsconfirmation );
 }
 
 =head2 AddIssue
@@ -972,7 +981,10 @@ sub AddIssue {
 				# who wants to borrow it now. mark it returned before issuing to the new borrower
 				AddReturn(
 					$item->{'barcode'},
-					C4::Context->userenv->{'branch'}
+					C4::Context->userenv->{'branch'},
+					undef,
+					undef,
+					1
 				);
 			}
 
@@ -1005,7 +1017,9 @@ sub AddIssue {
 					ModReserve(1,
 						$res->{'biblionumber'},
 						$res->{'borrowernumber'},
-						$res->{'branchcode'}
+						$res->{'branchcode'},
+						undef,
+						$res->{'reservenumber'}
 					);
 				}
 			}
@@ -1095,10 +1109,11 @@ sub AddIssue {
                 branch   => $branch,
             });
         }
+
+        logaction( "CIRCULATION", "ISSUE", $borrower->{'borrowernumber'}, $item->{'itemnumber'}  )
+          if C4::Context->preference("IssueLog");
     }
 
-    logaction("CIRCULATION", "ISSUE", $borrower->{'borrowernumber'}, $biblio->{'biblionumber'})
-        if C4::Context->preference("IssueLog");
   }
   return ($datedue);	# not necessarily the same as when it came in!
 }
@@ -1113,254 +1128,8 @@ Get loan length for an itemtype, a borrower type and a branch
 
 sub GetLoanLength {
     my ( $borrowertype, $itemtype, $branchcode ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth =
-      $dbh->prepare(
-"select issuelength from issuingrules where categorycode=? and itemtype=? and branchcode=? and issuelength is not null"
-      );
-# warn "in get loan lenght $borrowertype $itemtype $branchcode ";
-# try to find issuelength & return the 1st available.
-# check with borrowertype, itemtype and branchcode, then without one of those parameters
-    $sth->execute( $borrowertype, $itemtype, $branchcode );
-    my $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( $borrowertype, "*", $branchcode );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( "*", $itemtype, $branchcode );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( "*", "*", $branchcode );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( $borrowertype, $itemtype, "*" );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( $borrowertype, "*", "*" );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( "*", $itemtype, "*" );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    $sth->execute( "*", "*", "*" );
-    $loanlength = $sth->fetchrow_hashref;
-    return $loanlength->{issuelength}
-      if defined($loanlength) && $loanlength->{issuelength} ne 'NULL';
-
-    # if no rule is set => 21 days (hardcoded)
-    return 21;
-}
-
-=head2 GetIssuingRule
-
-  my $irule = &GetIssuingRule($borrowertype,$itemtype,branchcode)
-
-FIXME - This is a copy-paste of GetLoanLength
-as a stop-gap.  Do not wish to change API for GetLoanLength 
-this close to release, however, Overdues::GetIssuingRules is broken.
-
-Get the issuing rule for an itemtype, a borrower type and a branch
-Returns a hashref from the issuingrules table.
-
-=cut
-
-sub GetIssuingRule {
-    my ( $borrowertype, $itemtype, $branchcode ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth =  $dbh->prepare( "select * from issuingrules where categorycode=? and itemtype=? and branchcode=? and issuelength is not null"  );
-    my $irule;
-
-	$sth->execute( $borrowertype, $itemtype, $branchcode );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( $borrowertype, "*", $branchcode );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( "*", $itemtype, $branchcode );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( "*", "*", $branchcode );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( $borrowertype, $itemtype, "*" );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( $borrowertype, "*", "*" );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( "*", $itemtype, "*" );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    $sth->execute( "*", "*", "*" );
-    $irule = $sth->fetchrow_hashref;
-    return $irule if defined($irule) ;
-
-    # if no rule matches,
-    return undef;
-}
-
-=head2 GetBranchBorrowerCircRule
-
-  my $branch_cat_rule = GetBranchBorrowerCircRule($branchcode, $categorycode);
-
-Retrieves circulation rule attributes that apply to the given
-branch and patron category, regardless of item type.  
-The return value is a hashref containing the following key:
-
-maxissueqty - maximum number of loans that a
-patron of the given category can have at the given
-branch.  If the value is undef, no limit.
-
-This will first check for a specific branch and
-category match from branch_borrower_circ_rules. 
-
-If no rule is found, it will then check default_branch_circ_rules
-(same branch, default category).  If no rule is found,
-it will then check default_borrower_circ_rules (default 
-branch, same category), then failing that, default_circ_rules
-(default branch, default category).
-
-If no rule has been found in the database, it will default to
-the buillt in rule:
-
-maxissueqty - undef
-
-C<$branchcode> and C<$categorycode> should contain the
-literal branch code and patron category code, respectively - no
-wildcards.
-
-=cut
-
-sub GetBranchBorrowerCircRule {
-    my $branchcode = shift;
-    my $categorycode = shift;
-
-    my $branch_cat_query = "SELECT maxissueqty
-                            FROM branch_borrower_circ_rules
-                            WHERE branchcode = ?
-                            AND   categorycode = ?";
-    my $dbh = C4::Context->dbh();
-    my $sth = $dbh->prepare($branch_cat_query);
-    $sth->execute($branchcode, $categorycode);
-    my $result;
-    if ($result = $sth->fetchrow_hashref()) {
-        return $result;
-    }
-
-    # try same branch, default borrower category
-    my $branch_query = "SELECT maxissueqty
-                        FROM default_branch_circ_rules
-                        WHERE branchcode = ?";
-    $sth = $dbh->prepare($branch_query);
-    $sth->execute($branchcode);
-    if ($result = $sth->fetchrow_hashref()) {
-        return $result;
-    }
-
-    # try default branch, same borrower category
-    my $category_query = "SELECT maxissueqty
-                          FROM default_borrower_circ_rules
-                          WHERE categorycode = ?";
-    $sth = $dbh->prepare($category_query);
-    $sth->execute($categorycode);
-    if ($result = $sth->fetchrow_hashref()) {
-        return $result;
-    }
-  
-    # try default branch, default borrower category
-    my $default_query = "SELECT maxissueqty
-                          FROM default_circ_rules";
-    $sth = $dbh->prepare($default_query);
-    $sth->execute();
-    if ($result = $sth->fetchrow_hashref()) {
-        return $result;
-    }
-    
-    # built-in default circulation rule
-    return {
-        maxissueqty => undef,
-    };
-}
-
-=head2 GetBranchItemRule
-
-  my $branch_item_rule = GetBranchItemRule($branchcode, $itemtype);
-
-Retrieves circulation rule attributes that apply to the given
-branch and item type, regardless of patron category.
-
-The return value is a hashref containing the following key:
-
-holdallowed => Hold policy for this branch and itemtype. Possible values:
-  0: No holds allowed.
-  1: Holds allowed only by patrons that have the same homebranch as the item.
-  2: Holds allowed from any patron.
-
-This searches branchitemrules in the following order:
-
-  * Same branchcode and itemtype
-  * Same branchcode, itemtype '*'
-  * branchcode '*', same itemtype
-  * branchcode and itemtype '*'
-
-Neither C<$branchcode> nor C<$categorycode> should be '*'.
-
-=cut
-
-sub GetBranchItemRule {
-    my ( $branchcode, $itemtype ) = @_;
-    my $dbh = C4::Context->dbh();
-    my $result = {};
-
-    my @attempts = (
-        ['SELECT holdallowed
-            FROM branch_item_rules
-            WHERE branchcode = ?
-              AND itemtype = ?', $branchcode, $itemtype],
-        ['SELECT holdallowed
-            FROM default_branch_circ_rules
-            WHERE branchcode = ?', $branchcode],
-        ['SELECT holdallowed
-            FROM default_branch_item_rules
-            WHERE itemtype = ?', $itemtype],
-        ['SELECT holdallowed
-            FROM default_circ_rules'],
-    );
-
-    foreach my $attempt (@attempts) {
-        my ($query, @bind_params) = @{$attempt};
-
-        # Since branch/category and branch/itemtype use the same per-branch
-        # defaults tables, we have to check that the key we want is set, not
-        # just that a row was returned
-        return $result if ( defined( $result->{'holdallowed'} = $dbh->selectrow_array( $query, {}, @bind_params ) ) );
-    }
-    
-    # built-in default circulation rule
-    return {
-        holdallowed => 2,
-    };
+    my $loanlength=GetIssuingRule($borrowertype,$itemtype,$branchcode);
+    return $loanlength->{issuelength};
 }
 
 =head2 AddReturn
@@ -1438,8 +1207,8 @@ patron who last borrowed the book.
 =cut
 
 sub AddReturn {
-    my ( $barcode, $branch, $exemptfine, $dropbox ) = @_;
-    if ($branch and not GetBranchDetail($branch)) {
+    my ( $barcode, $branch, $exemptfine, $dropbox, $force) = @_;
+    if ( $branch and not GetBranchDetail($branch) ) {
         warn "AddReturn error: branch '$branch' not found.  Reverting to " . C4::Context->userenv->{'branch'};
         undef $branch;
     }
@@ -1483,9 +1252,17 @@ sub AddReturn {
         my $branches = GetBranches();    # a potentially expensive call for a non-feature.
         $branches->{$hbr}->{PE} and $messages->{'IsPermanent'} = $hbr;
     }
-
+    my $branchtransferfield=C4::Context->preference("BranchTransferLimitsType") eq "ccode" ? "ccode" : "itype";
+    $debug && warn "$branch, $hbr, ",C4::Context->preference("BranchTransferLimitsType")," ,",$item->{ $branchtransferfield } ;
+    $debug && warn Dump($item);
+    $debug && warn IsBranchTransferAllowed( $branch, $hbr, $item->{ C4::Context->preference("BranchTransferLimitsType") } );
     # if indy branches and returning to different branch, refuse the return
-    if ($hbr ne $branch && C4::Context->preference("IndependantBranches")){
+    if ( !$force && ($hbr ne $branch)
+		&& (C4::Context->preference("IndependantBranches") 
+			or ( C4::Context->preference("UseBranchTransferLimits")
+                and !IsBranchTransferAllowed( $branch, $hbr, $item->{$branchtransferfield } ) )
+		    )
+		){
         $messages->{'Wrongbranch'} = {
             Wrongbranch => $branch,
             Rightbranch => $hbr,
@@ -1496,7 +1273,6 @@ sub AddReturn {
         # FIXME - even in an indy branches situation, there should
         # still be an option for the library to accept the item
         # and transfer it to its owning library.
-        return ( $doreturn, $messages, $issue, $borrower );
     }
 
     if ( $item->{'wthdrawn'} ) { # book has been cancelled
@@ -1507,12 +1283,11 @@ sub AddReturn {
     # case of a return of document (deal with issues and holdingbranch)
     if ($doreturn) {
         $borrower or warn "AddReturn without current borrower";
-		my $circControlBranch;
+        my $circControlBranch;
         if ($dropbox) {
-            # define circControlBranch only if dropbox mode is set
-            # don't allow dropbox mode to create an invalid entry in issues (issuedate > today)
-            # FIXME: check issuedate > returndate, factoring in holidays
-            $circControlBranch = _GetCircControlBranch($item,$borrower) unless ( $item->{'issuedate'} eq C4::Dates->today('iso') );;
+            $circControlBranch = _GetCircControlBranch( $item, $borrower );
+            # don't allow dropbox mode to create an invalid entry in issues (issuedate > returndate) FIXME: actually checks eq, not gt
+            undef($dropbox) if ( $item->{'issuedate'} eq C4::Dates->today('iso') );
         }
 
         if ($borrowernumber) {
@@ -1520,15 +1295,15 @@ sub AddReturn {
             $messages->{'WasReturned'} = 1;    # FIXME is the "= 1" right?  This could be the borrower hash.
         }
 
-        ModItem({ onloan => undef }, $issue->{'biblionumber'}, $item->{'itemnumber'});
+        ModItem( { renewals=>0, onloan => undef }, $issue->{'biblionumber'}, $item->{'itemnumber'} );
+    	# the holdingbranch is updated if the document is returned to another location.
+    	# this is always done regardless of whether the item was on loan or not
+    	if ( $item->{'holdingbranch'} ne $branch ) {
+       	    UpdateHoldingbranch( $branch, $item->{'itemnumber'} );
+            $item->{'holdingbranch'} = $branch;    # update item data holdingbranch too
+	    }	   
     }
 
-    # the holdingbranch is updated if the document is returned to another location.
-    # this is always done regardless of whether the item was on loan or not
-    if ($item->{'holdingbranch'} ne $branch) {
-        UpdateHoldingbranch($branch, $item->{'itemnumber'});
-        $item->{'holdingbranch'} = $branch; # update item data holdingbranch too
-    }
     ModDateLastSeen( $item->{'itemnumber'} );
 
     # check if we have a transfer for this document
@@ -1555,11 +1330,26 @@ sub AddReturn {
         _FixAccountForLostAndReturned($item->{'itemnumber'}, $borrowernumber, $barcode);    # can tolerate undef $borrowernumber
         $messages->{'WasLost'} = 1;
     }
+    if ($item->{'notforloan'}){
+        $messages->{'NotForLoan'} = $item->{'notforloan'};
+    }
+    if ($item->{'damaged'}){
+        $messages->{'Damaged'} = $item->{'damaged'};
+    }
 
-    # fix up the overdues in accounts...
-    if ($borrowernumber) {
+    if ($borrowernumber && $doreturn) {
+        # fix up the overdues in accounts...
         my $fix = _FixOverduesOnReturn($borrowernumber, $item->{itemnumber}, $exemptfine, $dropbox);
         defined($fix) or warn "_FixOverduesOnReturn($borrowernumber, $item->{itemnumber}...) failed!";  # zero is OK, check defined
+    
+        # fix fine days
+        my $debardate = _FixFineDaysOnReturn($borrower, $item, $issue->{date_due});
+        $messages->{'Debarred'} = $debardate if($debardate);
+
+        # get fines for the borrower
+        my $fineamount = C4::Overdues::GetFine($borrowernumber);
+        $messages->{'HaveFines'} = $fineamount if($fineamount);
+        
     }
 
     # find reserves.....
@@ -1595,20 +1385,20 @@ sub AddReturn {
             branch   => $branch,
         });
     }
-    
-    logaction("CIRCULATION", "RETURN", $borrowernumber, $item->{'biblionumber'})
-        if C4::Context->preference("ReturnLog");
-    
+
+    logaction( "CIRCULATION", "RETURN", $borrowernumber, $item->{'itemnumber'} )
+      if C4::Context->preference("ReturnLog");
+
     # FIXME: make this comment intelligible.
     #adding message if holdingbranch is non equal a userenv branch to return the document to homebranch
     #we check, if we don't have reserv or transfert for this document, if not, return it to homebranch .
 
-    if ($doreturn and ($branch ne $hbr) and not $messages->{'WrongTransfer'} and ($validTransfert ne 1) ){
-        if ( C4::Context->preference("AutomaticItemReturn"    ) or
-            (C4::Context->preference("UseBranchTransferLimits") and
-             ! IsBranchTransferAllowed($branch, $hbr, $item->{C4::Context->preference("BranchTransferLimitsType")} )
-           )) {
-            $debug and warn sprintf "about to call ModItemTransfer(%s, %s, %s)", $item->{'itemnumber'},$branch, $hbr;
+    if ( $doreturn and ( $branch ne $hbr ) and not $messages->{'WrongTransfer'} and ( $validTransfert ne 1 ) ) {
+        if (C4::Context->preference("AutomaticItemReturn")
+            or ( C4::Context->preference("UseBranchTransferLimits")
+                and !IsBranchTransferAllowed( $branch, $hbr, $item->{ $branchtransferfield } ) )
+          ) {
+            $debug and warn sprintf "about to call ModItemTransfer(%s, %s, %s)", $item->{'itemnumber'}, $branch, $hbr;
             $debug and warn "item: " . Dumper($item);
             ModItemTransfer($item->{'itemnumber'}, $branch, $hbr);
             $messages->{'WasTransfered'} = 1;
@@ -1669,6 +1459,61 @@ sub MarkIssueReturned {
                                   AND itemnumber = ?");
     $sth_del->execute($borrowernumber, $itemnumber);
 }
+
+=head2 _FixFineDaysOnReturn
+
+    &_FixFineDaysOnReturn($borrower, $item, $datedue);
+
+C<$borrower> borrower hashref
+
+C<$item> item hashref
+
+C<$datedue> date due
+
+Internal function, called only by AddReturn that calculate and update the user fine days, and debars him
+
+=cut
+
+sub _FixFineDaysOnReturn {
+    my ($borrower, $item, $datedue) = @_;
+    
+    if($datedue){
+        $datedue = C4::Dates->new($datedue,"iso");
+    }else{
+        return;
+    }
+    
+    my $branchcode  =_GetCircControlBranch($item, $borrower);
+    my $calendar    = C4::Calendar->new( branchcode => $branchcode );
+    my $today       = C4::Dates->new();
+
+    my $deltadays = $calendar->daysBetween($datedue, C4::Dates->new());
+
+    my $circcontrol = C4::Context::preference('CircControl');
+    my $issuingrule = GetIssuingRule($borrower->{categorycode}, $item->{itype}, $branchcode);
+    my $finedays    = $issuingrule->{finedays};
+    # exit if no finedays defined
+    return unless $finedays;
+    my $grace       = $issuingrule->{firstremind};
+
+    if( $deltadays - $grace > 0){
+        my @newdate     = Add_Delta_Days(Today(), $deltadays * $finedays );
+        my $isonewdate  = join('-',@newdate);
+        my ($deby, $debm, $debd) = split(/-/,$borrower->{debarred});
+        if(check_date($deby, $debm, $debd)){
+            my @olddate = split(/-/, $borrower->{debarred});
+
+            if(Delta_Days(@olddate,@newdate) > 0){
+                C4::Members::DebarMember($borrower->{borrowernumber}, $isonewdate);
+                return $isonewdate;
+            }
+        }else{
+            C4::Members::DebarMember($borrower->{borrowernumber}, $isonewdate);
+            return $isonewdate;
+        }
+    }
+}
+
 
 =head2 _FixOverduesOnReturn
 
@@ -1844,7 +1689,7 @@ sub _GetCircControlBranch {
     my $circcontrol = C4::Context->preference('CircControl');
     my $branch;
 
-    if ($circcontrol eq 'PickupLibrary') {
+    if ($circcontrol eq 'PickupLibrary' && C4::Context->userenv->{'branch'}) {
         $branch= C4::Context->userenv->{'branch'};
     } elsif ($circcontrol eq 'PatronLibrary') {
         $branch=$borrower->{branchcode};
@@ -1881,7 +1726,7 @@ sub GetItemIssue {
     my ($itemnumber) = @_;
     return unless $itemnumber;
     my $sth = C4::Context->dbh->prepare(
-        "SELECT *
+        "SELECT *, issues.renewals as 'issues.renewals'
         FROM issues 
         LEFT JOIN items ON issues.itemnumber=items.itemnumber
         WHERE issues.itemnumber=?");
@@ -1952,7 +1797,7 @@ sub GetItemIssues {
     }
     my $results = $sth->fetchall_arrayref({});
     foreach (@$results) {
-        $_->{'overdue'} = ($_->{'date_due'} lt $today) ? 1 : 0;
+        $_->{'overdue'} = ( $_->{'date_due'} lt $today && !defined($_->{return_date}) ) ? 1 : 0;
     }
     return $results;
 }
@@ -2058,69 +1903,42 @@ already renewed the loan. $error will contain the reason the renewal can not pro
 sub CanBookBeRenewed {
 
     # check renewal status
-    my ( $borrowernumber, $itemnumber, $override_limit ) = @_;
+    my ( $borrowernumber, $itemnumber ) = @_;
     my $dbh       = C4::Context->dbh;
     my $renews    = 1;
-    my $renewokay = 0;
-	my $error;
+    my $renewokay = 1;
+    my $error;
 
     # Look in the issues table for this item, lent to this borrower,
     # and not yet returned.
 
     # Look in the issues table for this item, lent to this borrower,
     # and not yet returned.
-    my %branch = (
-            'ItemHomeLibrary' => 'items.homebranch',
-            'PickupLibrary'   => 'items.holdingbranch',
-            'PatronLibrary'   => 'borrowers.branchcode'
-            );
-    my $controlbranch = $branch{C4::Context->preference('CircControl')};
-    my $itype         = C4::Context->preference('item-level_itypes') ? 'items.itype' : 'biblioitems.itemtype';
-    
-    my $sthcount = $dbh->prepare("
-                   SELECT 
-                    borrowers.categorycode, biblioitems.itemtype, issues.renewals, renewalsallowed, $controlbranch
-                   FROM  issuingrules, 
-                   issues 
-                   LEFT JOIN items USING (itemnumber) 
-                   LEFT JOIN borrowers USING (borrowernumber) 
-                   LEFT JOIN biblioitems USING (biblioitemnumber)
-                   
-                   WHERE
-                    (issuingrules.categorycode = borrowers.categorycode OR issuingrules.categorycode = '*')
-                   AND
-                    (issuingrules.itemtype = $itype OR issuingrules.itemtype = '*')
-                   AND
-                    (issuingrules.branchcode = $controlbranch OR issuingrules.branchcode = '*') 
-                   AND 
-                    borrowernumber = ? 
-                   AND
-                    itemnumber = ?
-                   ORDER BY
-                    issuingrules.categorycode desc,
-                    issuingrules.itemtype desc,
-                    issuingrules.branchcode desc
-                   LIMIT 1;
-                  ");
-
-    $sthcount->execute( $borrowernumber, $itemnumber );
-    if ( my $data1 = $sthcount->fetchrow_hashref ) {
-        
-        if ( ( $data1->{renewalsallowed} && $data1->{renewalsallowed} > $data1->{renewals} ) || $override_limit ) {
-            $renewokay = 1;
-        }
-        else {
-			$error="too_many";
-		}
-		
-        my ( $resfound, $resrec ) = C4::Reserves::CheckReserves($itemnumber);
-        if ($resfound) {
-            $renewokay = 0;
-			$error="on_reserve"
-        }
-
+    my $borrower = C4::Members::GetMemberDetails( $borrowernumber, 0 ) or return undef;
+    my $item = GetItem($itemnumber) or return undef;
+    my $itemissue = GetItemIssue($itemnumber) or return undef;
+    my $branchcode = _GetCircControlBranch($item, $borrower);
+    if ($itemissue->{'overdue'}){
+       $renewokay=0;
+       $error->{message}='overdue'; 
     }
-    return ($renewokay,$error);
+    
+    my $issuingrule = GetIssuingRule($borrower->{categorycode}, $item->{itype}, $branchcode);
+    
+    if ( $issuingrule->{renewalsallowed} <= $itemissue->{'issues.renewals'} )  {
+        $renewokay=0;
+        $error->{message} = "too_many";
+    }
+
+    my ( $resfound, $resrec ) = C4::Reserves::CheckReserves($itemnumber);
+    if ($resfound) {
+        $renewokay = 0;
+        $error->{message} = "on_reserve";
+    }
+    $error->{renewals}       = $itemissue->{'issues.renewals'};
+    $error->{renewalsallowed}= $issuingrule->{renewalsallowed};
+
+    return ( $renewokay, $error );
 }
 
 =head2 AddRenewal
@@ -2175,22 +1993,28 @@ sub AddRenewal {
     # based on the value of the RenewalPeriodBase syspref.
     unless ($datedue) {
 
-        my $borrower = C4::Members::GetMemberDetails( $borrowernumber, 0 ) or return undef;
-        my $loanlength = GetLoanLength(
-                    $borrower->{'categorycode'},
-                    (C4::Context->preference('item-level_itypes')) ? $biblio->{'itype'} : $biblio->{'itemtype'} ,
-			        $issuedata->{'branchcode'}  );   # that's the circ control branch.
+        my $borrower   = C4::Members::GetMemberDetails( $borrowernumber, 0 ) or return undef;
+        my $branchcode = _GetCircControlBranch($item, $borrower);
+        my $loanlength = GetIssuingRule( $borrower->{categorycode}, $item->{itype}, $branchcode );
 
-        $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
-                                        C4::Dates->new($issuedata->{date_due}, 'iso') :
-                                        C4::Dates->new();
-        $datedue =  CalcDateDue($datedue,$loanlength,$issuedata->{'branchcode'},$borrower);
+        $datedue =
+          ( C4::Context->preference('RenewalPeriodBase') eq 'date_due' )
+          ? C4::Dates->new( $issuedata->{date_due}, 'iso' )
+          : C4::Dates->new();
+
+        my $itype = ( C4::Context->preference('item-level_itypes') ) ? $biblio->{'itype'} : $biblio->{'itemtype'};
+        my $controlbranch = _GetCircControlBranch( $item, $borrower );
+        my $renewalperiod = $loanlength->{renewalperiod} || GetLoanLength( $borrower->{'categorycode'}, $itype, $controlbranch );
+
+        $datedue = CalcDateDue( $datedue, $renewalperiod, $issuedata->{'branchcode'}, $borrower );
+
     }
 
     # Update the issues record to have the new due date, and a new count
     # of how many times it has been renewed.
     my $renews = $issuedata->{'renewals'} + 1;
-    $sth = $dbh->prepare("UPDATE issues SET date_due = ?, renewals = ?, lastreneweddate = ?
+    $sth = $dbh->prepare(
+        "UPDATE issues SET date_due = ?, renewals = ?, lastreneweddate = ?
                             WHERE borrowernumber=? 
                             AND itemnumber=?"
     );
@@ -2198,8 +2022,8 @@ sub AddRenewal {
     $sth->finish;
 
     # Update the renewal count on the item, and tell zebra to reindex
-    $renews = $biblio->{'renewals'} + 1;
-    ModItem({ renewals => $renews, onloan => $datedue->output('iso') }, $biblio->{'biblionumber'}, $itemnumber);
+    $renews = $item->{'renewals'} + 1;
+    ModItem( { renewals => $renews, onloan => $datedue->output('iso') }, undef, $itemnumber );
 
     # Charge a new rental fee, if applicable?
     my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber );
@@ -2565,15 +2389,8 @@ sub CalcDateDue {
 	my ($startdate,$loanlength,$branch,$borrower) = @_;
 	my $datedue;
 
-	if(C4::Context->preference('useDaysMode') eq 'Days') {  # ignoring calendar
-		my $timedue = time + ($loanlength) * 86400;
-	#FIXME - assumes now even though we take a startdate 
-		my @datearr  = localtime($timedue);
-		$datedue = C4::Dates->new( sprintf("%04d-%02d-%02d", 1900 + $datearr[5], $datearr[4] + 1, $datearr[3]), 'iso');
-	} else {
-		my $calendar = C4::Calendar->new(  branchcode => $branch );
-		$datedue = $calendar->addDate($startdate, $loanlength);
-	}
+	my $calendar = C4::Calendar->new(  branchcode => $branch );
+	$datedue = $calendar->addDate($startdate, $loanlength);
 
 	# if ReturnBeforeExpiry ON the datedue can't be after borrower expirydate
 	if ( C4::Context->preference('ReturnBeforeExpiry') && $datedue->output('iso') gt $borrower->{dateexpiry} ) {
@@ -2783,18 +2600,121 @@ sub CreateBranchTransferLimit {
 
 =head2 DeleteBranchTransferLimits
 
-  DeleteBranchTransferLimits();
+  DeleteBranchTransferLimits($tobranch);
 
 =cut
 
 sub DeleteBranchTransferLimits {
-   my $dbh = C4::Context->dbh;
-   my $sth = $dbh->prepare("TRUNCATE TABLE branch_transfer_limits");
-   $sth->execute();
+    my $branch = shift;
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("DELETE FROM branch_transfer_limits WHERE toBranch = ?");
+    $sth->execute($branch);
+}
+
+sub GetOfflineOperations {
+	my $dbh = C4::Context->dbh;
+	my $sth = $dbh->prepare("SELECT * FROM pending_offline_operations WHERE branchcode=? ORDER BY timestamp");
+	$sth->execute(C4::Context->userenv->{'branch'});
+	my $results = $sth->fetchall_arrayref({});
+	$sth->finish;
+	return $results;
+}
+
+sub GetOfflineOperation {
+	my $dbh = C4::Context->dbh;
+	my $sth = $dbh->prepare("SELECT * FROM pending_offline_operations WHERE operationid=?");
+	$sth->execute( shift );
+	my $result = $sth->fetchrow_hashref;
+	$sth->finish;
+	return $result;
+}
+
+sub AddOfflineOperation {
+	my $dbh = C4::Context->dbh;
+	warn Data::Dumper::Dumper(@_);
+	my $sth = $dbh->prepare("INSERT INTO pending_offline_operations VALUES('',?,?,?,?,?,?)");
+	$sth->execute( @_ );
+	return "Added.";
+}
+
+sub DeleteOfflineOperation {
+	my $dbh = C4::Context->dbh;
+	my $sth = $dbh->prepare("DELETE FROM pending_offline_operations WHERE operationid=?");
+	$sth->execute( shift );
+	return "Deleted.";
+}
+
+sub ProcessOfflineOperation {
+	my $operation = shift;
+
+    my $report;
+	if ( $operation->{action} eq 'return' ) {
+        $report = ProcessOfflineReturn( $operation );
+	} elsif ( $operation->{action} eq 'issue' ) {
+	    $report = ProcessOfflineIssue( $operation );
+	}
+	
+	DeleteOfflineOperation( $operation->{operationid} ) if $operation->{operationid};
+	
+	return $report;
+}
+
+sub ProcessOfflineReturn {
+    my $operation = shift;
+
+    my $itemnumber = C4::Items::GetItemnumberFromBarcode( $operation->{barcode} );
+    
+    if ( $itemnumber ) {
+        my $issue = GetOpenIssue( $itemnumber );
+        if ( $issue ) {
+            MarkIssueReturned(
+                $issue->{borrowernumber},
+                $itemnumber,
+                undef,
+                $operation->{timestamp},
+            );
+            return "Success.";
+        } else {
+            return "Item not issued.";
+        }
+    } else {
+        return "Item not found.";
+    }
+}
+
+sub ProcessOfflineIssue {
+    my $operation = shift;
+
+    my $borrower = C4::Members::GetMemberDetails( undef, $operation->{cardnumber} ); # Get borrower from operation cardnumber
+    
+    if ( $borrower->{borrowernumber} ) { 
+        my $itemnumber = C4::Items::GetItemnumberFromBarcode( $operation->{barcode} );
+        my $issue = GetOpenIssue( $itemnumber );
+        
+        if ( $issue and ( $issue->{borrowernumber} ne $borrower->{borrowernumber} ) ) { # Item already issued to another borrower, mark it returned
+            MarkIssueReturned(
+                $issue->{borrowernumber},
+                $itemnumber,
+                undef,
+                $operation->{timestamp},
+            );
+        }
+        AddIssue(
+            $borrower,
+            $operation->{'barcode'},
+            undef,
+            1,
+            $operation->{timestamp},
+            undef,
+        );
+        return "Success.";
+    } else {
+        return "Borrower not found.";
+    }
 }
 
 
-  1;
+1;
 
 __END__
 

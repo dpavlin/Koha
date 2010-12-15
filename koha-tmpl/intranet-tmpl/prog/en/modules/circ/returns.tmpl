@@ -1,6 +1,9 @@
 <!-- TMPL_INCLUDE NAME="doc-head-open.inc" -->
 <title>Koha &rsaquo; Circulation &rsaquo; Check In <!-- TMPL_VAR Name="title" escape="html" --></title>
 <!-- TMPL_INCLUDE NAME="doc-head-close.inc" -->
+<style type="text/css">
+    background-color: red;
+</style>
 <script type="text/javascript">
 //<![CDATA[
 function Dopop(link) {
@@ -46,7 +49,6 @@ function Dopop(link) {
 <!-- TMPL_INCLUDE NAME="checkin-search.inc" -->
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo; Check In</div>
-
 <div id="doc" class="yui-t7">
 
    <div id="bd">
@@ -54,14 +56,26 @@ function Dopop(link) {
 
 <div class="yui-g">
 
-<!-- TMPL_IF Name="collectionItemNeedsTransferred" -->
-	<div class="dialog message">This item is part of a Rotating Collection and needs to be Transferred to <!-- TMPL_VAR NAME="collectionBranch" --></div>
+<!-- TMPL_IF name="circnote" -->
+    <div id="circnote" class="dialog alert">
+        <h3>Circulation note:</h2>
+        <!-- TMPL_VAR name="circnote" -->
+    </div>
 <!-- /TMPL_IF -->
 
 <!-- TMPL_IF NAME="wrongbranch" -->
-<div class="dialog alert"><h3>Cannot Check In</h3><p>This item must be checked in at its home library. <strong>NOT CHECKED IN</strong></p>
+<div class="dialog alert"><h3>Cannot Check In</h3><p>This item must be checked in at its home library: <!-- TMPL_VAR Name="rightbranch" -->. <strong>NOT CHECKED IN</strong></p>
+	     <form method="post" action="returns.pl" class="confirm">
+
+                <input type="hidden" name="barcode" value="<!-- TMPL_VAR Name="barcode" -->" />
+                <input type="hidden" name="exemptfine" value="<!-- TMPL_VAR Name="exemptfine" -->" />
+                <input type="hidden" name="dropboxmode" value="<!-- TMPL_VAR Name="dropboxmode" -->" />
+				<input type="submit" name="override" value="Check-In" class="submit" />
+				<input type="submit" name="cancel" value="Cancel" class="submit" />
+		</form>
 </div>
 <!-- /TMPL_IF -->
+
 <!-- case of a mistake in transfer loop -->
 <!-- TMPL_IF Name="WrongTransfer" --><div class="dialog message"><!-- WrongTransfer --><h3>Please return <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->"><!-- TMPL_VAR Name="title" escape="html" --></a> to <!-- TMPL_VAR Name="TransferWaitingAt" --></h3>
 <!-- TMPL_IF Name="wborcnum"--><h5>Hold for:</h5>
@@ -89,11 +103,6 @@ function Dopop(link) {
 <!-- case of a reservation found, and display info -->
     <!-- TMPL_IF Name="waiting" -->
 	<!-- waiting -->
-
-<!-- TMPL_IF NAME="soundon" -->
-<audio src="/intranet-tmpl/prog/sound/ending.ogg" autoplay="autoplay" autobuffer="autobuffer"></audio>
-<!-- /TMPL_IF -->	
-	
 <div class="dialog message">
         <h3>Hold Found (item is already waiting):  <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->"><!-- TMPL_VAR Name="title" escape="html" --></a></h3>
         <!-- TMPL_IF NAME="reservenotes" --><h4>Notes: <!-- TMPL_VAR Name="reservenotes" --></h4><!-- /TMPL_IF -->
@@ -105,8 +114,9 @@ function Dopop(link) {
             <!-- TMPL_VAR Name="borcity" --> <!-- TMPL_VAR NAME="borzip" --></li>
            <!-- TMPL_IF NAME="borphone" --><li> <!-- TMPL_VAR Name="borphone" --></li><!-- /TMPL_IF -->
 		   <!-- TMPL_IF NAME="boremail" --><li><a id="boremail" href="mailto:<!-- TMPL_VAR NAME="boremail" -->"><!-- TMPL_VAR NAME="boremail" --></a></li><!-- /TMPL_IF -->
-<!-- TMPL_IF NAME="debarred" --><li class="error">Patron is RESTRICTED</li><!-- /TMPL_IF -->
-<!-- TMPL_IF NAME="gonenoaddress" --><li class="error">Patron's address is in doubt</li><!-- /TMPL_IF --></ul>
+<!-- TMPL_IF NAME="lost" --><li class="error">Patron's card is lost <!-- TMPL_IF Name="lostcomment" -->(<!-- TMPL_VAR NAME="lostcomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="debarred" --><li class="error">Patron is RESTRICTED <!-- TMPL_IF Name="debarredcomment" -->(<!-- TMPL_VAR NAME="debarredcomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="gonenoaddress" --><li class="error">Patron's address is in doubt<!-- TMPL_IF Name="gonenoaddresscomment" -->(<!-- TMPL_VAR NAME="gonenoaddresscomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF --></ul>
 		<!-- TMPL_IF name="transfertodo" -->
             <h4><strong>Transfer to:</strong> <!-- TMPL_VAR Name="destbranchname" --></h4>
 		<!-- TMPL_ELSE -->
@@ -127,8 +137,10 @@ function Dopop(link) {
                 <input type="hidden" name="diffBranch" value="<!-- TMPL_VAR Name="destbranch" -->" />
                 <input type="hidden" name="exemptfine" value="<!-- TMPL_VAR Name="exemptfine" -->" />
                 <input type="hidden" name="dropboxmode" value="<!-- TMPL_VAR Name="dropboxmode" -->" />
+		<input type="hidden" name="reservenumber" value="<!-- TMPL_VAR Name="reservenumber" -->" />
                 </form>
 	</div>
+    <!-- /waiting -->
     <!-- /TMPL_IF -->
 
     <!-- TMPL_IF Name="diffbranch" -->
@@ -143,8 +155,9 @@ function Dopop(link) {
 						<!-- TMPL_VAR Name="borcity" -->  <!-- TMPL_VAR NAME="borzip" --></li>
                         <!-- TMPL_IF NAME="borphone" --><li><!-- TMPL_VAR Name="borphone" --></li><!-- /TMPL_IF -->
                         <!-- TMPL_IF NAME="boremail" --><li><!-- TMPL_IF name="transfertodo" --><!-- TMPL_VAR NAME="boremail" --><!-- TMPL_ELSE --><a id="boremail" href="mailto:<!-- TMPL_VAR NAME="boremail" -->"><!-- TMPL_VAR NAME="boremail" --></a><!-- /TMPL_IF --></li><!-- /TMPL_IF -->
-<!-- TMPL_IF NAME="debarred" --><li class="error">Patron is RESTRICTED</li><!-- /TMPL_IF -->
-<!-- TMPL_IF NAME="gonenoaddress" --><li class="error">Patron's address is in doubt</li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="lost" --><li class="error">Patron's card is lost <!-- TMPL_IF Name="lostcomment" -->(<!-- TMPL_VAR NAME="lostcomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="debarred" --><li class="error">Patron is RESTRICTED <!-- TMPL_IF Name="debarredcomment" -->(<!-- TMPL_VAR NAME="debarredcomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="gonenoaddress" --><li class="error">Patron's address is in doubt<!-- TMPL_IF Name="gonenoaddresscomment" -->(<!-- TMPL_VAR NAME="gonenoaddresscomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF --></ul>
                     </ul>
 		<!-- TMPL_IF name="transfertodo" -->
             <h4><strong>Transfer to:</strong> <!-- TMPL_VAR Name="destbranchname" --></h4>
@@ -171,7 +184,7 @@ function Dopop(link) {
     <!-- TMPL_IF Name="transfer" -->
     <!-- transfer: item with no reservation, must be returned to its homebranch -->
 	<div class="dialog message">
-	  <h3>Please return <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->"><!-- TMPL_VAR NAME="title" escape="html" DEFAULT="item" --></a> to <!-- TMPL_VAR NAME="homebranchname" --></h3></div><!-- /TMPL_IF -->
+	  <h3>Please return <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->"><!-- TMPL_VAR NAME="title" escape="html" DEFAULT="item" --></a> to <!-- TMPL_VAR NAME="homebranch" DEFAULT="homebranch" --></h3></div><!-- /TMPL_IF -->
 
     <!-- TMPL_IF Name="needstransfer" -->
 	<!-- needstransfer -->
@@ -219,11 +232,6 @@ function Dopop(link) {
     <!-- case of simple return no issue or transfer but with a reservation  -->
     <!-- TMPL_IF Name="reserved" -->
 	<!--  reserved  -->
-	
-<!-- TMPL_IF NAME="soundon" -->
-<audio src="/intranet-tmpl/prog/sound/opening.ogg" autoplay="autoplay" autobuffer="autobuffer"></audio>
-<!-- /TMPL_IF -->
-	
 	<div class="dialog message">
 	  <h3>Hold Found: <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->"><!-- TMPL_VAR Name="title" escape="html" --></a></h3>
         <!-- TMPL_IF NAME="reservenotes" --><h4>Notes: <!-- TMPL_VAR Name="reservenotes" --></h4><!-- /TMPL_IF -->
@@ -237,8 +245,9 @@ function Dopop(link) {
 			<!-- TMPL_VAR Name="borcity" --> <!-- TMPL_VAR NAME="borzip" --></li>
             <!-- TMPL_IF NAME="borphone" --><li><!-- TMPL_VAR Name="borphone" --></li><!-- /TMPL_IF -->
             <!-- TMPL_IF NAME="boremail" --><li><!-- TMPL_IF name="transfertodo" --><!-- TMPL_VAR NAME="boremail" --><!-- TMPL_ELSE --><a id="boremail" href="mailto:<!-- TMPL_VAR NAME="boremail" -->"><!-- TMPL_VAR NAME="boremail" --></a><!-- /TMPL_IF --></li><!-- /TMPL_IF -->
-<!-- TMPL_IF NAME="debarred" --><li class="error">Patron is RESTRICTED</li><!-- /TMPL_IF -->
-<!-- TMPL_IF NAME="gonenoaddress" --><li class="error">Patron's address is in doubt</li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="lost" --><li class="error">Patron's card is lost <!-- TMPL_IF Name="lostcomment" -->(<!-- TMPL_VAR NAME="lostcomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="debarred" --><li class="error">Patron is RESTRICTED <!-- TMPL_IF Name="debarredcomment" -->(<!-- TMPL_VAR NAME="debarredcomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF -->
+<!-- TMPL_IF NAME="gonenoaddress" --><li class="error">Patron's address is in doubt<!-- TMPL_IF Name="gonenoaddresscomment" -->(<!-- TMPL_VAR NAME="gonenoaddresscomment" -->)<!-- /TMPL_IF --></li><!-- /TMPL_IF --></ul>
         </ul>
         <!-- TMPL_IF name="transfertodo" -->
             <h4><strong>Transfer to:</strong> <!-- TMPL_VAR Name="destbranchname" --></h4>
@@ -264,13 +273,16 @@ function Dopop(link) {
             <input type="hidden" name="diffBranch" value="<!-- TMPL_VAR Name="destbranch" -->" />
             <input type="hidden" name="exemptfine" value="<!-- TMPL_VAR Name="exemptfine" -->" />
             <input type="hidden" name="dropboxmode" value="<!-- TMPL_VAR Name="dropboxmode" -->" />
+	    <input type="hidden" name="reservenumber" value="<!-- TMPL_VAR Name="reservenumber" -->" />
         </form>
 	</div>
+	<!--  /reserved  -->
     <!-- /TMPL_IF -->
-<!-- TMPL_ELSE -->
+<!--/found-->
+<!-- /TMPL_IF -->
 
 <!-- TMPL_IF NAME="errmsgloop" -->
-    <div class="dialog alert">
+    <div class="dialog message">
         <!-- TMPL_LOOP Name="errmsgloop" -->
                     <!-- TMPL_IF Name="badbarcode" -->
                         <p class="problem">No Item with barcode: <!-- TMPL_VAR Name="msg" --></p>
@@ -284,18 +296,22 @@ function Dopop(link) {
                     <!-- TMPL_IF Name="waslost" -->
                         <p class="problem">Item was lost, now found.</p>
                     <!-- /TMPL_IF -->
+                    <!-- TMPL_IF Name="havefines" -->
+                        <p class="problem"><!-- TMPL_VAR NAME="finename" --> (<!-- TMPL_VAR NAME="finecardnumber" -->) has an outstanding fine of <!-- TMPL_VAR NAME="havefines" --> for books returned late.</p>
+                    <!-- /TMPL_IF -->
                     <!-- TMPL_IF Name="withdrawn" -->
                         <p class="problem">Item is withdrawn.</p>
                     <!-- /TMPL_IF -->
+                    <!-- TMPL_IF Name="notforloan" -->
+                        <p class="problem">Item was not for loan: <!-- TMPL_VAR NAME="notforloan" -->.</p>
+                    <!-- /TMPL_IF -->
+                    <!-- TMPL_IF Name="damaged" -->
+                        <p class="problem">Item is considered damaged (<!-- TMPL_VAR NAME="damaged" -->).</p>
+                    <!-- /TMPL_IF -->
+                    <!-- TMPL_IF Name="debarred" -->
+                        <p class="problem"><a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=<!-- TMPL_VAR NAME="debarborrowernumber" -->"><!-- TMPL_VAR NAME="debarname" -->(<!-- TMPL_VAR NAME="debarcardnumber" -->)</a> is now debarred until <!-- TMPL_VAR NAME="debarred" --> <!-- TMPL_IF Name="debarredcomment"-->(<!-- TMPL_VAR NAME="debarredcomment" -->)<!-- /TMPL_IF -->.</p>
+                    <!-- /TMPL_IF -->
             <!-- /TMPL_LOOP -->
-<!-- TMPL_IF NAME="soundon" -->
-<audio src="/intranet-tmpl/prog/sound/critical.ogg" autoplay="autoplay" autobuffer="autobuffer"></audio>
-<!-- /TMPL_IF -->
-        <!-- TMPL_ELSE -->
-<!-- TMPL_IF NAME="soundon" -->
-<audio src="/intranet-tmpl/prog/sound/beep.ogg" autoplay="autoplay" autobuffer="autobuffer"></audio>
-<!-- /TMPL_IF -->
-        <!-- /TMPL_IF -->
     </div>
 <!-- /TMPL_IF -->
 
@@ -357,30 +373,53 @@ function Dopop(link) {
         </div>
     </form>
 </div>
-
-<!-- TMPL_IF Name="returned" -->
-<div class="yui-g">    <table>
-        <tr><th>Item Information</th><th>Patron Information</th></tr>
-        <tr>
-            <td><!-- TMPL_VAR Name="title" escape="html" --></td>
-            <td>
-
+<!-- TMPL_IF Name="flagloop" -->
+<div class="yui-g dialog message">    
+                
                 <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=<!-- TMPL_VAR Name="riborrowernumber" -->"><!-- TMPL_VAR Name="riborsurname" -->, <!-- TMPL_VAR Name="ribortitle" --> <!-- TMPL_VAR Name="riborfirstname" --></a> (<!-- TMPL_VAR Name="riborcnum" -->)
-                <!-- TMPL_IF Name="flagset" -->
-                (<!-- TMPL_LOOP Name="flagloop" -->
-                <!-- TMPL_VAR Name="flag" -->
-		<!-- TMPL_IF NAME="charges" --> of <!-- TMPL_VAR NAME="chargeamount" --> <!-- /TMPL_IF -->
-		,
-                <!-- /TMPL_LOOP -->)<!-- /TMPL_IF -->
-            </td>
-        </tr>
-    </table>
+            <!-- TMPL_IF NAME="flagloop"-->
+		<ul>
+		    <!-- TMPL_LOOP Name="flagloop" -->
+			<!-- TMPL_IF NAME="gonenoaddress" -->
+			    <li>Patron's address is in doubt<!-- TMPL_IF NAME="gonenoaddresscomment" -->: <!-- TMPL_VAR NAME="gonenoaddresscomment" --><!-- /TMPL_IF --></li>
+			<!-- /TMPL_IF -->
+
+			<!-- TMPL_IF NAME="lost" -->
+			    <li>Patron's card is lost<!-- TMPL_IF NAME="lostcomment" -->: <!-- TMPL_VAR NAME="lostcomment" --><!-- /TMPL_IF --></li>
+			<!-- /TMPL_IF -->
+
+			<!-- TMPL_IF NAME="debarred" -->
+			    <li>Patron is restricted <!--TMPL_IF NAME="dateend"-->until <!--TMPL_VAR Name="dateend"--><!--/TMPL_IF--><!-- TMPL_IF NAME="debarredcomment" -->: <!-- TMPL_VAR NAME="debarredcomment" --><!-- /TMPL_IF --></li>
+			<!-- /TMPL_IF -->
+
+			<!-- TMPL_IF Name="waiting"-->
+			    <li><div id="holdswaiting" class="circmessage">
+				<h4>Holds waiting:</h4>
+				    <!-- TMPL_LOOP NAME="itemloop" -->
+					<ul>
+					    <li> <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->"><!-- TMPL_VAR NAME="title" escape="html" --></a> (<!-- TMPL_VAR NAME="itemtype"-->), <!-- TMPL_IF NAME="author" -->by <!-- TMPL_VAR NAME="author"--><!-- /TMPL_IF --> Hold placed on <!-- TMPL_VAR NAME="reservedate"--> available since <!-- TMPL_VAR NAME="waitingdate" --> until <!-- TMPL_VAR NAME="maxpickupdate" -->.
+					    <!-- TMPL_IF NAME="brname" -->
+						<br /><!-- TMPL_IF NAME="waitinghere" --><strong class="waitinghere"><!-- TMPL_ELSE --><strong><!-- /TMPL_IF -->Waiting at <!-- TMPL_VAR NAME="brname" --></strong>
+					    <!-- /TMPL_IF -->
+					    </li>
+					</ul>
+				    <!-- /TMPL_LOOP -->
+			    </div></li>
+			<!-- /If waiting --><!-- /TMPL_IF -->
+
+			<!-- TMPL_IF Name="flag"-->
+			    <li><!-- TMPL_VAR Name="flag" --> <!-- TMPL_IF NAME="charges" --> of <!-- TMPL_VAR NAME="chargeamount" --> <!-- /TMPL_IF --> </li>
+			<!-- /TMPL_IF -->
+		    <!-- /TMPL_LOOP -->
+		</ul>
+            <!-- /TMPL_IF -->
+</div>
 <!-- /TMPL_IF -->
 <!-- TMPL_IF Name="riloop" -->
     <h2>Checked-In items</h2>
     <table>
-	<tr><th>Due Date</th><th>Title</th>	<th>Author</th>	<th>Barcode</th><th>Type</th>	<th>Patron</th><th>Note</th></tr>
-
+	<tr><th>Due Date</th><th>Title and Author</th>	<th>Barcode (Type)</th><th>Home Branch</th><th>Holding Branch</th><th>Location</th><th>Callnumber</th><th>Patron</th><th>Note</th></tr>
+        
         <!-- TMPL_LOOP Name="riloop" -->
             <tr>
             <td><!-- TMPL_IF Name="duedate" -->
@@ -392,12 +431,16 @@ function Dopop(link) {
                 <!-- /TMPL_IF -->
             </td>
             <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=<!-- TMPL_VAR Name="itembiblionumber" -->">
-                    <!-- TMPL_VAR Name="itemtitle" escape="html" --></a></td>
-			<td><!-- TMPL_VAR Name="itemauthor" --></td>
-            <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->&amp;itemnumber=<!-- TMPL_VAR NAME="itemnumber" -->#item<!-- TMPL_VAR NAME="itemnumber" -->"><!-- TMPL_VAR Name="barcode" --></a></td>
-            <td><!-- TMPL_VAR Name="itemtype" --> <!-- TMPL_VAR Name="ccode" --></td>
+                    <!-- TMPL_VAR Name="itemtitle" escape="html" --></a>
+			<!-- TMPL_VAR Name="itemauthor" --></td>
+            <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=<!-- TMPL_VAR NAME="itembiblionumber" -->&amp;itemnumber=<!-- TMPL_VAR NAME="itemnumber" -->#item<!-- TMPL_VAR NAME="itemnumber" -->"><!-- TMPL_VAR Name="barcode" --></a>
+            <!-- TMPL_IF name="itemtype"-->(<!-- TMPL_VAR Name="itemtype" -->) <!-- /TMPL_IF --><!-- TMPL_IF Name="ccode"-->(<!-- TMPL_VAR Name="ccode" -->)<!-- /TMPL_IF --></td>
+            <td><!-- TMPL_VAR NAME="homebranch" --></td>
+            <td><!-- TMPL_VAR NAME="holdingbranch" --></td>
+            <td><!-- TMPL_VAR NAME="itemlocation" --></td>
+            <td><!-- TMPL_VAR NAME="itemcallnumber" --></td>
 			<td><!-- TMPL_IF Name="duedate" -->
-                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=<!-- TMPL_VAR Name="borrowernumber" -->">
+                <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=<!-- TMPL_VAR Name="borrowernumber" -->">
                     <!-- TMPL_VAR Name="borsurname" -->, <!-- TMPL_VAR Name="borfirstname" --> (<!-- TMPL_VAR name="borcategorycode" -->)
                 </a>
             <!-- TMPL_ELSE -->Not checked out<!-- /TMPL_IF --></td>
