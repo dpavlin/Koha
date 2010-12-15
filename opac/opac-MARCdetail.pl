@@ -49,6 +49,8 @@ use C4::Output;
 use CGI;
 use MARC::Record;
 use C4::Biblio;
+use C4::Items; #qw/GetItemsInfo GetItemsCount/;
+use C4::Reserves qw/CanHoldOnShelf/;
 use C4::Acquisition;
 use C4::Koha;
 
@@ -82,6 +84,8 @@ $template->param(
 
 $template->param( 'AllowOnShelfHolds' => C4::Context->preference('AllowOnShelfHolds') );
 $template->param( 'ItemsIssued' => CountItemsIssued( $biblionumber ) );
+$template->param( 'ItemsCount' => GetItemsCount( $biblionumber ) );
+$template->param(C4::Search::enabled_opac_search_views);
 
 # adding the $RequestOnOpac param
 my $RequestOnOpac;

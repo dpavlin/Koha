@@ -53,6 +53,8 @@ use C4::Review;
 use C4::Serials;    # uses getsubscriptionfrom biblionumber
 use C4::Koha;
 use C4::Members;    # GetMember
+use C4::Items;
+use C4::Reserves;
 use C4::External::Amazon;
 
 my $query = CGI->new();
@@ -68,7 +70,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $biblionumber = $query->param('biblionumber');
 
-$template->param( 'AllowOnShelfHolds' => C4::Context->preference('AllowOnShelfHolds') );
 $template->param( 'ItemsIssued' => CountItemsIssued( $biblionumber ) );
 
 my $marcflavour      = C4::Context->preference("marcflavour");
@@ -122,6 +123,15 @@ $template->param(
 );
 
 my $norequests = 1;
+## Check if an item Can be holds on shelf
+$template->param(C4::Search::enabled_opac_search_views);
+my @all_items = &GetItemsInfo( $biblionumber, 'opac' );
+my $allowonshelfholds = 0;
+for my $item (@all_items){
+    $allowonshelfholds = 1 if(CanHoldOnShelf($item->{itemnumber}) and not $allowonshelfholds);
+}
+$template->param( 'AllowOnShelfHolds' => $allowonshelfholds );
+
 my $res = GetISBDView($biblionumber, "opac");
 my @items = &GetItemsInfo($biblionumber, 'opac');
 
@@ -148,7 +158,6 @@ foreach ( @$reviews ) {
 
 $template->param(
     RequestOnOpac       => C4::Context->preference("RequestOnOpac"),
-    AllowOnShelfHolds   => C4::Context->preference('AllowOnShelfHolds'),
     norequests   => $norequests,
     ISBD         => $res,
     biblionumber => $biblionumber,

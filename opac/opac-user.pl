@@ -24,7 +24,7 @@ use CGI;
 use C4::Auth;
 use C4::Koha;
 use C4::Circulation;
-use C4::Reserves;
+use C4::Reserves;# qw/GetMaxPickupDate GetReservesFromBorrowernumber/; 
 use C4::Members;
 use C4::Output;
 use C4::Biblio;
@@ -32,6 +32,7 @@ use C4::Items;
 use C4::Dates qw/format_date/;
 use C4::Letters;
 use C4::Branch; # GetBranches
+use C4::Overdues qw/CheckBorrowerDebarred/;
 
 my $query = new CGI;
 
@@ -64,7 +65,7 @@ for (qw(dateenrolled dateexpiry dateofbirth)) {
 }
 $borr->{'ethnicity'} = fixEthnicity( $borr->{'ethnicity'} );
 
-if ( $borr->{'debarred'} || $borr->{'gonenoaddress'} || $borr->{'lost'} ) {
+if ( CheckBorrowerDebarred($borrowernumber) || $borr->{'gonenoaddress'} || $borr->{'lost'} ) {
     $borr->{'flagged'} = 1;
 }
 
@@ -183,6 +184,7 @@ $template->param( branchloop => \@branch_loop );
 # now the reserved items....
 my @reserves  = GetReservesFromBorrowernumber( $borrowernumber );
 foreach my $res (@reserves) {
+    warn $res->{'waitingdate'};
     $res->{'reservedate'} = format_date( $res->{'reservedate'} );
 
     if ( $res->{'expirationdate'} ne '0000-00-00' ) {
@@ -193,7 +195,12 @@ foreach my $res (@reserves) {
     
     my $publictype = $res->{'publictype'};
     $res->{$publictype} = 1;
-    $res->{'waiting'} = 1 if $res->{'found'} eq 'W';
+    if ($res->{'found'} eq 'W'){
+        $res->{'waiting'} = 1;
+        my @maxpickupdate = $res->{'waitingdate'} ? GetMaxPickupDate( $res->{'waitingdate'}, $borrowernumber, $res ) : '';
+        $res->{'maxpickupdate'} = sprintf("%d-%02d-%02d", @maxpickupdate);
+        $res->{'formattedwaitingdate'} = format_date($res->{'maxpickupdate'});
+    }
     $res->{'branch'} = $branches->{ $res->{'branchcode'} }->{'branchname'};
     my $biblioData = GetBiblioData($res->{'biblionumber'});
     $res->{'reserves_title'} = $biblioData->{'title'};
