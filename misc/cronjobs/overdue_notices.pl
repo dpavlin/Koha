@@ -39,6 +39,9 @@ use C4::Dates qw/format_date/;
 use C4::Debug;
 use C4::Letters;
 use C4::Overdues qw(GetFine);
+use C4::Reports::Guided; #_get_column_defs
+use open qw(:std :utf8);
+use YAML;
 
 =head1 NAME
 
@@ -255,7 +258,7 @@ my $csvfilename;
 my $htmlfilename;
 my $triggered = 0;
 my $listall = 0;
-my $itemscontent = join( ',', qw( issuedate title barcode author itemnumber ) );
+my $itemscontent = join( ',', qw( issuedate title barcode author biblionumber date_due) );
 my @myborcat;
 my @myborcatout;
 
@@ -266,17 +269,25 @@ GetOptions(
     'n'              => \$nomail,
     'max=s'          => \$MAX,
     'library=s'      => \@branchcodes,
-    'csv:s'          => \$csvfilename,    # this optional argument gets '' if not supplied.
-    'html:s'          => \$htmlfilename,    # this optional argument gets '' if not supplied.
+    'csv:s'          => \$csvfilename,     # this optional argument gets '' if not supplied.
+    'html:s'         => \$htmlfilename,    # this optional argument gets '' if not supplied.
     'itemscontent=s' => \$itemscontent,
-    'list-all'      => \$listall,
-    't|triggered'             => \$triggered,
-    'borcat=s'      => \@myborcat,
-    'borcatout=s'   => \@myborcatout,
+    'list-all'       => \$listall,
+    't|triggered'    => \$triggered,
+    'borcat=s'       => \@myborcat,
+    'borcatout=s'    => \@myborcatout,
 ) or pod2usage(2);
 pod2usage(1) if $help;
 pod2usage( -verbose => 2 ) if $man;
 
+my $columns_def_hashref = C4::Reports::Guided::_get_column_defs();
+
+foreach my $key ( keys %$columns_def_hashref ) {
+    my $initkey = $key;
+    $key =~ s/[^\.]*\.//;
+    $columns_def_hashref->{$key} = $columns_def_hashref->{$initkey};
+}
+print Dump($columns_def_hashref);
 if ( defined $csvfilename && $csvfilename =~ /^-/ ) {
     warn qq(using "$csvfilename" as filename, that seems odd);
 }
@@ -312,7 +323,7 @@ if (@branchcodes) {
     } else {
     
         $verbose and warn "No active overduerules for $branchcodes_word  '@branchcodes'\n";
-        ( scalar grep { '' eq $_ } @branches )
+        ( scalar grep { $_ eq ""} @overduebranches )
           or die "No active overduerules for DEFAULT either!";
         $verbose and warn "Falling back on default rules for @branchcodes\n";
         @branches = ('');
@@ -352,22 +363,26 @@ if ( defined $htmlfilename ) {
     open $html_fh, ">",File::Spec->catdir ($htmlfilename,"notices-".$today->output('iso').".html");
   }
   
-  print $html_fh "<html>\n";
-  print $html_fh "<head>\n";
-  print $html_fh "<style type='text/css'>\n";
-  print $html_fh "pre {page-break-after: always;}\n";
-  print $html_fh "pre {white-space: pre-wrap;}\n";
-  print $html_fh "pre {white-space: -moz-pre-wrap;}\n";
-  print $html_fh "pre {white-space: -o-pre-wrap;}\n";
-  print $html_fh "pre {word-wrap: break-work;}\n";
-  print $html_fh "</style>\n";
-  print $html_fh "</head>\n";
-  print $html_fh "<body>\n";
+  print $html_fh <<HEAD;
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <style type='text/css'>
+    pre {page-break-after: always;}
+    pre {white-space: pre-wrap;}
+    pre {white-space: -moz-pre-wrap;}
+    pre {white-space: -o-pre-wrap;}
+    pre {word-wrap: break-work;}
+  </style>
+</head>
+<body>
+HEAD
 }
 
 foreach my $branchcode (@branches) {
 
-    my $branch_details = C4::Branch::GetBranchDetail($branchcode);
+    my $branch_details = C4::Branch::GetBranchDetail($branchcode) unless ($branchcode eq "");
     my $admin_email_address = $branch_details->{'branchemail'} || C4::Context->preference('KohaAdminEmailAddress');
     my @output_chunks;    # may be sent to mail or stdout or csv file.
 
@@ -429,7 +444,7 @@ WHERE  issues.borrowernumber=borrowers.borrowernumber
 AND    borrowers.categorycode=categories.categorycode
 END_SQL
             my @borrower_parameters;
-            if ($branchcode) {
+            if ($branchcode && $branchcode ne "") {
                 $borrower_sql .= ' AND issues.branchcode=? ';
                 push @borrower_parameters, $branchcode;
             }
@@ -456,6 +471,7 @@ END_SQL
                     $address1, $address2, $city, $postcode, $country, $email,
                     $longest_issue ) = $sth->fetchrow )
             {
+                $email=C4::Members::GetFirstValidEmailAddress($borrowernumber);
                 $verbose and warn "borrower $firstname, $lastname ($borrowernumber) has $itemcount items triggering level $i.";
     
                 my $letter = C4::Letters::getletter( 'circulation', $overdue_rules->{"letter$i"} );
@@ -471,29 +487,43 @@ END_SQL
                 if ( $overdue_rules->{"debarred$i"} ) {
     
                     #action taken is debarring
-                    C4::Members::DebarMember($borrowernumber);
+                    C4::Members::DebarMember($borrowernumber, '9999-12-31');
                     $verbose and warn "debarring $borrowernumber $firstname $lastname\n";
                 }
                 my @params = ($listall ? ( $borrowernumber , 1 , $MAX ) : ( $borrowernumber, $mindays, $maxdays ));
                 $verbose and warn "STH2 PARAMS: borrowernumber = $borrowernumber, mindays = $mindays, maxdays = $maxdays";
                 $sth2->execute(@params);
                 my $itemcount = 0;
-                my $titles = "";
+
+                my $titles;
+                if ($htmlfilename) {
+                    $titles = "<table id='itemscontent$borrowernumber'>";
+                    $titles .= "<thead><tr><th>" . join( "</th><th>", @$columns_def_hashref{@item_content_fields} );
+                    warn @item_content_fields;
+                    warn map { "$columns_def_hashref->{$_};" } @item_content_fields;
+                    $titles .= "</th></tr></thead><tbody>";
+                }
                 my @items = ();
-                
-                my $i = 0;
+
+                my $i                            = 0;
                 my $exceededPrintNoticesMaxLines = 0;
                 while ( my $item_info = $sth2->fetchrow_hashref() ) {
                     if ( ( !$email || $nomail ) && $PrintNoticesMaxLines && $i >= $PrintNoticesMaxLines ) {
-                      $exceededPrintNoticesMaxLines = 1;
-                      last;
+                        $exceededPrintNoticesMaxLines = 1;
+                        last;
                     }
                     $i++;
                     my @item_info = map { $_ =~ /^date|date$/ ? format_date( $item_info->{$_} ) : $item_info->{$_} || '' } @item_content_fields;
-                    $titles .= join("\t", @item_info) . "\n";
+                    if ($htmlfilename) {
+                        $titles .= "<tr><td>" . join( "</td><td>", @item_info ) . "</td></tr>";
+                    } else {
+                        $titles .= join( "\t", @item_info ) . "\n";
+                    }
                     $itemcount++;
                     push @items, { itemnumber => $item_info->{'itemnumber'}, biblionumber => $item_info->{'biblionumber'} };
                 }
+                $titles .= "</tbody></table>" if ($htmlfilename);
+                $debug && warn $titles;
                 $sth2->finish;
                 $letter = parse_letter(
                     {   letter          => $letter,
@@ -506,20 +536,21 @@ END_SQL
                                            }
                     }
                 );
-                
-                if ( $exceededPrintNoticesMaxLines ) {
-                  $letter->{'content'} .= "List too long for form; please check your account online for a complete list of your overdue items.";
+
+                if ($exceededPrintNoticesMaxLines) {
+                    $letter->{'content'} .= "List too long for form; please check your account online for a complete list of your overdue items.";
                 }
 
-                my @misses = grep { /./ } map { /^([^>]*)[>]+/; ( $1 || '' ); } split /\</, $letter->{'content'};
+                my @misses = grep { /./ } map { /^([^>]*)[>]{2,}/; ( $1 || '' ); } split /\<\</, $letter->{'content'};
                 if (@misses) {
                     $verbose and warn "The following terms were not matched and replaced: \n\t" . join "\n\t", @misses;
                 }
-                $letter->{'content'} =~ s/\<[^<>]*?\>//g;    # Now that we've warned about them, remove them.
-                $letter->{'content'} =~ s/\<[^<>]*?\>//g;    # 2nd pass for the double nesting.
-    
+                $letter->{'content'} =~ s/\<\<[^<>]*?\>\>//g;    # Now that we've warned about them, remove them.
+
+                #                $letter->{'content'} =~ s/\<[^<>]*?\>//g;    # 2nd pass for the double nesting.
+
                 if ($nomail) {
-    
+
                     push @output_chunks,
                       prepare_letter_for_printing(
                         {   letter         => $letter,
@@ -529,6 +560,7 @@ END_SQL
                             address1       => $address1,
                             address2       => $address2,
                             city           => $city,
+                            country        => $country,
                             postcode       => $postcode,
                             email          => $email,
                             itemcount      => $itemcount,
@@ -546,7 +578,7 @@ END_SQL
                             }
                         );
                     } else {
-    
+
                         # If we don't have an email address for this patron, send it to the admin to deal with.
                         push @output_chunks,
                           prepare_letter_for_printing(
@@ -557,6 +589,7 @@ END_SQL
                                 address1       => $address1,
                                 address2       => $address2,
                                 city           => $city,
+                                country        => $country,
                                 postcode       => $postcode,
                                 email          => $email,
                                 itemcount      => $itemcount,
@@ -573,15 +606,16 @@ END_SQL
 
     if (@output_chunks) {
         if ( defined $csvfilename ) {
-            print $csv_fh @output_chunks;        
+            print $csv_fh @output_chunks;
+        } elsif ( defined $htmlfilename ) {
+            print $html_fh @output_chunks;
+        } elsif ($nomail) {
+            local $, = "\f";    # pagebreak
+            print @output_chunks;
         }
-        elsif ( defined $htmlfilename ) {
-            print $html_fh @output_chunks;        
-        }
-        elsif ($nomail){
-                local $, = "\f";    # pagebreak
-                print @output_chunks;
-        }
+        my $content = join(";", qw(title name surname address1 address2 zipcode city email itemcount itemsinfo due_date issue_date)) . "\n";
+        $content .= join( "\n", @output_chunks );
+
         my $attachment = {
             filename => defined $csvfilename ? 'attachment.csv' : 'attachment.txt',
             type => 'text/plain',
@@ -610,9 +644,9 @@ if ($csvfilename) {
 }
 
 if ( defined $htmlfilename ) {
-  print $html_fh "</body>\n";
-  print $html_fh "</html>\n";
-  close $html_fh;
+    print $html_fh "</body>\n";
+    print $html_fh "</html>\n";
+    close $html_fh;
 }
 
 =head1 INTERNAL METHODS
@@ -711,7 +745,7 @@ sub prepare_letter_for_printing {
     if ( exists $params->{'outputformat'} && $params->{'outputformat'} eq 'csv' ) {
         if ($csv->combine(
                 $params->{'firstname'}, $params->{'lastname'}, $params->{'address1'},  $params->{'address2'}, $params->{'postcode'},
-                $params->{'city'},      $params->{'email'},    $params->{'itemcount'}, $params->{'titles'}
+                $params->{'city'}, $params->{'country'},      $params->{'email'},    $params->{'itemcount'}, $params->{'titles'}
             )
           ) {
             return $csv->string, "\n";
@@ -720,6 +754,7 @@ sub prepare_letter_for_printing {
         }
     } elsif ( exists $params->{'outputformat'} && $params->{'outputformat'} eq 'html' ) {
       $return = "<pre>\n";
+      $params->{'letter'}->{'content'}=~s##<br/>#g;
       $return .= "$params->{'letter'}->{'content'}\n";
       $return .= "\n</pre>\n";
     } else {
