@@ -62,6 +62,7 @@ my $biblionumber = $query->param('biblionumber') || $query->param('bib');
 
 $template->param( 'AllowOnShelfHolds' => C4::Context->preference('AllowOnShelfHolds') );
 $template->param( 'ItemsIssued' => CountItemsIssued( $biblionumber ) );
+$template->param(C4::Search::enabled_opac_search_views);
 
 my $record       = GetMarcBiblio($biblionumber);
 if ( ! $record ) {
@@ -166,8 +167,8 @@ for my $itm (@items) {
         $itm->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{ $itm->{itype} }->{'imageurl'} );
         $itm->{'description'} = $itemtypes->{ $itm->{itype} }->{'description'};
     }
-    foreach (qw(ccode enumchron copynumber itemnotes uri)) {
-        $itemfields{$_} = 1 if ($itm->{$_});
+    foreach (qw(ccode enumchron copynumber itemnotes uri serialseq publisheddate)) {
+        $itemfields{$_} = 1 if ( $itm->{$_} );
     }
 
      # walk through the item-level authorised values and populate some images
@@ -190,7 +191,8 @@ for my $itm (@items) {
         $itm->{transfertwhen} = format_date($transfertwhen);
         $itm->{transfertfrom} = $branches->{$transfertfrom}{branchname};
         $itm->{transfertto}   = $branches->{$transfertto}{branchname};
-     }
+    }
+    $itm->{publisheddate}=format_date($itm->{publisheddate});
 }
 
 ## get notes and subjects from MARC record
@@ -203,22 +205,57 @@ my $marcseriesarray  = GetMarcSeries  ($record,$marcflavour);
 my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
 my $subtitle         = GetRecordValue('subtitle', $record, GetFrameworkCode($biblionumber));
 
-    $template->param(
-                     MARCNOTES               => $marcnotesarray,
-                     MARCSUBJCTS             => $marcsubjctsarray,
-                     MARCAUTHORS             => $marcauthorsarray,
-                     MARCSERIES              => $marcseriesarray,
-                     MARCURLS                => $marcurlsarray,
-                     norequests              => $norequests,
-                     RequestOnOpac           => C4::Context->preference("RequestOnOpac"),
-                     itemdata_ccode          => $itemfields{ccode},
-                     itemdata_enumchron      => $itemfields{enumchron},
-                     itemdata_uri            => $itemfields{uri},
-                     itemdata_copynumber     => $itemfields{copynumber},
-                     itemdata_itemnotes          => $itemfields{itemnotes},
-                     authorised_value_images => $biblio_authorised_value_images,
-                     subtitle                => $subtitle,
+#search rebound parameter
+my $searchByauthority = 0;
+if ( C4::Context->preference("OPACSearchReboundBy") eq "authority" ) {
+    $searchByauthority = 1;
+}
+
+#search rebound on author
+my @reboundmarcauthorsarray;
+foreach my $author (@$marcauthorsarray) {
+    my ( $a, $b, $authoritylink, @term );
+    foreach my $subfield ( @{ $author->{'MARCAUTHOR_SUBFIELDS_LOOP'} } ) {
+        if ( $subfield->{'code'} eq "a" && @{ $subfield->{'link_loop'} }[0]->{"limit"} eq "an" ) {
+            $authoritylink = @{ $subfield->{'link_loop'} }[0]->{"link"};
+        }
+        unless ( $subfield->{'code'} eq "3" || $subfield->{'code'} eq "4" ) { push( @term, { value => $subfield->{'value'} } ); }
+    }
+    push(
+        @reboundmarcauthorsarray,
+        {   term              => \@term,
+            authoritylink     => $authoritylink,
+            searchbyauthority => $searchByauthority,
+        }
     );
+}
+
+#search rebound on subject
+foreach my $subject (@$marcsubjctsarray) {
+    foreach my $subfield ( @{ $subject->{'MARCSUBJECT_SUBFIELDS_LOOP'} } ) {
+        $subfield->{'searchbyauthority'} = $searchByauthority;
+    }
+}
+
+$template->param(
+    MARCNOTES               => $marcnotesarray,
+    MARCSUBJCTS             => $marcsubjctsarray,
+    MARCAUTHORS             => $marcauthorsarray,
+    MARCSERIES              => $marcseriesarray,
+    MARCURLS                => $marcurlsarray,
+    norequests              => $norequests,
+    RequestOnOpac           => C4::Context->preference("RequestOnOpac"),
+    itemdata_serialseq      => $itemfields{serialseq},
+    itemdata_publisheddate  => $itemfields{publisheddate},
+    itemdata_ccode          => $itemfields{ccode},
+    itemdata_enumchron      => $itemfields{enumchron},
+    itemdata_uri            => $itemfields{uri},
+    itemdata_copynumber     => $itemfields{copynumber},
+    itemdata_itemnotes      => $itemfields{itemnotes},
+    authorised_value_images => $biblio_authorised_value_images,
+    subtitle                => $subtitle,
+    bouncemarcauthorsarray  => \@reboundmarcauthorsarray,
+);
 
 foreach ( keys %{$dat} ) {
     $template->param( "$_" => defined $dat->{$_} ? $dat->{$_} : '' );
