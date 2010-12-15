@@ -123,7 +123,9 @@ sub XSLTParse4Display {
     my ( $biblionumber, $orig_record, $xsl_suffix, $interface ) = @_;
     $interface = 'opac' unless $interface;
     # grab the XML, run it through our stylesheet, push it out to the browser
-    my $record = transformMARCXML4XSLT($biblionumber, $orig_record);
+    my $record = transformMARCXML4XSLT( $biblionumber, $orig_record );
+	my $itemsimageurl = GetKohaImageurlFromAuthorisedValues( "CCODE", $orig_record->field('099')->subfield("t")) || '';
+	my $logoxml = "<logo>" . $itemsimageurl . "</logo>\n";
     #return $record->as_formatted();
     my $itemsxml  = buildKohaItemsNamespace($biblionumber);
     my $xmlrecord = $record->as_xml(C4::Context->preference('marcflavour'));
@@ -134,7 +136,7 @@ sub XSLTParse4Display {
                    "</syspref>\n";
     }
     $sysxml .= "</sysprefs>\n";
-    $xmlrecord =~ s/\<\/record\>/$itemsxml$sysxml\<\/record\>/;
+    $xmlrecord =~ s/\<\/record\>/$itemsxml$sysxml$logoxml\<\/record\>/;
     $xmlrecord =~ s/\& /\&amp\; /;
     $xmlrecord=~ s/\&amp\;amp\; /\&amp\; /;
 
@@ -211,7 +213,8 @@ sub buildKohaItemsNamespace {
             $status = "available";
         }
         my $homebranch = xml_escape($branches->{$item->{homebranch}}->{'branchname'});
-	    my $itemcallnumber = xml_escape($item->{itemcallnumber});
+	my $itemcallnumber = xml_escape($item->{itemcallnumber});
+        my $itemlocation = GetAuthorisedValueByCode( "LOC", $item->{location}) || '';
         $xml.= "<item><homebranch>$homebranch</homebranch>".
 		"<status>$status</status>".
 		"<itemcallnumber>".$itemcallnumber."</itemcallnumber>"
