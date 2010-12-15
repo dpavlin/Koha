@@ -1,6 +1,7 @@
 INSERT INTO permissions (module_bit, code, description) VALUES
    ( 1, 'circulate_remaining_permissions', 'Remaining circulation permissions'),
    ( 1, 'override_renewals', 'Outrepasser les limites de renouvellement'),
+   ( 1, 'view_borrowers_logs', 'Voir les logs adhérents'),
    ( 6, 'place_holds', 'Réserver pour des adhérents'),
    ( 6, 'modify_holds_priority', 'Modifier la priorité des réservations'),
    ( 9, 'edit_catalogue', 'Ajouter et modifier les notices du catalogue'),
@@ -36,6 +37,9 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    (13, 'rotating_collections', 'Gérer les collections tournantes'),
    (13, 'items_batchmod', 'Modifier les exemplaires par lot'),
    (13, 'items_batchdel', 'Supprimer les exemplaires par lot'),
+   (13, 'batchmod', 'Modifier les exemplaires par lot'),
+   (13, 'batchdel', 'Supprimer les exemplaires par lot'),
+   (13, 'batchedit', 'Modifier les notices par lot'),
    (15, 'check_expiration', 'Check the expiration of a serial'),
    (15, 'claim_serials', 'Claim missing serials'),
    (15, 'create_subscription', 'Create a new subscription'),
@@ -45,6 +49,22 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    (15, 'renew_subscription', 'Renew a subscription'),
    (15, 'routing', 'Routing'),
    (16, 'execute_reports', 'Lancer les rapports SQL'),
-   (16, 'create_reports', 'Créer les rapports SQL Reports')
-
+   (16, 'create_reports', 'Créer les rapports SQL Reports'),
+   (13, 'edit_news', 'Write news for the OPAC and staff interfaces'),
+   (13, 'label_creator', 'Create printable labels and barcodes from catalog and patron data'),
+   (13, 'edit_calendar', 'Define days when the library is closed'),
+   (13, 'moderate_comments', 'Moderate patron comments'),
+   (13, 'edit_notices', 'Define notices'),
+   (13, 'edit_notice_status_triggers', 'Set notice/status triggers for overdue items'),
+   (13, 'view_system_logs', 'Browse the system logs'),
+   (13, 'inventory', 'Perform inventory (stocktaking) of your catalogue'),
+   (13, 'stage_marc_import', 'Stage MARC records into the reservoir'),
+   (13, 'manage_staged_marc', 'Managed staged MARC records, including completing and reversing imports'),
+   (13, 'export_catalog', 'Export bibliographic and holdings data'),
+   (13, 'import_patrons', 'Import patron data'),
+   (13, 'delete_anonymize_patrons', 'Delete old borrowers and anonymize circulation history (deletes borrower reading history)'),
+   (13, 'batch_upload_patron_images', 'Upload patron images in batch or one at a time'),
+   (13, 'schedule_tasks', 'Schedule tasks to run'),
+   (13, 'items_batchmod', 'Modification Par lot des exemplaires'),
+   (13, 'items_batchdel', 'Suppression par lot des exemplaires')
 ;

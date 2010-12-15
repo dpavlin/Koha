@@ -56,6 +56,7 @@ CREATE TABLE `auth_subfield_structure` (
   `linkid` tinyint(1) NOT NULL default 0,
   `kohafield` varchar(45) NULL default '',
   `frameworkcode` varchar(10) NOT NULL default '',
+  CONSTRAINT `auth_subfield_structure_ibfk_1` FOREIGN KEY (`authtypecode`, `tagfield`) REFERENCES `auth_tag_structure` (`authtypecode`, `tagfield`) ON DELETE CASCADE,
   PRIMARY KEY  (`authtypecode`,`tagfield`,`tagsubfield`),
   KEY `tab` (`authtypecode`,`tab`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -229,8 +230,10 @@ CREATE TABLE `borrowers` (
   `dateenrolled` date default NULL,
   `dateexpiry` date default NULL,
   `gonenoaddress` tinyint(1) default NULL,
+  `gonenoaddresscomment` VARCHAR(255) default NULL,
   `lost` tinyint(1) default NULL,
-  `debarred` tinyint(1) default NULL,
+  `debarred` date default NULL,
+  `debarredcomment` VARCHAR(255) DEFAULT NULL,
   `contactname` mediumtext,
   `contactfirstname` text,
   `contacttitle` text,
@@ -281,6 +284,7 @@ CREATE TABLE `borrower_attribute_types` (
   `password_allowed` tinyint(1) NOT NULL default 0,
   `staff_searchable` tinyint(1) NOT NULL default 0,
   `authorised_value_category` varchar(10) default NULL,
+  `display_checkout` TINYINT(1) NOT NULL DEFAULT '0',
   PRIMARY KEY  (`code`),
   KEY `auth_val_cat_idx` (`authorised_value_category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -676,8 +680,11 @@ CREATE TABLE `deletedborrowers` (
   `dateenrolled` date default NULL,
   `dateexpiry` date default NULL,
   `gonenoaddress` tinyint(1) default NULL,
+  `gonenoaddresscomment` VARCHAR(255) default NULL,
   `lost` tinyint(1) default NULL,
-  `debarred` tinyint(1) default NULL,
+  `lostcomment` VARCHAR(255) default NULL,
+  `debarred` date default NULL,
+  `debarredcomment` VARCHAR(255) default NULL,
   `contactname` mediumtext,
   `contactfirstname` text,
   `contacttitle` text,
@@ -756,7 +763,6 @@ CREATE TABLE `deleteditems` (
   `marc` longblob,
   PRIMARY KEY  (`itemnumber`),
   KEY `delitembarcodeidx` (`barcode`),
-  KEY `delitemstocknumberidx` (`stocknumber`),
   KEY `delitembinoidx` (`biblioitemnumber`),
   KEY `delitembibnoidx` (`biblionumber`),
   KEY `delhomebranch` (`homebranch`),
@@ -965,8 +971,12 @@ CREATE TABLE `issuingrules` (
   `chargename` varchar(100) default NULL,
   `maxissueqty` int(4) default NULL,
   `issuelength` int(4) default NULL,
-  `renewalsallowed` smallint(6) NOT NULL default "0",
-  `reservesallowed` smallint(6) NOT NULL default "0",
+  `allowonshelfholds` tinyint(1) default NULL,
+  `holdrestricted` tinyint(1) default NULL,
+  `holdspickupdelay` int(11) default NULL,
+  `renewalsallowed` smallint(6)  default NULL,
+  `reservesallowed` smallint(6)  default NULL,
+  `renewalperiod` smallint(6) NULL DEFAULT NULL,
   `branchcode` varchar(10) NOT NULL default '',
   PRIMARY KEY  (`branchcode`,`categorycode`,`itemtype`),
   KEY `categorycode` (`categorycode`),
@@ -1018,9 +1028,9 @@ CREATE TABLE `items` (
   `enumchron` varchar(80) default NULL,
   `copynumber` varchar(32) default NULL,
   `stocknumber` varchar(32) default NULL,
+  `statisticvalue` varchar(80) DEFAULT NULL,
   PRIMARY KEY  (`itemnumber`),
   UNIQUE KEY `itembarcodeidx` (`barcode`),
-  UNIQUE KEY `itemstocknumberidx` (`stocknumber`),
   KEY `itembinoidx` (`biblioitemnumber`),
   KEY `itembibnoidx` (`biblionumber`),
   KEY `homebranch` (`homebranch`),
@@ -1352,6 +1362,7 @@ CREATE TABLE `old_issues` (
 --
 DROP TABLE IF EXISTS `old_reserves`;
 CREATE TABLE `old_reserves` (
+  `reservenumber` int(11) NOT NULL AUTO_INCREMENT,
   `borrowernumber` int(11) default NULL,
   `reservedate` date default NULL,
   `biblionumber` int(11) default NULL,
@@ -1368,6 +1379,7 @@ CREATE TABLE `old_reserves` (
   `waitingdate` date default NULL,
   `expirationdate` DATE DEFAULT NULL,
   `lowestPriority` tinyint(1) NOT NULL,
+  PRIMARY KEY (`reservenumber`),
   KEY `old_reserves_borrowernumber` (`borrowernumber`),
   KEY `old_reserves_biblionumber` (`biblionumber`),
   KEY `old_reserves_itemnumber` (`itemnumber`),
@@ -1527,6 +1539,7 @@ CREATE TABLE `reserveconstraints` (
 
 DROP TABLE IF EXISTS `reserves`;
 CREATE TABLE `reserves` (
+  `reservenumber` int(11) NOT NULL AUTO_INCREMENT,
   `borrowernumber` int(11) NOT NULL default 0,
   `reservedate` date default NULL,
   `biblionumber` int(11) NOT NULL default 0,
@@ -1543,6 +1556,7 @@ CREATE TABLE `reserves` (
   `waitingdate` date default NULL,
   `expirationdate` DATE DEFAULT NULL,
   `lowestPriority` tinyint(1) NOT NULL,
+  PRIMARY KEY (`reservenumber`),
   KEY `borrowernumber` (`borrowernumber`),
   KEY `biblionumber` (`biblionumber`),
   KEY `itemnumber` (`itemnumber`),
@@ -2289,6 +2303,8 @@ CREATE TABLE `accountlines` (
   `timestamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `notify_id` int(11) NOT NULL default 0,
   `notify_level` int(2) NOT NULL default 0,
+  `note` text NULL default NULL,
+  `manager_id` int( 11 ) NULL,
   KEY `acctsborridx` (`borrowernumber`),
   KEY `timeidx` (`timestamp`),
   KEY `itemnumber` (`itemnumber`),
@@ -2352,6 +2368,9 @@ CREATE TABLE `aqbasketgroups` (
   `name` varchar(50) default NULL,
   `closed` tinyint(1) default NULL,
   `booksellerid` int(11) NOT NULL,
+  `deliveryplace` varchar(10) default NULL,
+  `deliverycomment` varchar(255) default NULL,
+  `billingplace` varchar(10) default NULL,
   PRIMARY KEY  (`id`),
   KEY `booksellerid` (`booksellerid`),
   CONSTRAINT `aqbasketgroups_ibfk_1` FOREIGN KEY (`booksellerid`) REFERENCES `aqbooksellers` (`id`) ON UPDATE CASCADE ON DELETE CASCADE
@@ -2594,6 +2613,21 @@ CREATE TABLE `fieldmapping` (
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Table structure for table `pending_offline_operations`
+--
+
+DROP TABLE IF EXISTS `pending_offline_operations`;
+CREATE TABLE `pending_offline_operations` (
+  `operationid` INT(11) NOT NULL AUTO_INCREMENT,
+  `userid` VARCHAR(30) NOT NULL,
+  `branchcode` VARCHAR(10) NOT NULL,
+  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `action` VARCHAR(10) NOT NULL,
+  `barcode` VARCHAR(20) NOT NULL,
+  `cardnumber` VARCHAR(16) NULL,
+  PRIMARY KEY (`operationid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

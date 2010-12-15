@@ -1,6 +1,7 @@
 INSERT INTO permissions (module_bit, code, description) VALUES
    ( 1, 'circulate_remaining_permissions', 'Remaining circulation permissions'),
    ( 1, 'override_renewals', 'Override blocked renewals'),
+   ( 1, 'view_borrowers_logs', 'Can see the borrowers logs'),
    ( 6, 'place_holds', 'Place holds for patrons'),
    ( 6, 'modify_holds_priority', 'Modify holds priority'),
    ( 9, 'edit_catalogue', 'Edit catalog (Modify bibliographic/holdings data)'),
@@ -33,6 +34,7 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    (13, 'schedule_tasks', 'Schedule tasks to run'),
    (13, 'items_batchmod', 'Perform batch modification of items'),
    (13, 'items_batchdel', 'Perform batch deletion of items'),
+   (13, 'batchedit', 'Perform batch modification of records'),
    (13, 'manage_csv_profiles', 'Manage CSV export profiles'),
    (13, 'moderate_tags', 'Moderate patron tags'),
    (13, 'rotating_collections', 'Manage rotating collections'),

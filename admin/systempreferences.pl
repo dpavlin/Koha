@@ -85,6 +85,7 @@ $tabsysprefs{OpacMaintenance}       = "Admin";
 $tabsysprefs{FrameworksLoaded}      = "Admin";
 $tabsysprefs{delimiter}             = "Admin";
 $tabsysprefs{IndependantBranches}   = "Admin";
+$tabsysprefs{IndependentBranchPatron}= "Admin";
 $tabsysprefs{insecure}              = "Admin";
 $tabsysprefs{KohaAdmin}             = "Admin";
 $tabsysprefs{KohaAdminEmailAddress} = "Admin";
@@ -156,7 +157,6 @@ $tabsysprefs{SpineLabelAutoPrint}         = "Cataloging";
 
 # Circulation
 $tabsysprefs{maxoutstanding}                 = "Circulation";
-$tabsysprefs{maxreserves}                    = "Circulation";
 $tabsysprefs{noissuescharge}                 = "Circulation";
 $tabsysprefs{IssuingInProcess}               = "Circulation";
 $tabsysprefs{patronimages}                   = "Circulation";
@@ -165,7 +165,6 @@ $tabsysprefs{ReturnBeforeExpiry}             = "Circulation";
 $tabsysprefs{ceilingDueDate}                 = "Circulation";
 $tabsysprefs{SpecifyDueDate}                 = "Circulation";
 $tabsysprefs{AutomaticItemReturn}            = "Circulation";
-$tabsysprefs{ReservesMaxPickUpDelay}         = "Circulation";
 $tabsysprefs{TransfersMaxDaysWarning}        = "Circulation";
 $tabsysprefs{useDaysMode}                    = "Circulation";
 $tabsysprefs{ReservesNeedReturns}            = "Circulation";
@@ -264,6 +263,8 @@ $tabsysprefs{QueryAutoTruncate}       = "Searching";
 $tabsysprefs{QueryRemoveStopwords}    = "Searching";
 $tabsysprefs{AdvancedSearchTypes}     = "Searching";
 $tabsysprefs{DisplayMultiPlaceHold}   = "Searching";
+$tabsysprefs{AdvancedSearchContent}   	  = "Searching";
+$tabsysprefs{OpacAdvancedSearchContent}   = "Searching";
 
 # EnhancedContent
 $tabsysprefs{AmazonEnabled}          = "EnhancedContent";
@@ -379,7 +380,8 @@ $tabsysprefs{OPACItemHolds}        = "OPAC";
 $tabsysprefs{OPACGroupResults}     = "OPAC";
 $tabsysprefs{XSLTDetailsDisplay}   = "OPAC";
 $tabsysprefs{XSLTResultsDisplay}   = "OPAC";
-$tabsysprefs{OPACShowCheckoutName}   = "OPAC";
+$tabsysprefs{OPACShowCheckoutName} = "OPAC";
+$tabsysprefs{OPACSearchReboundBy}  = "OPAC";
 
 # Serials
 $tabsysprefs{RoutingListAddReserves}  	   = "Serials";
