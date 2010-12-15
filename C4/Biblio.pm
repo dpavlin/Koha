@@ -93,6 +93,8 @@ BEGIN {
       &ModBiblio
       &ModBiblioframework
       &ModZebra
+      
+      &BatchModField
     );
 
     # To delete something
@@ -368,7 +370,7 @@ sub ModBiblioframework {
 
 =head2 DelBiblio
 
-  my $error = &DelBiblio($dbh,$biblionumber);
+  my $error = &DelBiblio($biblionumber);
 
 Exported function (core API) for deleting a biblio in koha.
 Deletes biblio record from Zebra and Koha tables (biblio,biblioitems,items)
@@ -1038,9 +1040,14 @@ The MARC record contains both biblio & item data.
 
 sub GetMarcBiblio {
     my $biblionumber = shift;
+    my $deletedtable = shift;
     my $dbh          = C4::Context->dbh;
-    my $sth          = $dbh->prepare("SELECT marcxml FROM biblioitems WHERE biblionumber=? ");
-    $sth->execute($biblionumber);
+    my $strsth       = qq{SELECT marcxml FROM biblioitems WHERE biblionumber=?};
+    $strsth .= qq{UNION SELECT marcxml FROM deletedbiblioitems WHERE biblionumber=?} if $deletedtable;
+    my $sth = $dbh->prepare($strsth);
+    my @params=($biblionumber);
+    push @params, $biblionumber if ($deletedtable);
+    $sth->execute(@params);
     my $row     = $sth->fetchrow_hashref;
     my $marcxml = StripNonXmlChars( $row->{'marcxml'} );
     MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
@@ -1105,6 +1112,8 @@ sub GetCOinSBiblio {
     my $isbn      = '';
     my $issn      = '';
     my $publisher = '';
+    my $place     = '';
+    my $tpages    = '';
 
     if ( C4::Context->preference("marcflavour") eq "UNIMARC" ) {
         my $fmts6;
@@ -1151,24 +1160,70 @@ sub GetCOinSBiblio {
         $genre = ( $mtx eq 'dc' ) ? "&amp;rft.type=$genre" : "&amp;rft.genre=$genre";
 
         # Setting datas
-        $aulast  = $record->subfield( '700', 'a' );
-        $aufirst = $record->subfield( '700', 'b' );
-        $oauthors = "&amp;rft.au=$aufirst $aulast";
+
+	# authors
+        $aulast  = $record->subfield( '700', 'a' ) || '';
+        $aufirst = $record->subfield( '700', 'b' ) || '';
+
+	foreach my $field (qw/700 701/) {
+	    my $author = '';
+	    $author = $record->subfield($field, 'a') || '';
+	    $author .= ", "  . $record->subfield($field, 'b')              if ($author and $record->subfield($field, 'b'));
+	    $author .= " - " . join(' - ', $record->subfield($field, '4')) if ($record->subfield($field, '4'));
+	    $author .= " ("  . $record->subfield($field, 'f') . ")"        if ($record->subfield($field, 'f'));
+	    
+	    $oauthors .= "&amp;rft.au=$author" if ($author);
+	}
+
+	foreach my $field (qw/710 711/) {
+	    my $author = '';
+	    $author = $record->subfield($field, 'a') || '';
+	    $author .= ", "  . $record->subfield($field, 'b')              if ($author and $record->subfield($field, 'b'));
+	    $author .= " - " . join(' - ', $record->subfield($field, '4')) if ($record->subfield($field, '4'));
+	    $author .= " ("  . $record->subfield($field, 'c') . ")"        if ($record->subfield($field, 'c'));
+	    
+	    $oauthors .= "&amp;rft.au=$author" if ($author);
+	}
+
 
         # others authors
         if ( $record->field('200') ) {
+            for my $au ( $record->field('200')->subfield('f') ) {
+                $oauthors .= "&amp;rft.au=$au";
+            }
             for my $au ( $record->field('200')->subfield('g') ) {
                 $oauthors .= "&amp;rft.au=$au";
             }
+
         }
+
+	# place
+	$place = join(" - ", $record->subfield('210', 'a'));
+	$place = "&amp;rtf.place=$place" if ($place);
+
+	# tpages
+	my $i = 0;
+	foreach my $field ($record->field('215')) {
+		$tpages .= " | " if ($i > 0);
+		$tpages .= join(" - ", $field->subfield('a')); 
+		$tpages .= join(" ; ", $field->subfield('d')); 
+		$tpages .= join(" + ", $field->subfield('e')); 
+		$i++;
+	}
+	$tpages = "&amp;rtf.tpages=$tpages" if ($tpages);
+
+	# title
+	my $btitle = join(' ; ', $record->subfield('200', 'a'));
+	$btitle .= " : " . join(' : ', $record->subfield('200', 'e')) if ($record->subfield('200', 'e'));
+
         $title =
           ( $mtx eq 'dc' )
           ? "&amp;rft.title=" . $record->subfield( '200', 'a' )
-          : "&amp;rft.title=" . $record->subfield( '200', 'a' ) . "&amp;rft.btitle=" . $record->subfield( '200', 'a' );
-        $pubyear   = $record->subfield( '210', 'd' );
-        $publisher = $record->subfield( '210', 'c' );
-        $isbn      = $record->subfield( '010', 'a' );
-        $issn      = $record->subfield( '011', 'a' );
+          : "&amp;rft.title=" . $record->subfield( '200', 'a' ) . "&amp;rft.btitle=" . $btitle;
+        $pubyear   = $record->subfield( '210', 'd' ) || '';
+        $publisher = $record->subfield( '210', 'c' ) || '';
+        $isbn      = $record->subfield( '010', 'a' ) || '';
+        $issn      = $record->subfield( '011', 'a' ) || '';
     } else {
 
         # MARC21 need some improve
@@ -1197,7 +1252,7 @@ sub GetCOinSBiblio {
 
     }
     my $coins_value =
-"ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3A$mtx$genre$title&amp;rft.isbn=$isbn&amp;rft.issn=$issn&amp;rft.aulast=$aulast&amp;rft.aufirst=$aufirst$oauthors&amp;rft.pub=$publisher&amp;rft.date=$pubyear";
+"ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3A$mtx$genre$title&amp;rft.isbn=$isbn&amp;rft.issn=$issn&amp;rft.aulast=$aulast&amp;rft.aufirst=$aufirst$oauthors&amp;rft.pub=$publisher&amp;rft.date=$pubyear$place$tpages";
     $coins_value =~ s/(\ |&[^a])/\+/g;
     $coins_value =~ s/\"/\&quot\;/g;
 
@@ -1662,13 +1717,18 @@ sub TransformKohaToMarcOneField {
     }
     $sth->execute( $frameworkcode, $kohafieldname );
     if ( ( $tagfield, $tagsubfield ) = $sth->fetchrow ) {
+        my @values = split(/\s?\|\s?/, $value, -1);
+        
+        foreach my $itemvalue (@values){
         my $tag = $record->field($tagfield);
         if ($tag) {
-            $tag->update( $tagsubfield => $value );
+                $tag->add_subfields( $tagsubfield => $itemvalue );
             $record->delete_field($tag);
             $record->insert_fields_ordered($tag);
-        } else {
-            $record->add_fields( $tagfield, " ", " ", $tagsubfield => $value );
+            }
+            else {
+                $record->add_fields( $tagfield, " ", " ", $tagsubfield => $itemvalue );
+            }
         }
     }
     return $record;
@@ -1727,6 +1787,7 @@ sub TransformHtmlToXml {
         @$values[$i] =~ s/>/&gt;/g;
         @$values[$i] =~ s/"/&quot;/g;
         @$values[$i] =~ s/'/&apos;/g;
+	@$values[$i] = NormalizeString(@$values[$i]);
 
         #         if ( !utf8::is_utf8( @$values[$i] ) ) {
         #             utf8::decode( @$values[$i] );
@@ -2284,7 +2345,9 @@ sub PrepareItemrecordDisplay {
                                 push @authorised_values, $branchcode;
                                 $authorised_lib{$branchcode} = $branchname;
                             }
+			    $defaultvalue = C4::Context->userenv->{branch};
                         }
+                        $defaultvalue = C4::Context->userenv->{branch};
 
                         #----- itemtypes
                     } elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
@@ -3430,6 +3493,95 @@ sub get_biblio_authorised_values {
 
     # warn ( Data::Dumper->Dump( [ $authorised_values ], [ 'authorised_values' ] ) );
     return $authorised_values;
+}
+
+=head3 BatchModField
+
+  Mod subfields in field record
+  
+  returns 1,$record if succeed
+  returns 0,$record if Action was not processed
+  returns -1 if no record
+  returns -2 if no action done on record
+
+=cut
+
+sub BatchModField {
+    my ( $record, $field, $subfield, $action, $condval, $nocond, $repval ) = @_;
+
+    return -1 unless $record;
+    $condval=NormalizeString($condval);
+    my $condition=qr/$condval/;
+
+    if($action eq "add"){
+        for my $rfield ($record->field($field)){
+            $rfield->add_subfields( $subfield => $repval );
+        }
+        return 1;
+    }elsif($action eq "addfield"){
+        my $new_field = MARC::Field->new($field,'','', 
+                                         $subfield => $repval);
+        $record->insert_fields_ordered($new_field);
+        return 1;
+    } else {
+        my $done=0;
+        for my $rfield ($record->field($field)) {
+            if ($subfield && $subfield ne "@"){
+                my @subfields = $rfield->subfields();
+                my @subfields_to_add; 
+            foreach my $subf (@subfields) {
+                    if ($subf->[0] eq $subfield){
+                        $subf->[1]=NormalizeString($subf->[1]);
+                        if ( $action eq "mod" ) {
+                            if ( $nocond ne "true" && $subf->[1] =~ s/$condition/$repval/) {
+                                $done=1;
+                            } 
+                            if ($nocond eq "true"){
+                                $subf->[1] = $repval;
+                                $done=1;
+                    }
+                } elsif ( $action eq "del" ) {
+                            if ( $subf->[1] =~ m/$condition/ || $nocond eq "true" ) {
+                                $done=1;
+                                next;
+                            }
+                        }
+                    }
+                    push @subfields_to_add,@$subf;
+        }
+                if ($done){
+                    if (@subfields_to_add){
+                        $rfield->replace_with(MARC::Field->new($rfield->tag,$rfield->indicator(1),$rfield->indicator(2),@subfields_to_add));
+    }
+                    else {
+                        my $count= $record->delete_field($rfield);
+                    }
+                }
+            }
+            else {
+                if ($action eq "del"){
+                    my $count=$record->delete_field($rfield);
+                    $done=1; 
+                }
+                else {
+                    if ($field < 10){
+                       my $value=$record->field($field)->data();
+                       if ($value=~ s/$condition/$repval/){
+                        $record->field($field)->update($value);
+                        $done=1;
+
+                       }
+                       if ( $nocond eq 'true'){
+                        $record->field($field)->update($repval);
+                        $done=1;
+                       }
+                    }
+                }
+            }
+        }
+        return ($done,$record);
+    }
+    return -2;
 }
 
 1;
