@@ -2622,7 +2622,8 @@ sub GetDistinctValues {
 			return $elements;
    }
    else {
-		$string||= qq("");
+	    $string = "=" . $string if ($fieldname);
+	    $string||= qq("");
 		my @servers=qw<biblioserver authorityserver>;
 		my (@zconns,@results);
         for ( my $i = 0 ; $i < @servers ; $i++ ) {
