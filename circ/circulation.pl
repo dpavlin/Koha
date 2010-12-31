@@ -69,6 +69,14 @@ sub FormatFinesSummary {
         delete $summary->{$type};
     }
 
+    foreach my $type ( keys %$summary ) {
+        next if ( $summary->{$type} > 0 );
+
+        $params{"credits_total"} = ( $params{"credits_total"} || 0 ) - $summary->{$type};
+
+        delete $summary->{$type};
+    }
+
     # Since the types we care about have already been removed, all that is left is 'Other'
     $params{'other_fees_total'} = sum( values %$summary );
 
@@ -558,7 +566,7 @@ foreach my $flag ( sort keys %$flags ) {
                 charges_is_blocker => 1
             );
 
-            $template->param( FormatFinesSummary( $borrower ) );
+            $template->param( FormatFinesSummary( $borrower ) ) if ( C4::Context->preference( 'CircFinesBreakdown' ) );
         }
         elsif ( $flag eq 'CREDITS' ) {
             $template->param(
@@ -577,7 +585,7 @@ foreach my $flag ( sort keys %$flags ) {
                 chargesamount => $flags->{'CHARGES'}->{'amount'},
             );
 
-            $template->param( FormatFinesSummary( $borrower ) );
+            $template->param( FormatFinesSummary( $borrower ) ) if ( C4::Context->preference( 'CircFinesBreakdown' ) );
         }
         elsif ( $flag eq 'CREDITS' ) {
             $template->param(
@@ -585,6 +593,8 @@ foreach my $flag ( sort keys %$flags ) {
                 creditsmsg => $flags->{'CREDITS'}->{'message'},
                 creditsamount => sprintf("%.02f", -($flags->{'CREDITS'}->{'amount'})), # from patron's pov
             );
+
+            $template->param( FormatFinesSummary( $borrower ) ) if ( C4::Context->preference( 'CircFinesBreakdown' ) );
         }
         elsif ( $flag eq 'ODUES' ) {
             $template->param(

@@ -203,7 +203,7 @@ sub GetFinesSummary {
           FROM accountlines
           WHERE borrowernumber = ?
           GROUP BY accounttype
-          HAVING total > 0
+          HAVING total > 0 OR total < 0
     " );
 
     $sth->execute( $borrowernumber );
