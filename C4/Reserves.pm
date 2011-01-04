@@ -1695,7 +1695,6 @@ sub CanHoldMultipleItems {
 }
 
 =head2 _FixPriority
->>>>>>> [MT2355] Ergonomy improvement in smart rule management
 
 &_FixPriority($biblio,$borrowernumber,$rank,$ignoreSetLowestRank,$reservenumber);
 
