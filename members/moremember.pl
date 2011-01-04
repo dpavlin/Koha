@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright 2000-2002 Katipo Communications
+# Copyright 2010 BibLibre
 #
 # This file is part of Koha.
 #
@@ -210,7 +211,6 @@ if ( $category_type eq 'A' || $category_type eq 'I') {
             }
         );
     }
-    warn Data::Dumper::Dumper(@guaranteedata);
     $template->param( guaranteeloop => \@guaranteedata );
     ( $template->param( adultborrower => 1 ) ) if ( $category_type eq 'A' || $category_type eq 'I' );
 }
