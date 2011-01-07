@@ -3923,7 +3923,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.005";
+$DBversion = "3.03.00.011";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("UPDATE systempreferences SET options = 'Calendar|Days|Datedue' WHERE variable = 'useDaysMode'");
 	
@@ -3931,7 +3931,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.006";
+$DBversion = "3.03.00.012";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(qq{
 	CREATE TABLE IF NOT EXISTS pending_offline_operations (
@@ -3950,7 +3950,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.007";
+$DBversion = "3.03.00.13";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	my $borrowers=$dbh->selectcol_arrayref("SELECT borrowernumber from borrowers where debarred <>0;",{Columns=>[1]});
 	$dbh->do("ALTER TABLE borrowers MODIFY debarred DATE DEFAULT NULL;");
@@ -3962,7 +3962,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 }
 
 
-$DBversion = "3.02.00.008";
+$DBversion = "3.03.00.014";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("UPDATE `permissions` SET `code` = 'items_batchdel' WHERE `permissions`.`module_bit` =13 AND `permissions`.`code` = 'batchdel' LIMIT 1 ;");
 	$dbh->do("UPDATE `permissions` SET `code` = 'items_batchmod' WHERE `permissions`.`module_bit` =13 AND `permissions`.`code` = 'batchmod' LIMIT 1 ;");
@@ -3971,7 +3971,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.009";
+$DBversion = "3.03.00.015";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(q{
     ALTER TABLE language_descriptions ADD INDEX LANG (subtag, type, lang);
@@ -3981,7 +3981,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 }
 
 
-$DBversion = "3.02.00.010";
+$DBversion = "3.03.00.016";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("INSERT INTO systempreferences SET variable='IndependentBranchPatron',value=0");
 	
@@ -3990,14 +3990,14 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 }
 
 
-$DBversion = '3.02.00.011';
+$DBversion = '3.03.00.017';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do('ALTER TABLE `categories` ADD COLUMN `enrolmentperioddate` DATE NULL DEFAULT NULL AFTER `enrolmentperiod`');
     print "Upgrade done (Add enrolment period date support)\n";
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.012";
+$DBversion = "3.03.00.018";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(qq{
 	ALTER TABLE items ADD statisticvalue VARCHAR(80);
@@ -4007,7 +4007,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.013";
+$DBversion = "3.03.00.019";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("ALTER TABLE issuingrules ADD COLUMN `allowonshelfholds` TINYINT(1) NOT NULL DEFAULT '0';");
 
@@ -4023,9 +4023,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-
-
-$DBversion = "3.02.00.014";
+$DBversion = "3.03.00.020";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("ALTER TABLE `borrowers` ADD `gonenoaddresscomment` VARCHAR(255) DEFAULT NULL AFTER `gonenoaddress`");
 	$dbh->do("ALTER TABLE `borrowers` ADD `lostcomment` VARCHAR(255) DEFAULT NULL AFTER `lost`");
@@ -4034,8 +4032,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-
-$DBversion = "3.02.00.015";
+$DBversion = "3.03.00.021";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("ALTER TABLE issuingrules MODIFY renewalsallowed SMALLINT(6) NULL DEFAULT NULL;");
 	$dbh->do("ALTER TABLE issuingrules MODIFY reservesallowed SMALLINT(6) NULL DEFAULT NULL;");
@@ -4048,14 +4045,14 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.016';
+$DBversion = '3.03.00.022';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do('ALTER TABLE `categories` ADD COLUMN `enrolmentperioddate` DATE NULL DEFAULT NULL AFTER `enrolmentperiod`');
     print "Upgrade done (Add enrolment period date support)\n";
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.017';
+$DBversion = '3.03.00.023';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("ALTER TABLE `issuingrules` ADD `holdrestricted` TINYINT( 1 ) NULL default NULL ");
     $dbh->do('INSERT INTO issuingrules (branchcode, categorycode, itemtype,holdrestricted,maxissueqty)
@@ -4078,14 +4075,14 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.018';
+$DBversion = '3.03.00.024';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do('ALTER TABLE issuingrules ADD COLUMN `renewalperiod` SMALLINT(6) NULL default NULL AFTER `renewalsallowed`;');
     print "Upgrade done (Add renewalperiod)\n";
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.019';
+$DBversion = '3.03.00.025';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(qq{INSERT INTO `saved_sql` (
     `id`, `borrowernumber`, `date_created`, `last_modified`, `savedsql`, `last_run`, `report_name`, `type`, `notes`)
@@ -4099,7 +4096,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.020';
+$DBversion = '3.03.00.026';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(qq{INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('OPACviewISBD','1','Allow display of ISBD view of bibiographic records in OPAC','','YesNo');});
     $dbh->do(qq{INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('OPACviewMARC','1','Allow display of MARC view of bibiographic records in OPAC','','YesNo');});
@@ -4108,7 +4105,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.021';
+$DBversion = '3.03.00.027';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(qq{INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('OPACPickupLocation','1','Allow choice for Pickup Library reserve at OPAC','','YesNo');});
 
@@ -4116,13 +4113,13 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.03.00.022";
+$DBversion = "3.03.00.028";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("INSERT INTO permissions (module_bit, code, description) VALUES (1, 'view_borrowers_logs', 'Enables log access for the borrower on staff viw')");
     print "Upgrade to $DBversion done (Adding permissions for staff member access to borrowers logs.  )\n";
     SetVersion ($DBversion);
 }
-$DBversion = "3.02.00.023";
+$DBversion = "3.03.00.029";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(q{
 INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('CI-3M:AuthorizedIPs','','Liste des IPs autorisées pour la magnétisation 3M','','Free');
@@ -4131,14 +4128,14 @@ INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES (
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.024";
+$DBversion = "3.03.00.030";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do("UPDATE authorised_values SET authorised_value=UPPER(authorised_value) WHERE category='COUNTRY'");
     print "Upgrade to $DBversion done (Converts COUNTRY authorised values to uppercase)\n";
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.025';
+$DBversion = '3.03.00.031';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(q{
       INSERT INTO systempreferences (variable,value,explanation,options,type)
@@ -4148,7 +4145,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.026';
+$DBversion = '3.03.00.032';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(q{
       ALTER TABLE reserves ADD `reservenumber` int(11) NOT NULL AUTO_INCREMENT FIRST, ADD PRIMARY KEY (`reservenumber`);
@@ -4161,7 +4158,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.027';
+$DBversion = '3.03.00.033';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(q{
       ALTER TABLE borrower_attribute_types ADD `display_checkout` TINYINT(1) NOT NULL DEFAULT '0';
@@ -4170,7 +4167,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.028';
+$DBversion = '3.03.00.034';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(q{
       INSERT INTO permissions (module_bit, code, description) VALUES(13, 'batchedit', 'Perform batch modification of records');
@@ -4179,7 +4176,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = '3.02.00.029';
+$DBversion = '3.03.00.035';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(q{
 	ALTER TABLE items 
@@ -4194,7 +4191,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.030";
+$DBversion = "3.03.00.036";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(q{
     ALTER TABLE deletedborrowers ADD COLUMN gonenoaddresscomment VARCHAR(255) AFTER gonenoaddress, ADD COLUMN lostcomment VARCHAR(255) AFTER lost,ADD COLUMN debarredcomment VARCHAR(255) AFTER debarred;
@@ -4206,14 +4203,14 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.031";
+$DBversion = "3.03.00.037";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("ALTER TABLE borrowers ADD KEY `guarantorid` (guarantorid);");
     print "Upgrade to $DBversion done (Add index on guarantorid)\n";
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.032";
+$DBversion = "3.03.00.038";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do(q{
       INSERT INTO `systempreferences` (variable,value,options,explanation,type) VALUES('AllowMultipleHoldsPerBib','','','Enter here the different itemtypes separated by space you want to allow librarians or OPAC users (if OPACItemHolds is enabled) to set holds on multiple items','Free');
@@ -4222,7 +4219,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.033";
+$DBversion = "3.03.00.039";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(q{
 		UPDATE `letter` set content='Dear <<borrowers.firstname>> <<borrowers.surname>>,\r\n\r\nYou have a hold available for pickup as of <<reserves.waitingdate>>:\r\n\r\nTitle: <<biblio.title>>\r\nAuthor: <<biblio.author>>\r\nCopy: <<items.barcode>>\r\nLocation: <<branches.branchname>>\r\n<<branches.branchaddress1>>\r\n<<branches.branchaddress2>>\r\n<<branches.branchaddress3>>' where module='reserves' and code='HOLD'});
@@ -4230,7 +4227,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.034";
+$DBversion = "3.03.00.040";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(q{
         ALTER TABLE issuingrules ADD COLUMN `holdspickupdelay` INT(11) NULL default NULL ;
@@ -4239,7 +4236,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.035";
+$DBversion = "3.03.00.041";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	$dbh->do(q{
 	ALTER TABLE `search_history` ADD `limit_desc` VARCHAR( 255 ) NULL DEFAULT NULL AFTER `query_cgi` ,
@@ -4249,7 +4246,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 	SetVersion ($DBversion);
 }
 
-$DBversion = "3.02.00.057";
+$DBversion = "3.03.00.042";
 if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
     $dbh->do("
 	INSERT IGNORE INTO `systempreferences` (variable,value,explanation,options,type) VALUES('OpacHiddenItems','','This syspref allows to define custom rules for hiding specific items at opac. See docs/opac/OpacHiddenItems.txt for more informations.','','Textarea');
