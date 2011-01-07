@@ -72,6 +72,12 @@ Circulation:
                   yes: Show
                   no: "Don't show"
             - a button to clear the current patron from the screen on the circulation screen.
+        -
+            - pref: CircFinesBreakdown
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - a more detailed breakdown of patron fines and charges on the checkout screen.
     Checkout Policy:
         -
             - pref: AllowNotForLoanOverride

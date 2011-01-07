@@ -3923,6 +3923,13 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
+$DBversion = "XXX";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('CircFinesBreakdown','0','Show a more detailed breakdown of patron fines and charges on the checkout screen','','YesNo');");
+    print "Upgrade to $DBversion done (Add CircFinesBreakdown system preference)\n";
+    SetVersion ($DBversion);
+}
+
 
 =head1 FUNCTIONS
 

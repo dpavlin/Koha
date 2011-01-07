@@ -278,3 +278,4 @@ INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('ILS-DI:AuthorizedIPs','','.','Restricts usage of ILS-DI to some IPs','Free');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('OverduesBlockCirc','noblock','When checking out an item should overdues block checkout, generate a confirmation dialogue, or allow checkout','noblock|confirmation|block','Choice');
 INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('DisplayMultiPlaceHold','1','Display the ability to place multiple holds or not','','YesNo');
+INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('CircFinesBreakdown','0','Show a more detailed breakdown of patron fines and charges on the checkout screen','','YesNo');
