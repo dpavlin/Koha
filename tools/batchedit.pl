@@ -175,7 +175,7 @@ if($input->param('field') and not defined $op){
         my @repvals    = $input->param('repval');
         foreach my $biblionumber ( @biblionumbers ){
             my $record = GetMarcBiblio($biblionumber);
-            my $biblio = GetBiblio($biblionumber);
+            my ($count, $biblio) = GetBiblio($biblionumber);
             my $report = 0;
             my @failed_actions;
             for(my $i = 0 ; $i < scalar(@fields) ; $i++ ){
@@ -209,7 +209,7 @@ if($input->param('field') and not defined $op){
 my @biblioinfos;
 
 for my $biblionumber (@biblionumbers){
-    my $biblio = GetBiblio($biblionumber);
+    my ($count,$biblio) = GetBiblio($biblionumber);
     if (defined $op){
         $biblio->{$report_actions{$biblionumber}->{status}}=1;
         $biblio->{failed_actions}=$report_actions{$biblionumber}->{failed_actions};
