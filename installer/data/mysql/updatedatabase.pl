@@ -4446,8 +4446,8 @@ $DBversion = "3.03.00.XXX";
 if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
     $dbh->do("ALTER TABLE `auth_subfield_structure` ADD CONSTRAINT `auth_subfield_structure_ibfk_1` FOREIGN KEY (`authtypecode`, `tagfield`) REFERENCES `auth_tag_structure` (`authtypecode`, `tagfield`) ON DELETE CASCADE");
     print "Upgrade to $DBversion done (adding foreign key on auth_subfield_structure.authtypecode and auth_subfield_structure.tagfield for deleting on cascade)\n";
+    SetVersion($DBversion);
 }
-
 
 
 =head1 FUNCTIONS
