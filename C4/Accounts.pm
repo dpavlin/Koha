@@ -17,29 +17,30 @@ package C4::Accounts;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 use strict;
+
 #use warnings; FIXME - Bug 2505
 use C4::Context;
 use C4::Stats;
 use C4::Members;
 use C4::Items;
-use C4::Circulation ;
+use C4::Circulation;
 use C4::Context;
 
 use vars qw($VERSION @ISA @EXPORT);
 
 BEGIN {
-	# set the version for version checking
-	$VERSION = 3.03;
-	require Exporter;
-	@ISA    = qw(Exporter);
-	@EXPORT = qw(
-		&recordpayment &makepayment &manualinvoice
-		&getnextacctno &reconcileaccount &getcharges &ModNote &getcredits
-		&getrefunds &chargelostitem
-		&ReversePayment
-	); # removed &fixaccounts
+
+    # set the version for version checking
+    $VERSION = 3.03;
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT = qw(
+      &recordpayment &makepayment &manualinvoice
+      &getnextacctno &reconcileaccount &getcharges &ModNote &ModMeansOfPayment &ModManagerId &getMeansOfPaymentList &getcredits
+      &getrefunds &chargelostitem
+      &ReversePayment
+      );    # removed &fixaccounts
 }
 
 =head1 NAME
@@ -100,33 +101,33 @@ sub recordpayment {
         if ( $accdata->{'amountoutstanding'} < $amountleft ) {
             $newamtos = 0;
             $amountleft -= $accdata->{'amountoutstanding'};
-        }
-        else {
+        } else {
             $newamtos   = $accdata->{'amountoutstanding'} - $amountleft;
             $amountleft = 0;
         }
-        my $thisacct = $accdata->{accountno};
+        my $thisacct = $accdata->{id};
         my $usth     = $dbh->prepare(
             "UPDATE accountlines SET amountoutstanding= ?
-     WHERE (borrowernumber = ?) AND (accountno=?)"
+     WHERE (id = ?)"
         );
         $usth->execute( $newamtos, $borrowernumber, $thisacct );
         $usth->finish;
-#        $usth = $dbh->prepare(
-#            "INSERT INTO accountoffsets
-#     (borrowernumber, accountno, offsetaccount,  offsetamount)
-#     VALUES (?,?,?,?)"
-#        );
-#        $usth->execute( $borrowernumber, $accdata->{'accountno'},
-#            $nextaccntno, $newamtos );
+
+        #        $usth = $dbh->prepare(
+        #            "INSERT INTO accountoffsets
+        #     (borrowernumber, accountno, offsetaccount,  offsetamount)
+        #     VALUES (?,?,?,?)"
+        #        );
+        #        $usth->execute( $borrowernumber, $accdata->{'accountno'},
+        #            $nextaccntno, $newamtos );
         $usth->finish;
     }
 
     # create new line
     my $usth = $dbh->prepare(
         "INSERT INTO accountlines
-  (borrowernumber, accountno,date,amount,description,accounttype,amountoutstanding)
-  VALUES (?,?,now(),?,'Payment,thanks','Pay',?)"
+  (borrowernumber, accountno,date,time,amount,description,accounttype,amountoutstanding)
+  VALUES (?,?,now(),CURRENT_TIME,?,'Payment,thanks','Pay',?)"
     );
     $usth->execute( $borrowernumber, $nextaccntno, 0 - $data, 0 - $amountleft );
     $usth->finish;
@@ -136,7 +137,7 @@ sub recordpayment {
 
 =head2 makepayment
 
-  &makepayment($borrowernumber, $acctnumber, $amount, $branchcode);
+  &makepayment($accountlineid, $borrowernumber, $acctnumber, $amount, $branchcode, $note, $meansofpayment, $manager_id, $partpaymentamount);
 
 Records the fact that a patron has paid off the entire amount he or
 she owes.
@@ -145,7 +146,7 @@ C<$borrowernumber> is the patron's borrower number. C<$acctnumber> is
 the account that was credited. C<$amount> is the amount paid (this is
 only used to record the payment. It is assumed to be equal to the
 amount owed). C<$branchcode> is the code of the branch where payment
-was made.
+was made. if $partpaymentamount > 0 it's a part payment
 
 =cut
 
@@ -157,56 +158,70 @@ sub makepayment {
     #here we update both the accountoffsets and the account lines
     #updated to check, if they are paying off a lost item, we return the item
     # from their card, and put a note on the item record
-    my ( $borrowernumber, $accountno, $amount, $user, $branch ) = @_;
+    my ( $accountlineid, $borrowernumber, $accountno, $amount, $user, $branch, $note, $meansofpayment, $manager_id, $partpaymentamount ) = @_;
     my $dbh = C4::Context->dbh;
 
     # begin transaction
     my $nextaccntno = getnextacctno($borrowernumber);
     my $newamtos    = 0;
-    my $sth =
-      $dbh->prepare(
-        "SELECT * FROM accountlines WHERE  borrowernumber=? AND accountno=?");
-    $sth->execute( $borrowernumber, $accountno );
+    my $sth         = $dbh->prepare("SELECT * FROM accountlines WHERE id=?");
+    $sth->execute( $accountlineid );
     my $data = $sth->fetchrow_hashref;
     $sth->finish;
-
+    my $newamountoutstanding=0;
+    my $payment = 0 - $amount;
+    $payment = 0-$data->{'amountoutstanding'};
+    my $finalamount = $amount;
+    my $descriptionpayment="Payment for account n°".$accountno.",thanks - ".$user." : ".$data->{'description'};
+	if($partpaymentamount!=0)
+	{
+		$newamountoutstanding=$data->{'amountoutstanding'}-$partpaymentamount;
+		$payment = 0 - $partpaymentamount;
+		$finalamount = $partpaymentamount;
+		$descriptionpayment="Part Payment for account n°".$accountno.",thanks - ".$user." : ".$data->{'description'};
+	}
     $dbh->do(
         "UPDATE  accountlines
-        SET     amountoutstanding = 0
-        WHERE   borrowernumber = $borrowernumber
-          AND   accountno = $accountno
+        SET     amountoutstanding = $newamountoutstanding
+        WHERE   id = $accountlineid
         "
     );
 
     #  print $updquery;
-#    $dbh->do( "
-#        INSERT INTO     accountoffsets
-#                        (borrowernumber, accountno, offsetaccount,
-#                         offsetamount)
-#        VALUES          ($borrowernumber, $accountno, $nextaccntno, $newamtos)
-#        " );
+    #    $dbh->do( "
+    #        INSERT INTO     accountoffsets
+    #                        (borrowernumber, accountno, offsetaccount,
+    #                         offsetamount)
+    #        VALUES          ($borrowernumber, $accountno, $nextaccntno, $newamtos)
+    #        " );
 
     # create new line
-    my $payment = 0 - $amount;
+    
+   
     $dbh->do( "
         INSERT INTO     accountlines
-                        (borrowernumber, accountno, date, amount,
-                         description, accounttype, amountoutstanding)
-        VALUES          ($borrowernumber, $nextaccntno, now(), $payment,
-                        'Payment,thanks - $user', 'Pay', 0)
+                        (borrowernumber, accountno, date, time, amount,
+                         description, accounttype, amountoutstanding, note, meansofpayment, manager_id)
+        VALUES          ($borrowernumber, $nextaccntno, now(), CURRENT_TIME, $payment,
+                        '$descriptionpayment', 'Pay', 0, '$note', '$meansofpayment', '$manager_id')
         " );
 
     # FIXME - The second argument to &UpdateStats is supposed to be the
     # branch code.
     # UpdateStats is now being passed $accountno too. MTJ
-    UpdateStats( $user, 'payment', $amount, '', '', '', $borrowernumber,
-        $accountno );
+    UpdateStats( $user, 'payment', $finalamount, '', '', '', $borrowernumber, $accountno );
     $sth->finish;
 
     #check to see what accounttype
     if ( $data->{'accounttype'} eq 'Rep' || $data->{'accounttype'} eq 'L' ) {
         returnlost( $borrowernumber, $data->{'itemnumber'} );
     }
+     
+    my $sth = $dbh->prepare("SELECT max(id) AS lastinsertid FROM accountlines");
+    $sth->execute();
+    my $datalastinsertid = $sth->fetchrow_hashref;
+    $sth->finish;
+    return $datalastinsertid->{'lastinsertid'};
 }
 
 =head2 getnextacctno
@@ -229,23 +244,22 @@ sub getnextacctno ($) {
 		 LIMIT 1"
     );
     $sth->execute($borrowernumber);
-    return ($sth->fetchrow || 1);
+    return ( $sth->fetchrow || 1 );
 }
 
 =head2 fixaccounts (removed)
 
-  &fixaccounts($borrowernumber, $accountnumber, $amount);
+  &fixaccounts($accountlineid,$borrowernumber, $accountnumber, $amount);
 
 #'
 # FIXME - I don't understand what this function does.
 sub fixaccounts {
-    my ( $borrowernumber, $accountno, $amount ) = @_;
+    my ( $accountlineid, $borrowernumber, $accountno, $amount ) = @_;
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(
-        "SELECT * FROM accountlines WHERE borrowernumber=?
-     AND accountno=?"
+        "SELECT * FROM accountlines WHERE id=?"
     );
-    $sth->execute( $borrowernumber, $accountno );
+    $sth->execute( $accountlineid );
     my $data = $sth->fetchrow_hashref;
 
     # FIXME - Error-checking
@@ -257,70 +271,83 @@ sub fixaccounts {
         UPDATE  accountlines
         SET     amount = '$amount',
                 amountoutstanding = '$outstanding'
-        WHERE   borrowernumber = $borrowernumber
-          AND   accountno = $accountno
+        WHERE   id = $accountlineid
 EOT
 	# FIXME: exceedingly bad form.  Use prepare with placholders ("?") in query and execute args.
 }
 
 =cut
 
-sub returnlost{
+sub returnlost {
     my ( $borrowernumber, $itemnum ) = @_;
     C4::Circulation::MarkIssueReturned( $borrowernumber, $itemnum );
-    my $borrower = C4::Members::GetMember( 'borrowernumber'=>$borrowernumber );
-    my @datearr = localtime(time);
-    my $date = ( 1900 + $datearr[5] ) . "-" . ( $datearr[4] + 1 ) . "-" . $datearr[3];
-    my $bor = "$borrower->{'firstname'} $borrower->{'surname'} $borrower->{'cardnumber'}";
-    ModItem({ paidfor =>  "Paid for by $bor $date" }, undef, $itemnum);
+    my $borrower = C4::Members::GetMember( 'borrowernumber' => $borrowernumber );
+    my @datearr  = localtime(time);
+    my $date     = ( 1900 + $datearr[5] ) . "-" . ( $datearr[4] + 1 ) . "-" . $datearr[3];
+    my $bor      = "$borrower->{'firstname'} $borrower->{'surname'} $borrower->{'cardnumber'}";
+    ModItem( { paidfor => "Paid for by $bor $date" }, undef, $itemnum );
 }
 
+sub chargelostitem {
 
-sub chargelostitem{
-# lost ==1 Lost, lost==2 longoverdue, lost==3 lost and paid for
-# FIXME: itemlost should be set to 3 after payment is made, should be a warning to the interface that
-# a charge has been added
-# FIXME : if no replacement price, borrower just doesn't get charged?
-   
-    my $dbh = C4::Context->dbh();
+    # lost ==1 Lost, lost==2 longoverdue, lost==3 lost and paid for
+    # FIXME: itemlost should be set to 3 after payment is made, should be a warning to the interface that
+    # a charge has been added
+    # FIXME : if no replacement price, borrower just doesn't get charged?
+
+    my $dbh          = C4::Context->dbh();
     my ($itemnumber) = @_;
-    my $sth=$dbh->prepare("SELECT issues.*,items.*,biblio.title 
+    my $sth          = $dbh->prepare(
+        "SELECT issues.*,items.*,biblio.title 
                            FROM issues 
                            JOIN items USING (itemnumber) 
                            JOIN biblio USING (biblionumber)
-                           WHERE issues.itemnumber=?");
+                           WHERE issues.itemnumber=?"
+    );
     $sth->execute($itemnumber);
-    my $issues=$sth->fetchrow_hashref();
+    my $issues = $sth->fetchrow_hashref();
 
     # if a borrower lost the item, add a replacement cost to the their record
-    if ( $issues->{borrowernumber} ){
+    if ( $issues->{borrowernumber} ) {
 
         # first make sure the borrower hasn't already been charged for this item
-        my $sth1=$dbh->prepare("SELECT * from accountlines
-        WHERE borrowernumber=? AND itemnumber=? and accounttype='L'");
-        $sth1->execute($issues->{'borrowernumber'},$itemnumber);
-        my $existing_charge_hashref=$sth1->fetchrow_hashref();
+        my $sth1 = $dbh->prepare(
+            "SELECT * from accountlines
+        WHERE borrowernumber=? AND itemnumber=? and accounttype='L'"
+        );
+        $sth1->execute( $issues->{'borrowernumber'}, $itemnumber );
+        my $existing_charge_hashref = $sth1->fetchrow_hashref();
 
         # OK, they haven't
         unless ($existing_charge_hashref) {
+
             # This item is on issue ... add replacement cost to the borrower's record and mark it returned
             #  Note that we add this to the account even if there's no replacement price, allowing some other
             #  process (or person) to update it, since we don't handle any defaults for replacement prices.
-            my $accountno = getnextacctno($issues->{'borrowernumber'});
-            my $sth2=$dbh->prepare("INSERT INTO accountlines
-            (borrowernumber,accountno,date,amount,description,accounttype,amountoutstanding,itemnumber)
-            VALUES (?,?,now(),?,?,'L',?,?)");
-            $sth2->execute($issues->{'borrowernumber'},$accountno,$issues->{'replacementprice'},
-            "Lost Item $issues->{'title'} $issues->{'barcode'}",
-            $issues->{'replacementprice'},$itemnumber);
+            my $accountno = getnextacctno( $issues->{'borrowernumber'} );
+            my $sth2      = $dbh->prepare(
+                "INSERT INTO accountlines
+            (borrowernumber,accountno,date,time,amount,description,accounttype,amountoutstanding,itemnumber)
+            VALUES (?,?,now(),CURRENT_TIME,?,?,'L',?,?)"
+            );
+            $sth2->execute(
+                $issues->{'borrowernumber'},
+                $accountno,
+                $issues->{'replacementprice'},
+                "Lost Item $issues->{'title'} $issues->{'barcode'}",
+                $issues->{'replacementprice'}, $itemnumber
+            );
             $sth2->finish;
-        # FIXME: Log this ?
+
+            # FIXME: Log this ?
         }
+
         #FIXME : Should probably have a way to distinguish this from an item that really was returned.
         warn " $issues->{'borrowernumber'}  /  $itemnumber ";
-        C4::Circulation::MarkIssueReturned($issues->{borrowernumber},$itemnumber);
-	#  Shouldn't MarkIssueReturned do this?
-        C4::Items::ModItem({ onloan => undef }, undef, $itemnumber);
+        C4::Circulation::MarkIssueReturned( $issues->{borrowernumber}, $itemnumber );
+
+        #  Shouldn't MarkIssueReturned do this?
+        C4::Items::ModItem( { onloan => undef }, undef, $itemnumber );
     }
     $sth->finish;
 }
@@ -328,7 +355,7 @@ sub chargelostitem{
 =head2 manualinvoice
 
   &manualinvoice($borrowernumber, $itemnumber, $description, $type,
-                 $amount, $note);
+                 $amount, $note, $meansofpayment);
 
 C<$borrowernumber> is the patron's borrower number.
 C<$description> is a description of the transaction.
@@ -341,7 +368,7 @@ should be the empty string.
 
 #'
 # FIXME: In Koha 3.0 , the only account adjustment 'types' passed to this function
-# are :  
+# are :
 # 		'C' = CREDIT
 # 		'FOR' = FORGIVEN  (Formerly 'F', but 'F' is taken to mean 'FINE' elsewhere)
 # 		'N' = New Card fee
@@ -352,7 +379,7 @@ should be the empty string.
 #
 
 sub manualinvoice {
-    my ( $borrowernumber, $itemnum, $desc, $type, $amount, $note ) = @_;
+    my ( $borrowernumber, $itemnum, $desc, $type, $amount, $note, $meansofpayment ) = @_;
     my $manager_id = C4::Context->userenv->{'number'};
     my $dbh      = C4::Context->dbh;
     my $notifyid = 0;
@@ -361,16 +388,16 @@ sub manualinvoice {
     my $accountno  = getnextacctno($borrowernumber);
     my $amountleft = $amount;
 
-#    if (   $type eq 'CS'
-#        || $type eq 'CB'
-#        || $type eq 'CW'
-#        || $type eq 'CF'
-#        || $type eq 'CL' )
-#    {
-#        my $amount2 = $amount * -1;    # FIXME - $amount2 = -$amount
-#        $amountleft =
-#          fixcredit( $borrowernumber, $amount2, $itemnum, $type, $user );
-#    }
+    #    if (   $type eq 'CS'
+    #        || $type eq 'CB'
+    #        || $type eq 'CW'
+    #        || $type eq 'CF'
+    #        || $type eq 'CL' )
+    #    {
+    #        my $amount2 = $amount * -1;    # FIXME - $amount2 = -$amount
+    #        $amountleft =
+    #          fixcredit( $borrowernumber, $amount2, $itemnum, $type, $user );
+    #    }
     if ( $type eq 'N' ) {
         $desc .= " New Card";
     }
@@ -388,16 +415,16 @@ sub manualinvoice {
 
         $desc = " Lost Item";
     }
-#    if ( $type eq 'REF' ) {
-#        $desc .= " Cash Refund";
-#        $amountleft = refund( '', $borrowernumber, $amount );
-#    }
+
+    #    if ( $type eq 'REF' ) {
+    #        $desc .= " Cash Refund";
+    #        $amountleft = refund( '', $borrowernumber, $amount );
+    #    }
     if (   ( $type eq 'L' )
         or ( $type eq 'F' )
         or ( $type eq 'A' )
         or ( $type eq 'N' )
-        or ( $type eq 'M' ) )
-    {
+        or ( $type eq 'M' ) ) {
         $notifyid = 1;
     }
 
@@ -405,15 +432,17 @@ sub manualinvoice {
         $desc .= " " . $itemnum;
         my $sth = $dbh->prepare(
             "INSERT INTO  accountlines
-                        (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding, itemnumber,notify_id, note, manager_id)
-        VALUES (?, ?, now(), ?,?, ?,?,?,?,?,?)");
-        $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $itemnum, $notifyid, $note, $manager_id ) || return $sth->errstr;
-  } else {
-    my $sth=$dbh->prepare("INSERT INTO  accountlines
-            (borrowernumber, accountno, date, amount, description, accounttype, amountoutstanding,notify_id, note, manager_id)
-            VALUES (?, ?, now(), ?, ?, ?, ?,?,?,?)"
+                        (borrowernumber, accountno, date, time, amount, description, accounttype, amountoutstanding, itemnumber,notify_id, note, manager_id, meansofpayment)
+        VALUES (?, ?, now(),CURRENT_TIME, ?,?, ?,?,?,?,?,?,?)"
         );
-        $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $notifyid, $note, $manager_id );
+        $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $itemnum, $notifyid, $note, $manager_id, $meansofpayment ) || return $sth->errstr;
+    } else {
+        my $sth = $dbh->prepare(
+            "INSERT INTO  accountlines
+            (borrowernumber, accountno, date, time, amount, description, accounttype, amountoutstanding,notify_id, note, manager_id, meansofpayment)
+            VALUES (?, ?, now(),CURRENT_TIME, ?, ?, ?, ?,?,?,?,?)"
+        );
+        $sth->execute( $borrowernumber, $accountno, $amount, $desc, $type, $amountleft, $notifyid, $note, $manager_id, $meansofpayment );
     }
     return 0;
 }
@@ -443,12 +472,10 @@ sub fixcredit {
     AND itemnumber=? AND amountoutstanding > 0)";
         if ( $type eq 'CL' ) {
             $query .= " AND (accounttype = 'L' OR accounttype = 'Rep')";
-        }
-        elsif ( $type eq 'CF' ) {
+        } elsif ( $type eq 'CF' ) {
             $query .= " AND (accounttype = 'F' OR accounttype = 'FU' OR
       accounttype='Res' OR accounttype='Rent')";
-        }
-        elsif ( $type eq 'CB' ) {
+        } elsif ( $type eq 'CB' ) {
             $query .= " and accounttype='A'";
         }
 
@@ -460,25 +487,23 @@ sub fixcredit {
         if ( $accdata->{'amountoutstanding'} < $amountleft ) {
             $newamtos = 0;
             $amountleft -= $accdata->{'amountoutstanding'};
-        }
-        else {
+        } else {
             $newamtos   = $accdata->{'amountoutstanding'} - $amountleft;
             $amountleft = 0;
         }
-        my $thisacct = $accdata->{accountno};
+        my $thisacct = $accdata->{id};
         my $usth     = $dbh->prepare(
             "UPDATE accountlines SET amountoutstanding= ?
-     WHERE (borrowernumber = ?) AND (accountno=?)"
+     WHERE (id = ?)"
         );
-        $usth->execute( $newamtos, $borrowernumber, $thisacct );
+        $usth->execute( $newamtos, $thisacct );
         $usth->finish;
         $usth = $dbh->prepare(
             "INSERT INTO accountoffsets
      (borrowernumber, accountno, offsetaccount,  offsetamount)
      VALUES (?,?,?,?)"
         );
-        $usth->execute( $borrowernumber, $accdata->{'accountno'},
-            $nextaccntno, $newamtos );
+        $usth->execute( $borrowernumber, $accdata->{'accountno'}, $nextaccntno, $newamtos );
         $usth->finish;
     }
 
@@ -499,25 +524,23 @@ sub fixcredit {
         if ( $accdata->{'amountoutstanding'} < $amountleft ) {
             $newamtos = 0;
             $amountleft -= $accdata->{'amountoutstanding'};
-        }
-        else {
+        } else {
             $newamtos   = $accdata->{'amountoutstanding'} - $amountleft;
             $amountleft = 0;
         }
-        my $thisacct = $accdata->{accountno};
+        my $thisacct = $accdata->{id};
         my $usth     = $dbh->prepare(
             "UPDATE accountlines SET amountoutstanding= ?
-     WHERE (borrowernumber = ?) AND (accountno=?)"
+     WHERE (id = ?)"
         );
-        $usth->execute( $newamtos, $borrowernumber, $thisacct );
+        $usth->execute( $newamtos, $thisacct );
         $usth->finish;
         $usth = $dbh->prepare(
             "INSERT INTO accountoffsets
      (borrowernumber, accountno, offsetaccount,  offsetamount)
      VALUE (?,?,?,?)"
         );
-        $usth->execute( $borrowernumber, $accdata->{'accountno'},
-            $nextaccntno, $newamtos );
+        $usth->execute( $borrowernumber, $accdata->{'accountno'}, $nextaccntno, $newamtos );
         $usth->finish;
     }
     $sth->finish;
@@ -563,27 +586,25 @@ sub refund {
         if ( $accdata->{'amountoutstanding'} > $amountleft ) {
             $newamtos = 0;
             $amountleft -= $accdata->{'amountoutstanding'};
-        }
-        else {
+        } else {
             $newamtos   = $accdata->{'amountoutstanding'} - $amountleft;
             $amountleft = 0;
         }
 
         #     print $amountleft;
-        my $thisacct = $accdata->{accountno};
+        my $thisacct = $accdata->{id};
         my $usth     = $dbh->prepare(
             "UPDATE accountlines SET amountoutstanding= ?
-     WHERE (borrowernumber = ?) AND (accountno=?)"
+     WHERE (id = ?)"
         );
-        $usth->execute( $newamtos, $borrowernumber, $thisacct );
+        $usth->execute( $newamtos, $thisacct );
         $usth->finish;
         $usth = $dbh->prepare(
             "INSERT INTO accountoffsets
      (borrowernumber, accountno, offsetaccount,  offsetamount)
      VALUES (?,?,?,?)"
         );
-        $usth->execute( $borrowernumber, $accdata->{'accountno'},
-            $nextaccntno, $newamtos );
+        $usth->execute( $borrowernumber, $accdata->{'accountno'}, $nextaccntno, $newamtos );
         $usth->finish;
     }
     $sth->finish;
@@ -591,54 +612,91 @@ sub refund {
 }
 
 sub getcharges {
-	my ( $borrowerno, $timestamp, $accountno ) = @_;
-	my $dbh        = C4::Context->dbh;
-	my $timestamp2 = $timestamp - 1;
-	my $query      = "";
-	my $sth = $dbh->prepare(
-			"SELECT * FROM accountlines WHERE borrowernumber=? AND accountno = ?"
-          );
-	$sth->execute( $borrowerno, $accountno );
-	
+    my ( $borrowerno, $timestamp, $accountno ) = @_;
+    my $dbh        = C4::Context->dbh;
+    my $timestamp2 = $timestamp - 1;
+    my $query      = "";
+    my $sth        = $dbh->prepare( "SELECT * FROM accountlines WHERE borrowernumber=? AND accountno = ?" );
+    $sth->execute( $borrowerno, $accountno );
+
     my @results;
     while ( my $data = $sth->fetchrow_hashref ) {
-		push @results,$data;
-	}
+        push @results, $data;
+    }
     return (@results);
 }
 
 sub ModNote {
-    my ( $borrowernumber, $accountno, $note ) = @_;
+    my ( $accountlineid, $note ) = @_;
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare('UPDATE accountlines SET note = ? WHERE borrowernumber = ? AND accountno = ?');
-    $sth->execute( $note, $borrowernumber, $accountno );
+    my $sth = $dbh->prepare('UPDATE accountlines SET note = ? WHERE id = ?');
+    $sth->execute( $note, $accountlineid );
+}
+
+sub ModMeansOfPayment {
+    my ( $accountlineid, $meansofpayment ) = @_;
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare('UPDATE accountlines SET meansofpayment = ? WHERE id = ?');
+    $sth->execute( $meansofpayment, $accountlineid );
+}
+
+sub ModManagerId {
+    my ( $accountlineid, $manager_id ) = @_;
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare('UPDATE accountlines SET manager_id = ? WHERE id = ?');
+    $sth->execute( $manager_id, $accountlineid );
+}
+
+sub getMeansOfPaymentList {
+	my ($selectedoption) = @_;
+	my $dbh  = C4::Context->dbh;
+	my $sth = $dbh->prepare( "SELECT * FROM `systempreferences` WHERE variable='MeansOfPayment'" );
+	$sth->execute();
+	my @options;
+	my $booloption=0;
+	while ( my $data = $sth->fetchrow_hashref ) {
+	foreach my $option ( split( /\|/, $data->{'value'} ) ) {
+            my $selected = '';
+            if($option eq $selectedoption)
+            {
+            	$selected = ' selected="selected"';
+            	$booloption=1;
+            }
+            push @options, { option => $option, selected => $selected };
+        }
+	}
+	if($booloption==0 && $selectedoption ne "")
+	{
+		push @options, { option => $selectedoption, selected => ' selected="selected"' };
+	}
+    $sth->finish;
+    return \@options;
 }
 
 sub getcredits {
-	my ( $date, $date2 ) = @_;
-	my $dbh = C4::Context->dbh;
-	my $sth = $dbh->prepare(
-			        "SELECT * FROM accountlines,borrowers
+    my ( $date, $date2 ) = @_;
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare(
+        "SELECT * FROM accountlines,borrowers
       WHERE amount < 0 AND accounttype <> 'Pay' AND accountlines.borrowernumber = borrowers.borrowernumber
 	  AND timestamp >=TIMESTAMP(?) AND timestamp < TIMESTAMP(?)"
-      );  
+    );
 
-    $sth->execute( $date, $date2 );                                                                                                              
-    my @results;          
+    $sth->execute( $date, $date2 );
+    my @results;
     while ( my $data = $sth->fetchrow_hashref ) {
-		$data->{'date'} = $data->{'timestamp'};
-		push @results,$data;
-	}
+        $data->{'date'} = $data->{'timestamp'};
+        push @results, $data;
+    }
     return (@results);
-} 
-
+}
 
 sub getrefunds {
-	my ( $date, $date2 ) = @_;
-	my $dbh = C4::Context->dbh;
-	
-	my $sth = $dbh->prepare(
-			        "SELECT *,timestamp AS datetime                                                                                      
+    my ( $date, $date2 ) = @_;
+    my $dbh = C4::Context->dbh;
+
+    my $sth = $dbh->prepare(
+        "SELECT *,timestamp AS datetime                                                                                      
                   FROM accountlines,borrowers
                   WHERE (accounttype = 'REF'
 					  AND accountlines.borrowernumber = borrowers.borrowernumber
@@ -649,28 +707,29 @@ sub getrefunds {
 
     my @results;
     while ( my $data = $sth->fetchrow_hashref ) {
-		push @results,$data;
-		
-	}
+        push @results, $data;
+
+    }
     return (@results);
 }
 
 sub ReversePayment {
-  my ( $borrowernumber, $accountno ) = @_;
-  my $dbh = C4::Context->dbh;
-  
-  my $sth = $dbh->prepare('SELECT amountoutstanding FROM accountlines WHERE borrowernumber = ? AND accountno = ?');
-  $sth->execute( $borrowernumber, $accountno );
-  my $row = $sth->fetchrow_hashref();
-  my $amount_outstanding = $row->{'amountoutstanding'};
-  
-  if ( $amount_outstanding <= 0 ) {
-    $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = amount * -1, description = CONCAT( description, " Reversed -" ) WHERE borrowernumber = ? AND accountno = ?');
-    $sth->execute( $borrowernumber, $accountno );
-  } else {
-    $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = 0, description = CONCAT( description, " Reversed -" ) WHERE borrowernumber = ? AND accountno = ?');
-    $sth->execute( $borrowernumber, $accountno );
-  }
+    my ( $accountlineid ) = @_;
+    my $dbh = C4::Context->dbh;
+
+    my $sth = $dbh->prepare('SELECT amountoutstanding FROM accountlines WHERE id = ?');
+    $sth->execute( $accountlineid );
+    my $row                = $sth->fetchrow_hashref();
+    my $amount_outstanding = $row->{'amountoutstanding'};
+
+    if ( $amount_outstanding <= 0 ) {
+        $sth =
+          $dbh->prepare('UPDATE accountlines SET amountoutstanding = amount * -1, description = CONCAT( description, " Reversed -" ) WHERE id = ?');
+        $sth->execute( $accountlineid );
+    } else {
+        $sth = $dbh->prepare('UPDATE accountlines SET amountoutstanding = 0, description = CONCAT( description, " Reversed -" ) WHERE id = ?');
+        $sth->execute( $accountlineid );
+    }
 }
 
 END { }    # module clean-up code here (global destructor)
