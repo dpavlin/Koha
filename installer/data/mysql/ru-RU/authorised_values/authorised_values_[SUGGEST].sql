@@ -1,7 +1,8 @@
-INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SUGGEST','BSELL','Бестселлер');
+DELETE FROM authorised_values WHERE category='SUGGEST';
 
-INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SUGGEST','SCD','Экземпляр с полки поврежден');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES 
+('SUGGEST', 'BSELL', 'Бестселлер'),
+('SUGGEST', 'SCD',   'Экземпляр с полки поврежден'),
+('SUGGEST', 'LCL',   'Библиотечный экземпляр утерян'),
+('SUGGEST', 'AVILL', 'Доступный через межбиблиотечный обмен');
 
-INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SUGGEST','LCL','Библиотечный экземпляр утерян');
-
-INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SUGGEST','AVILL','Доступный через межбиблиотечный обмен');
