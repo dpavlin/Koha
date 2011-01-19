@@ -1682,11 +1682,10 @@ sub searchResults {
         # XSLT processing of some stuff
 	use C4::Charset;
 	SetUTF8Flag($marcrecord);
-        if (!$scan && $search_context eq 'opac' && C4::Context->preference("OPACXSLTResultsDisplay")) {
-            # FIXME note that XSLTResultsDisplay (use of XSLT to format staff interface bib search results)
-            # is not implemented yet
-            $oldbiblio->{XSLTResultsRecord} = XSLTParse4Display($oldbiblio->{biblionumber}, $marcrecord, 'Results', 
-                                                                $search_context);
+        $debug && warn $marcrecord->as_formatted;
+
+        if ( C4::Context->preference($search_context."XSLTResultsDisplay") && !$scan ) {
+            $oldbiblio->{$search_context."XSLTResultsRecord"} = XSLTParse4Display( $biblionumber, $marcrecord, C4::Context->preference($search_context."XSLTResultsDisplay") );
         }
 
         # last check for norequest : if itemtype is notforloan, it can't be reserved either, whatever the items

@@ -31,6 +31,7 @@ use C4::Output qw//;
 use Encode;
 use XML::LibXML;
 use XML::LibXSLT;
+use LWP::Simple;
 
 use vars qw($VERSION @ISA @EXPORT);
 
@@ -40,6 +41,7 @@ BEGIN {
     @ISA = qw(Exporter);
     @EXPORT = qw(
         &XSLTParse4Display
+      &GetURI
     );
 }
 
@@ -49,9 +51,22 @@ C4::XSLT - Functions for displaying XSLT-generated content
 
 =head1 FUNCTIONS
 
-=head2 transformMARCXML4XSLT
+=head1 GetURI
 
-Replaces codes with authorized values in a MARC::Record object
+=head2 GetURI file and returns the xslt as a string
+
+=cut
+
+sub GetURI {
+    my ($uri) = @_;
+    my $string;
+    $string = get $uri ;
+    return $string;
+}
+
+=head1 transformMARCXML4XSLT
+
+=head2 replaces codes with authorized values in a MARC::Record object
 
 =cut
 
@@ -120,11 +135,10 @@ sub getAuthorisedValues4MARCSubfields {
 my $stylesheet;
 
 sub XSLTParse4Display {
-    my ( $biblionumber, $orig_record, $xsl_suffix, $interface ) = @_;
-    $interface = 'opac' unless $interface;
+    my ( $biblionumber, $orig_record, $xslfilename ) = @_;
     # grab the XML, run it through our stylesheet, push it out to the browser
     my $record = transformMARCXML4XSLT( $biblionumber, $orig_record );
-	my $itemsimageurl = GetKohaImageurlFromAuthorisedValues( "CCODE", $orig_record->field('099')->subfield("t")) || '';
+	my $itemsimageurl = GetKohaImageurlFromAuthorisedValues( "CCODE", $orig_record->subfield("099", "t")) || '';
 	my $logoxml = "<logo>" . $itemsimageurl . "</logo>\n";
     #return $record->as_formatted();
     my $itemsxml  = buildKohaItemsNamespace($biblionumber);
@@ -142,31 +156,22 @@ sub XSLTParse4Display {
 
     my $parser = XML::LibXML->new();
     # don't die when you find &, >, etc
-    $parser->recover_silently(0);
+    $parser->recover_silently(1);
     my $source = $parser->parse_string($xmlrecord);
-    unless ( $stylesheet ) {
+    unless ( $stylesheet->{$xslfilename} ) {
         my $xslt = XML::LibXSLT->new();
-        my $xslfile;
-        if ($interface eq 'intranet') {
-            $xslfile = C4::Context->config('intrahtdocs') . 
-                      '/' . C4::Context->preference("template") . 
-                      '/' . C4::Output::_current_language() .
-                      '/xslt/' .
-                      C4::Context->preference('marcflavour') .
-                      "slim2intranet$xsl_suffix.xsl";
+        my $style_doc;
+        if ( $xslfilename =~ /http:/ ) {
+            my $xsltstring = GetURI($xslfilename);
+            $style_doc = $parser->parse_string($xsltstring);
         } else {
-            $xslfile = C4::Context->config('opachtdocs') . 
-                      '/' . C4::Context->preference("opacthemes") . 
-                      '/' . C4::Output::_current_language() .
-                      '/xslt/' .
-                      C4::Context->preference('marcflavour') .
-                      "slim2OPAC$xsl_suffix.xsl";
+            use Cwd;
+            $style_doc = $parser->parse_file($xslfilename);
         }
-        my $style_doc = $parser->parse_file($xslfile);
-        $stylesheet = $xslt->parse_stylesheet($style_doc);
+        $stylesheet->{$xslfilename} = $xslt->parse_stylesheet($style_doc);
     }
-    my $results = $stylesheet->transform($source);
-    my $newxmlrecord = $stylesheet->output_string($results);
+    my $results      = $stylesheet->{$xslfilename}->transform($source);
+    my $newxmlrecord = $stylesheet->{$xslfilename}->output_string($results);
     return $newxmlrecord;
 }
 
@@ -212,8 +217,8 @@ sub buildKohaItemsNamespace {
         } else {
             $status = "available";
         }
-        my $homebranch = xml_escape($branches->{$item->{homebranch}}->{'branchname'});
-	my $itemcallnumber = xml_escape($item->{itemcallnumber});
+        my $homebranch = $branches->{ $item->{homebranch} }->{'branchname'};
+        my $itemcallnumber = $item->{itemcallnumber} || '';
         my $itemlocation = GetAuthorisedValueByCode( "LOC", $item->{location}) || '';
         $xml.= "<item><homebranch>$homebranch</homebranch>".
 		"<status>$status</status>".

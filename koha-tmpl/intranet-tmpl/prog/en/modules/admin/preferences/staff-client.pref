@@ -46,17 +46,15 @@ Staff Client:
               type: textarea
               class: code
         -   
-            - Show biblio records on result page in the staff client
+            - Show biblio records on result page in the staff client using 
             - pref: XSLTResultsDisplay
-              choices:
-                  yes: using XSLT stylesheets.
-                  no: normally.
+              class: long
+            - as xslt (../koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl for default xslt, empty for no xslt)
         -   
-            - Show item details pages in the staff client
+            - Show item details pages in the staff client using
             - pref: XSLTDetailsDisplay
-              choices:
-                  yes: using XSLT stylesheets.
-                  no: normally.              
+              class: long
+            - as xslt (../koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetails.xsl for default xslt, empty for no xslt)
         -
             - Use the Yahoo UI libraries
             - pref: yuipath

@@ -40,6 +40,10 @@ use C4::Review;
 use C4::Members;
 use C4::VirtualShelves;
 use C4::XSLT;
+use List::MoreUtils qw/any none/;
+use 5.10.0;
+
+#use Switch;
 
 BEGIN {
 	if (C4::Context->preference('BakerTaylorEnabled')) {
@@ -73,7 +77,7 @@ if ( ! $record ) {
 $template->param( biblionumber => $biblionumber );
 # XSLT processing of some stuff
 if (C4::Context->preference("OPACXSLTDetailsDisplay") ) {
-    $template->param( 'XSLTBloc' => XSLTParse4Display($biblionumber, $record, 'Detail', 'opac') );
+    $template->param( 'XSLTBloc' => XSLTParse4Display( $biblionumber, $record, C4::Context->preference("OPACXSLTDetailsDisplay") ) );
 }
 
 $template->param('OPACShowCheckoutName' => C4::Context->preference("OPACShowCheckoutName") ); 

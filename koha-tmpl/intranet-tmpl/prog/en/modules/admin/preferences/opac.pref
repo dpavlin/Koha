@@ -44,15 +44,13 @@ OPAC:
         -
             - Show biblio records on OPAC result page
             - pref: OPACXSLTResultsDisplay
-              choices:
-                  yes: using XSLT stylesheets.
-                  no: normally.
+              class: long
+            - as xslt (../koha-tmpl/opac-tmpl/prog/en/xslt/MARC21slim2OPACResults.xsl for default xslt, empty for no xslt)
         -
             - Show item details pages on the OPAC
             - pref: OPACXSLTDetailsDisplay
-              choices:
-                  yes: using XSLT stylesheets.
-                  no: normally.
+              class: long
+            - as xslt (../koha-tmpl/opac-tmpl/prog/en/xslt/MARC21slim2OPACDetail.xsl for default xslt, empty for no xslt)
         -
             - On pages displayed with XSLT stylesheets on the OPAC,
             - pref: DisplayOPACiconsXSLT
