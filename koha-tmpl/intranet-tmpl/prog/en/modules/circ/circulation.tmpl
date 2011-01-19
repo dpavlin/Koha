@@ -49,9 +49,9 @@ function Dopop(link) {
         <!-- TMPL_IF NAME="AllowRenewalLimitOverride" -->
         $( '#override_limit' ).click( function () {
             if ( this.checked ) {
-                $( '.renewals-allowed' ).show(); $( '.renewals-disabled' ).hide();
-            } else {
                 $( '.renewals-allowed' ).hide(); $( '.renewals-disabled' ).show();
+            } else {
+                $( '.renewals-allowed' ).show(); $( '.renewals-disabled' ).hide();
             }
         } ).attr( 'checked', false );
         <!-- /TMPL_IF -->
