@@ -762,7 +762,7 @@ No patron matched <span class="ex"><!-- TMPL_VAR name="message" --></span>
         <!-- TMPL_UNLESS NAME="can_renew" -->
             <span class="renewals-allowed" style="display: none">
         <!-- /TMPL_UNLESS  -->
-        <input type="checkbox" id="renew_<!--TMPL_VAR NAME="itemnumber"-->" name="items[]" value="<!-- TMPL_VAR NAME="itemnumber" -->" />
+        <input type="checkbox" class="radio" id="renew_<!--TMPL_VAR NAME="itemnumber"-->" name="items[]" value="<!-- TMPL_VAR NAME="itemnumber" -->" />
         <!-- TMPL_UNLESS NAME="can_renew" -->
             </span>
         <!-- /TMPL_UNLESS  -->
@@ -779,7 +779,7 @@ No patron matched <span class="ex"><!-- TMPL_VAR name="message" --></span>
   <!-- TMPL_IF NAME="return_failed" -->
             <td class="problem">Checkin Failed</td>
       <!--TMPL_ELSE-->
-            <td style="text-align:center;"><input type="checkbox" id="return_<!--TMPL_VAR NAME="itemnumber"-->" name="barcodes[]"  value="<!-- TMPL_VAR NAME="barcode" -->" />
+            <td style="text-align:center;"><input type="checkbox" class="radio" id="return_<!--TMPL_VAR NAME="itemnumber"-->" name="barcodes[]"  value="<!-- TMPL_VAR NAME="barcode" -->" />
                 <!-- TMPL_IF Name="reserved"--><br/><a href="javascript:void(0);" onclick="window.open('/cgi-bin/koha/reserve/request.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->')">On Hold</a><!-- /TMPL_IF -->
             </td>
       <!-- /TMPL_IF -->
@@ -815,7 +815,7 @@ No patron matched <span class="ex"><!-- TMPL_VAR name="message" --></span>
         <!-- TMPL_UNLESS NAME="can_renew" -->
             <span class="renewals-allowed" style="display: none">
         <!-- /TMPL_UNLESS  -->
-        <input type="checkbox" id="renew_<!--TMPL_VAR NAME="itemnumber"-->" name="items[]" value="<!-- TMPL_VAR NAME="itemnumber" -->" />
+        <input type="checkbox" class="radio" id="renew_<!--TMPL_VAR NAME="itemnumber"-->" name="items[]" value="<!-- TMPL_VAR NAME="itemnumber" -->" />
         <!-- TMPL_UNLESS NAME="can_renew" -->
             </span>
         <!-- /TMPL_UNLESS  -->
@@ -831,7 +831,7 @@ No patron matched <span class="ex"><!-- TMPL_VAR name="message" --></span>
 		  <!-- TMPL_IF NAME="return_failed" -->
             <td class="problem">Checkin Failed</td>
       <!--TMPL_ELSE-->
-            <td style="text-align : center;"><input type="checkbox" id="return_<!--TMPL_VAR NAME="itemnumber"-->" name="barcodes[]"  value="<!-- TMPL_VAR NAME="barcode" -->" onclick="uncheck_sibling(this);" />
+            <td style="text-align : center;"><input type="checkbox" class="radio" id="return_<!--TMPL_VAR NAME="itemnumber"-->" name="barcodes[]"  value="<!-- TMPL_VAR NAME="barcode" -->" onclick="uncheck_sibling(this);" />
                 <!-- TMPL_IF Name="reserved"--><br/><a href="javascript:void(0);" onclick="window.open('/cgi-bin/koha/reserve/request.pl?biblionumber=<!-- TMPL_VAR NAME="biblionumber" -->')">On Hold</a><!-- /TMPL_IF -->
             </td>
       <!-- /TMPL_IF -->
