@@ -575,7 +575,8 @@ fieldset.rows legend {
 	font-size : 110%;
 }
 
-fieldset.rows label, fieldset.rows span.label {  
+fieldset.rows label, fieldset.rows span.label {
+	float: left;
 	font-weight : bold;
 	width: 6em;  
 	margin-right: 1em;  
