@@ -3,9 +3,12 @@
 <!-- TMPL_INCLUDE NAME="doc-head-close.inc" -->
 <script type="text/javascript" src="<!-- TMPL_VAR name="themelang" -->/lib/jquery/plugins/jquery.tablesorter.min.js"></script>
 <script type="text/javascript" src="<!-- TMPL_VAR name="themelang" -->/lib/jquery/plugins/jquery.tablesorter.pager.js"></script>
-<script type="text/javascript" id="js">$(document).ready(function() {
-	$("#table_boracount").tablesorter({
+<script type="text/javascript" id="js">
+$(document).ready(function() {
+	$("#table_boracount").tablesorter({<!-- TMPL_IF NAME="dateformat_metric" -->
+    dateFormat: 'uk',<!-- /TMPL_IF -->
 		sortList: [[0,0]],
+    headers: { 8:{sorter:false},9:{sorter:false} }
 	}).tablesorterPager({container: $("#pagertable_boracount"),positionFixed: false,size: 20});
 }); </script>
 </head>
@@ -33,13 +36,13 @@
 </ul>
 <div class="tabs-container">
 <!-- The table with the account items -->
-<span id="pagertable_boracount" class="pager">
-	<form class="formpager">&nbsp;<strong>page(s)</strong>&nbsp;:
-		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/first.png" class="first"/>
-		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/prev.png" class="prev"/>
+<div id="pagertable_boracount" class="pager">
+	<form class="formpager" action="/cgi-bin/koha/members/boraccount.pl">&nbsp;<strong>page(s)</strong>&nbsp;:
+		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/first.png" class="first" alt="" />
+		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/prev.png" class="prev" alt="" />
 		<input type="text" size="5" class="pagedisplay"/>
-		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/next.png" class="next"/>
-		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/last.png" class="last"/>
+		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/next.png" class="next" alt="" />
+		<img src="<!-- TMPL_VAR name="interface" -->/prog/img/last.png" class="last" alt="" />
 		, entries/page : 
 		<select class="pagesize">
         	<option value="10">10</option>
@@ -50,9 +53,10 @@
 			<option value="100">100</option>
 		</select>
 	</form>
-</span>
+</div>
 <table id="table_boracount">
   <thead>
+  <tr>
   	<th>Date</th>
   	<th style="padding:0.2em 14px">n°</th>
   	<th>Means of payment</th>
@@ -65,11 +69,17 @@
     <th>&nbsp;</th>
     <th>Print</th>
     <!-- /TMPL_IF -->
+  </tr>
   </thead>
-
+<tfoot>
+  <tr>
+    <td colspan="6">Total due</td>
+    <!-- TMPL_IF NAME="totalcredit" --><td colspan="3" class="credit"><!-- TMPL_ELSE --><td colspan="4" class="debit"><!-- /TMPL_IF --><!-- TMPL_VAR NAME="total" --></td>
+  </tr>
+  </tfoot>
+  <tbody>
 	<!-- FIXME: Shouldn't hardcode dollar signs, since Euro or Pound might be needed -->
   <!-- TMPL_LOOP NAME="accounts" -->
-
    <!-- TMPL_IF NAME="__odd__" --><tr><!-- TMPL_ELSE --><tr><!-- /TMPL_IF -->
       <td><!-- TMPL_VAR NAME="date" --> <!-- TMPL_VAR NAME="time" --></td>
       <td><!-- TMPL_VAR NAME="accountno" --></td>
@@ -82,7 +92,7 @@
     <!-- TMPL_IF NAME="reverse_col" -->
       <td>
 	<!-- TMPL_IF NAME="payment" -->
-		<a href="boraccount.pl?action=reverse&borrowernumber=<!-- TMPL_VAR NAME="borrowernumber" -->&accountno=<!-- TMPL_VAR NAME="accountno" -->&accountlineid=<!-- TMPL_VAR NAME="id" -->">Reverse</a>
+		<a href="boraccount.pl?action=reverse&amp;borrowernumber=<!-- TMPL_VAR NAME="borrowernumber" -->&amp;accountno=<!-- TMPL_VAR NAME="accountno" -->&amp;accountlineid=<!-- TMPL_VAR NAME="id" -->">Reverse</a>
 	<!-- TMPL_ELSE -->
 		&nbsp;
 	<!-- /TMPL_IF -->
@@ -98,12 +108,7 @@
     </tr>
 
   <!-- /TMPL_LOOP -->
-<tfoot>
-  <tr>
-    <td colspan="6">Total due</td>
-    <!-- TMPL_IF NAME="totalcredit" --><td colspan="3" class="credit"><!-- TMPL_ELSE --><td colspan="3" class="debit"><!-- /TMPL_IF --><!-- TMPL_VAR NAME="total" --></td>
-  </tr>
-  </tfoot>
+</tbody>
 </table>
 </div></div>
 
