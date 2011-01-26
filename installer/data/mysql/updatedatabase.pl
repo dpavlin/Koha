@@ -3970,6 +3970,27 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
+$DBversion = 'xxx';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do( qq |
+ CREATE TABLE `ratings` (
+  `rating_id` int(11) NOT NULL auto_increment,
+  `borrowernumber` int(11) NOT NULL,
+  `biblionumber` int(11) NOT NULL,
+  `value` tinyint(1) NOT NULL,
+  `timestamp` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  PRIMARY KEY  (`rating_id`),
+  KEY `ratings_borrowers_fk_1` (`borrowernumber`),
+  KEY `ratings_biblionumber_fk_1` (`biblionumber`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 |  );
+
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('RatingsEnabled','','Enabled or disables ratings feature in the OPAC',NULL,'YesNo')");
+
+    print "Upgrade to $DBversion done (Added 'ratings' table, and 'RatingsEnabled' syspref\n";
+    SetVersion ($DBversion);
+}
+
+
 =head1 FUNCTIONS
 
 =head2 DropAllForeignKeys($table)

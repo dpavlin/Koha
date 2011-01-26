@@ -1,6 +1,10 @@
 <!-- TMPL_INCLUDE NAME="doc-head-open.inc" --><!-- TMPL_IF NAME="LibraryNameTitle" --><!-- TMPL_VAR NAME="LibraryNameTitle" --><!-- TMPL_ELSE -->Koha Online<!-- /TMPL_IF --> Catalog &rsaquo; Details for: <!-- TMPL_VAR NAME="title" escape="html" --><!-- TMPL_LOOP NAME="subtitle" -->, <!-- TMPL_VAR NAME="subfield" --><!-- /TMPL_LOOP -->
 <!-- TMPL_INCLUDE NAME="doc-head-close.inc" -->
 <script type="text/javascript" src="<!-- TMPL_VAR name="themelang" -->/lib/jquery/plugins/jquery.tablesorter.min.js"></script>
+
+<script type="text/javascript" src="/opac-tmpl/prog/en/lib/jquery/plugins/jquery.rating.js"></script>
+<link rel="stylesheet" type="text/css" href="/opac-tmpl/prog/en/css/jquery.rating.css" />
+
 <script type="text/JavaScript" language="JavaScript">
 //<![CDATA[
      $(document).ready(function() { 
@@ -41,6 +45,28 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
 		YAHOO.util.Event.addListener("furthersearches", "click", furthersearchesMenu.show, null, furthersearchesMenu);
 		YAHOO.widget.Overlay.windowResizeEvent.subscribe(positionfurthersearchesMenu);
  });
+
+$(document).ready(function() { 
+
+$(".auto-submit-star").rating({
+    callback: function(value, link){
+        $.post("/cgi-bin/koha/opac-ratings.pl", 
+        {   rating: value, 
+            borrowernumber: "<!-- TMPL_VAR NAME="borrowernumber" -->",
+            biblionumber: "<!-- TMPL_VAR NAME="biblionumber" -->"  
+        },
+        function(data){
+            $("#rating_total").text('('+data.total+' votes)');
+            $("#rating_user").text('your rating \''+data.value+'\' added');
+        }
+        , "json");
+    }
+});
+
+});
+
+
+
 	
 //]]>
 </script>
@@ -303,6 +329,35 @@ YAHOO.util.Event.onContentReady("furtherm", function () {
         <!-- /TMPL_IF -->
         </span>
         <!-- /TMPL_IF --><!-- /TMPL_IF --><!-- /TMPL_IF -->
+
+
+
+ <!-- TMPL_IF NAME="RatingsEnabled" -->
+ <div class="results_summary">   
+    <input class="auto-submit-star" type="radio"  name="rating<!-- TMPL_VAR NAME="biblionumber" -->"  value="1" <!-- TMPL_IF NAME="rating_val_1" -->checked="1"<!-- /TMPL_IF --> <!-- TMPL_IF NAME="rating_readonly" -->disabled="disabled"<!-- /TMPL_IF -->   />
+    <input class="auto-submit-star" type="radio"  name="rating<!-- TMPL_VAR NAME="biblionumber" -->"  value="2" <!-- TMPL_IF NAME="rating_val_2" -->checked="1"<!-- /TMPL_IF --> <!-- TMPL_IF NAME="rating_readonly" -->disabled="disabled"<!-- /TMPL_IF -->   />
+    <input class="auto-submit-star" type="radio"  name="rating<!-- TMPL_VAR NAME="biblionumber" -->"  value="3" <!-- TMPL_IF NAME="rating_val_3" -->checked="1"<!-- /TMPL_IF --> <!-- TMPL_IF NAME="rating_readonly" -->disabled="disabled"<!-- /TMPL_IF -->   />
+    <input class="auto-submit-star" type="radio"  name="rating<!-- TMPL_VAR NAME="biblionumber" -->"  value="4" <!-- TMPL_IF NAME="rating_val_4" -->checked="1"<!-- /TMPL_IF --> <!-- TMPL_IF NAME="rating_readonly" -->disabled="disabled"<!-- /TMPL_IF -->   />
+    <input class="auto-submit-star" type="radio"  name="rating<!-- TMPL_VAR NAME="biblionumber" -->"  value="5" <!-- TMPL_IF NAME="rating_val_5" -->checked="1"<!-- /TMPL_IF --> <!-- TMPL_IF NAME="rating_readonly" -->disabled="disabled"<!-- /TMPL_IF -->   />
+
+    <input  type="hidden" name='biblionumber'  value="<!-- TMPL_VAR NAME="biblionumber" -->" />
+
+   <span  id="rating_total"  >
+<!-- TMPL_IF NAME="rating_total" -->&nbsp;(<!-- TMPL_VAR NAME="rating_total" --> votes)<!-- /TMPL_IF -->
+</span>
+
+   <span id="rating_user"><!-- TMPL_IF NAME="rating_value" -->your rating '<!-- TMPL_VAR NAME="rating_value" -->'<!-- /TMPL_IF --></span>
+</div>
+
+
+    <!-- /TMPL_IF -->
+
+
+
+
+
+
+
 
     <!-- TMPL_IF NAME="BakerTaylorContentURL" -->
         <span class="results_summary">

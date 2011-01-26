@@ -35,9 +35,13 @@ use C4::Biblio;  # GetBiblioData
 use C4::Koha;
 use C4::Tags qw(get_tags);
 use C4::Branch; # GetBranches
+use C4::Ratings;
+
 use POSIX qw(ceil floor strftime);
 use URI::Escape;
 use Storable qw(thaw freeze);
+
+#use Smart::Comments '####';
 
 
 my $DisplayMultiPlaceHold = C4::Context->preference("DisplayMultiPlaceHold");
@@ -107,12 +111,21 @@ if (C4::Context->preference('BakerTaylorEnabled')) {
 		BakerTaylorBookstoreURL => C4::Context->preference('BakerTaylorBookstoreURL'),
 	);
 }
+
 if (C4::Context->preference('TagsEnabled')) {
 	$template->param(TagsEnabled => 1);
 	foreach (qw(TagsShowOnList TagsInputOnList)) {
 		C4::Context->preference($_) and $template->param($_ => 1);
 	}
 }
+
+if (C4::Context->preference('RatingsEnabled')) {
+####  $borrowernumber 
+	$template->param(rating_readonly => 1)  unless $borrowernumber ;
+	$template->param(borrowernumber =>  $borrowernumber );
+}
+
+
 
 ## URI Re-Writing
 # Deprecated, but preserved because it's interesting :-)
@@ -471,6 +484,20 @@ for (my $i=0;$i<@servers;$i++) {
 		foreach (@newresults) {
 		    $_->{coins} = GetCOinSBiblio($_->{'biblionumber'});
 		}
+
+        foreach (@newresults) {
+            my $rating = get_rating( $_->{'biblionumber'}, '' );
+            ####       $rating
+
+            my $bib = $_->{'biblionumber'};
+            $_->{'rating_user'}                         = $rating->{'user'};
+            $_->{'rating_total'}                        = $rating->{'total'};
+            $_->{'rating_avg'}                          = $rating->{'avg'};
+            $_->{'rating_avgint'}                       = $rating->{'avgint'};
+            $_->{ 'rating_val_' . $rating->{'avgint'} } = $rating->{'avgint'};
+        }
+
+
       
 	if ($results_hashref->{$server}->{"hits"}){
 	    $total = $total + $results_hashref->{$server}->{"hits"};
@@ -663,5 +690,9 @@ my $content_type = ($format eq 'rss' or $format eq 'atom') ? $format : 'html';
 if (C4::Context->preference('GoogleIndicTransliteration')) {
         $template->param('GoogleIndicTransliteration' => 1);
 }
+
+
+
+
 
 output_with_http_headers $cgi, $cookie, $template->output, $content_type;

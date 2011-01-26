@@ -25,6 +25,10 @@ use C4::Debug;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 use vars qw($ext_dict $select_all @fields);
 
+
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);    
+use vars qw($debug $cgi_debug);
+
 BEGIN {
 	$VERSION = 0.03;
 	@ISA = qw(Exporter);
@@ -42,7 +46,9 @@ BEGIN {
 		&approval_counts
 		&get_filters
 	);
-	# %EXPORT_TAGS = ();
+#	 %EXPORT_TAGS = ();
+
+
 	$ext_dict = C4::Context->preference('TagsExternalDictionary');
 	if ($debug) {
 		require Data::Dumper;
