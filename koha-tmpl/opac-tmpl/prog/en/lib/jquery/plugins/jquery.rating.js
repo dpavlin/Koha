@@ -1,70 +1,75 @@
 /*
- ### jQuery Star Rating Plugin v3.10 - 2009-03-23 ###
+### jQuery Star Rating Plugin v3.13 - 2009-03-26 ###
  * Home: http://www.fyneworks.com/jquery/star-rating/
  * Code: http://code.google.com/p/jquery-star-rating-plugin/
  *
-	* Dual licensed under the MIT and GPL licenses:
+ * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
- ###
-*/
+###
+ */
 
 /*# AVOID COLLISIONS #*/
 ;if(window.jQuery) (function($){
-/*# AVOID COLLISIONS #*/
-	
-	// IE6 Background Image Fix
-	if ($.browser.msie) try { document.execCommand("BackgroundImageCache", false, true)} catch(e) { }
-	// Thanks to http://www.visualjquery.com/rating/rating_redux.html
-	
-	// plugin initialization
-	$.fn.rating = function(options){
-		if(this.length==0) return this; // quick fail
-		
-		// Handle API methods
-		if(typeof arguments[0]=='string'){
-			// Perform API methods on individual elements
-			if(this.length>1){
-				var args = arguments;
-				return this.each(function(){
-					$.fn.rating.apply($(this), args);
-    });
-			};
-			// Invoke API method handler
-			$.fn.rating[arguments[0]].apply(this, $.makeArray(arguments).slice(1) || []);
-			// Quick exit...
-			return this;
-		};
-		
-		// Initialize options for this call
-		var options = $.extend(
-			{}/* new object */,
-			$.fn.rating.options/* default options */,
-			options || {} /* just-in-time options */
-		);
-		
-		// loop through each matched element
+        /*# AVOID COLLISIONS #*/
+
+        // IE6 Background Image Fix
+        if ($.browser.msie) try { document.execCommand("BackgroundImageCache", false, true)} catch(e) { };
+        // Thanks to http://www.visualjquery.com/rating/rating_redux.html
+
+        // plugin initialization
+        $.fn.rating = function(options){
+        if(this.length==0) return this; // quick fail
+
+        // Handle API methods
+        if(typeof arguments[0]=='string'){
+        // Perform API methods on individual elements
+        if(this.length>1){
+        var args = arguments;
+        return this.each(function(){
+            $.fn.rating.apply($(this), args);
+            });
+        };
+        // Invoke API method handler
+        $.fn.rating[arguments[0]].apply(this, $.makeArray(arguments).slice(1) || []);
+        // Quick exit...
+        return this;
+        };
+
+        // Initialize options for this call
+        var options = $.extend(
+                {}/* new object */,
+                $.fn.rating.options/* default options */,
+                options || {} /* just-in-time options */
+                );
+
+        // Allow multiple controls with the same name by making each call unique
+        $.fn.rating.calls++;
+
+        // loop through each matched element
 		this
 		 .not('.star-rating-applied')
 			.addClass('star-rating-applied')
 		.each(function(){
 			
 			// Load control parameters / find context / etc
-			var eid = (this.name || 'unnamed-rating').replace(/\[|\]+/g, "_");
+			var control, input = $(this);
+			var eid = (this.name || 'unnamed-rating').replace(/\[|\]/g, '_').replace(/^\_+|\_+$/g,'');
 			var context = $(this.form || document.body);
-			var input = $(this);
-			var raters = context.data('rating') || { count:0 };
+			
+			// FIX: http://code.google.com/p/jquery-star-rating-plugin/issues/detail?id=23
+			var raters = context.data('rating');
+			if(!raters || raters.call!=$.fn.rating.calls) raters = { count:0, call:$.fn.rating.calls };
 			var rater = raters[eid];
-			var control;
 			
 			// if rater is available, verify that the control still exists
 			if(rater) control = rater.data('rating');
 			
-			if(rater && control){
+			if(rater && control)//{// save a byte!
 				// add star to control if rater is available and the same control still exists
 				control.count++;
 				
-			}
+			//}// save a byte!
 			else{
 				// create new control if first star or control element was removed/replaced
 				
@@ -194,6 +199,9 @@
 		### Core functionality and API ###
 	*/
 	$.extend($.fn.rating, {
+		// Used to append a unique serial number to internal control ID
+		// each time the plugin is invoked so same name controls can co-exist
+		calls: 0,
 		
 		focus: function(){
 			var control = this.data('rating'); if(!control) return this;
@@ -247,7 +255,21 @@
 			this.siblings()[control.readOnly?'addClass':'removeClass']('star-rating-readonly');
 		},// $.fn.rating.draw
 		
-		select: function(value){ // select a value
+		
+		
+		
+		
+		select: function(value,wantCallBack){ // select a value
+					
+					// ***** MODIFICATION *****
+					// Thanks to faivre.thomas - http://code.google.com/p/jquery-star-rating-plugin/issues/detail?id=27
+					//
+					// ***** LIST OF MODIFICATION *****
+					// ***** added Parameter wantCallBack : false if you don't want a callback. true or undefined if you want postback to be performed at the end of this method'
+					// ***** recursive calls to this method were like : ... .rating('select') it's now like .rating('select',undefined,wantCallBack); (parameters are set.)
+					// ***** line which is calling callback
+					// ***** /LIST OF MODIFICATION *****
+			
 			var control = this.data('rating'); if(!control) return this;
 			// do not execute when control is in read-only mode
 			if(control.readOnly) return;
@@ -257,19 +279,19 @@
 			if(typeof value!='undefined'){
 			 // select by index (0 based)
 				if(typeof value=='number')
- 			 return $(control.stars[value]).rating('select');
+ 			 return $(control.stars[value]).rating('select',undefined,wantCallBack);
 				// select by literal value (must be passed as a string
 				if(typeof value=='string')
-					//return 
+					//return
 					$.each(control.stars, function(){
-						if($(this).data('rating.input').val()==value) $(this).rating('select');
+						if($(this).data('rating.input').val()==value) $(this).rating('select',undefined,wantCallBack);
 					});
 			}
 			else
-				control.current = this[0].tagName=='INPUT' ? 
-				 this.data('rating.star') : 
+				control.current = this[0].tagName=='INPUT' ?
+				 this.data('rating.star') :
 					(this.is('.rater-'+ control.serial) ? this : null);
-			
+
 			// Update rating control state
 			this.data('rating', control);
 			// Update display
@@ -277,8 +299,23 @@
 			// find data for event
 			var input = $( control.current ? control.current.data('rating.input') : null );
 			// click callback, as requested here: http://plugins.jquery.com/node/1655
-			if(control.callback) control.callback.apply(input[0], [input.val(), $('a', control.current)[0]]);// callback event
-		},// $.fn.rating.select
+					
+					// **** MODIFICATION *****
+					// Thanks to faivre.thomas - http://code.google.com/p/jquery-star-rating-plugin/issues/detail?id=27
+					//
+					//old line doing the callback :
+					//if(control.callback) control.callback.apply(input[0], [input.val(), $('a', control.current)[0]]);// callback event
+					//
+					//new line doing the callback (if i want :)
+					if((wantCallBack ||wantCallBack == undefined) && control.callback) control.callback.apply(input[0], [input.val(), $('a', control.current)[0]]);// callback event
+					//to ensure retro-compatibility, wantCallBack must be considered as true by default
+					// **** /MODIFICATION *****
+					
+  },// $.fn.rating.select
+		
+		
+		
+		
 		
 		readOnly: function(toggle, disable){ // make the control read-only (still submits value)
 			var control = this.data('rating'); if(!control) return this;
@@ -335,7 +372,9 @@
 		The plugin will attach itself to file inputs
 		with the class 'multi' when the page loads
 	*/
-	$(function(){ $('input[type=radio].star').rating(); });
+	$(function(){
+	 $('input[type=radio].star').rating();
+	});
 	
 	
 	

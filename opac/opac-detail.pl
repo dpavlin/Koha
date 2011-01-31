@@ -45,6 +45,8 @@ use C4::ShelfBrowser;
 
 #use Smart::Comments '####';
 
+#use Smart::Comments '####';
+
 BEGIN {
 	if (C4::Context->preference('BakerTaylorEnabled')) {
 		require C4::External::BakerTaylor;
