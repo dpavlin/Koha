@@ -28,8 +28,12 @@ use C4::Branch;
 use C4::Category;
 
 my $query = new CGI;
+my $quicksearch = $query->param('quicksearch');
 my $branch = $query->param('branchcode');
 my $template_name;
+
+if (!defined $branch) {
+    $branch = q{};
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "members/member.tmpl",
@@ -42,13 +46,12 @@ my ($template, $loggedinuser, $cookie)
 
 my $branches = GetBranches;
 my @branchloop;
-foreach (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %$branches) {
-  my $selected = 1 if $branches->{$_}->{branchcode} eq $branch;
-  my %row = ( value => $_,
-        selected => $selected,
+foreach (sort { $branches->{$a}->{branchname} cmp $branches->{$b}->{branchname} } keys %{$branches}) {
+    push @branchloop, {
+        value      => $_,
+        selected   => ($branches->{$_}->{branchcode} eq $branch),
         branchname => $branches->{$_}->{branchname},
-      );
-  push @branchloop, \%row;
+    };
 }
 
 my @categories;
