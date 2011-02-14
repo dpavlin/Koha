@@ -116,6 +116,7 @@ foreach my $borrower(@$results[$from..$to-1]){
   my ($od,$issue,$fines)=GetMemberIssuesAndFines($$borrower{'borrowernumber'});
 
   $$borrower{'dateexpiry'}= C4::Dates->new($$borrower{'dateexpiry'},'iso')->output('syspref');
+    $$borrower{'address'}=getFullBorrowerAddress($$borrower{'borrowernumber'});
 
   my %row = (
     count => $index++,
@@ -163,10 +164,10 @@ $template->param(
     branchloop=>\@branchloop,
     categories=>\@categories,
     searching       => "1",
-		actionname		=>basename($0),
-		%$patron,
-        numresults      => $count,
-        resultsloop     => \@resultsdata,
-            );
+    actionname		=>basename($0),
+    %$patron,
+    numresults      => $count,
+    resultsloop     => \@resultsdata,
+);
 
 output_html_with_http_headers $input, $cookie, $template->output;

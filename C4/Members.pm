@@ -87,6 +87,8 @@ BEGIN {
 		&DeleteMessage
 		&GetMessages
 		&GetMessagesCount
+		&SetMemberInfosInTemplate
+      &getFullBorrowerAddress
 	);
 
 	#Modify data
@@ -1648,6 +1650,59 @@ sub DelMember {
     $sth->execute($borrowernumber);
     logaction("MEMBERS", "DELETE", $borrowernumber, "") if C4::Context->preference("BorrowersLog");
     return $sth->rows;
+}
+
+=head2 SetMemberInfosInTemplate
+    &SetMemberInfosInTemplate($borrowernumber, $template)
+    
+    
+Settings borrower informations for template user
+
+=cut
+
+sub SetMemberInfosInTemplate {
+    my ($borrowernumber, $template) = @_;
+    
+    my $borrower = GetMemberDetails( $borrowernumber, 0 );
+    foreach my $key (keys %$borrower){
+        $template->param($key => $borrower->{$key});
+    }
+    
+    # Computes full borrower address
+    my (undef, $roadttype_hashref) = &GetRoadTypes();
+    my $address = $borrower->{'streetnumber'}.' '.$roadttype_hashref->{$borrower->{'streettype'}}.' '.$borrower->{'address'};
+    $template->param(is_child  => ($borrower->{'category_type'} eq 'C'),
+                    address    => $address,
+                    branchname => GetBranchName($borrower->{'branchcode'}),
+                    );
+                    
+    foreach (qw(dateenrolled dateexpiry dateofbirth)) {
+		my $userdate = $borrower->{$_};
+		unless ($userdate) {
+			$borrower->{$_} = '';
+			next;
+		}
+		$userdate = C4::Dates->new($userdate,'iso')->output('syspref');
+		$borrower->{$_} = $userdate || '';
+		$template->param( $_ => $userdate );
+    }
+    
+    my $attributes = GetBorrowerAttributes($borrowernumber);
+    $template->param(
+        extendedattributes => $attributes,
+    );
+}
+
+sub getFullBorrowerAddress {
+    my ( $borrowernumber ) = @_;
+    my $borrower = GetMemberDetails( $borrowernumber, 0 );
+    # Computes full borrower address
+    my ( undef, $roadttype_hashref ) = &GetRoadTypes();
+    my $address1="";
+    if(($borrower->{'streetnumber'}) ne ''){$address1=$address1.$borrower->{'streetnumber'}.' ';}
+    if(($roadttype_hashref->{ $borrower->{'streettype'} }) ne ""){$address1=$address1.$roadttype_hashref->{ $borrower->{'streettype'} }.' ';}
+    $address1=$address1.$borrower->{'address'};
+    return $address1;
 }
 
 =head2 ExtendMemberSubscriptionTo (OUEST-PROVENCE)
