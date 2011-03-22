@@ -23,15 +23,15 @@ fi
 case "$1" in
     start)
       echo "Starting Zebraqueue Daemon"
-      daemon --name=$NAME --errlog=$ERRLOG --stdout=$STDOUT --output=$OUTPUT --verbose=1 --respawn --delay=30 $OTHERUSER -- perl -I $PERL5LIB $ZEBRAQUEUE -f $KOHA_CONF 
+      daemon --name=$NAME --errlog=$ERRLOG --stdout=$STDOUT --output=$OUTPUT --verbose=1 --respawn --delay=30 $OTHERUSER -- perl -I $PERL5LIB $ZEBRAQUEUE
       ;;
     stop)
       echo "Stopping Zebraqueue Daemon"
-      daemon --name=$NAME --errlog=$ERRLOG --stdout=$STDOUT --output=$OUTPUT --verbose=1 --respawn --delay=30 $OTHERUSER --stop -- perl -I $PERL5LIB $ZEBRAQUEUE -f $KOHA_CONF 
+      daemon --name=$NAME --errlog=$ERRLOG --stdout=$STDOUT --output=$OUTPUT --verbose=1 --respawn --delay=30 $OTHERUSER --stop -- perl -I $PERL5LIB $ZEBRAQUEUE
       ;;
     restart)
       echo "Restarting the Zebraqueue Daemon"
-      daemon --name=$NAME --errlog=$ERRLOG --stdout=$STDOUT --output=$OUTPUT --verbose=1 --respawn --delay=30 $OTHERUSER --restart -- perl -I $PERL5LIB $ZEBRAQUEUE -f $KOHA_CONF 
+      daemon --name=$NAME --errlog=$ERRLOG --stdout=$STDOUT --output=$OUTPUT --verbose=1 --respawn --delay=30 $OTHERUSER --restart -- perl -I $PERL5LIB $ZEBRAQUEUE
       ;;
     *)
       echo "Usage: /etc/init.d/$NAME {start|stop|restart}"
