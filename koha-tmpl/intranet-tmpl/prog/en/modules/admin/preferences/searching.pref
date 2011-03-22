@@ -166,3 +166,37 @@ Searching:
             - pref: FacetLabelTruncationLength
               class: integer
             - characters, in OPAC/staff interface.
+        -
+            - pref: ZebraUseXml
+              type: boolean
+              choices:
+                  yes: "Don't use"
+                  no: Use
+            - Tell Zebra to use MARCXML instead of ISO2907 for indexing. Very important for libraries with records bigger than the allowed by ISO2907 (e.g. with lots of items in a single record).
+        -
+            - pref: ZebraNoshadow
+              type: boolean
+              choices:
+                  yes: "Don't use"
+                  no: Use
+            - Tell Zebra to use shadow records when updating. Prevents locking on records while updating the database. Refer to zebra documentation for more info on the drawbacks.
+        -
+            - By default, tell zebraqueue daemon to search for updates every
+            - pref: ZebraAuthUpdateRatio
+              class: integer
+              default: 10
+            - seconds in the authorities database.
+        -
+            - By default, tell zebraqueue daemon to search for updates every
+            - pref: ZebraBiblioUpdateRatio
+              class: integer
+              default: 6
+            - *ZebraAuthUpdateRatio seconds in the biblios database
+        -
+            - pref: ZebraqueueVerboseLogging
+              type: boolean
+              choices:
+                yes: "Don't use"
+                no: Use
+            - Tell ZebraQueue daemon to be more verbose on logging.
+
