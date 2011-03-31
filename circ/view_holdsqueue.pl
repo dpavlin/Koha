@@ -31,7 +31,7 @@ use C4::Biblio;
 use C4::Items;
 use C4::Koha;   # GetItemTypes
 use C4::Branch; # GetBranches
-use C4::Dates qw/format_date/;
+use C4::HoldsQueue qw(GetHoldsQueueItems);
 
 my $query = new CGI;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -76,36 +76,5 @@ $template->param(
    itemtypeloop => \@itemtypesloop,
 );
 
-sub GetHoldsQueueItems {
-	my ($branchlimit,$itemtypelimit) = @_;
-	my $dbh = C4::Context->dbh;
-
-    my @bind_params = ();
-	my $query = q/SELECT tmp_holdsqueue.*, biblio.author, items.ccode, items.location, items.enumchron, items.cn_sort, biblioitems.publishercode,biblio.copyrightdate,biblioitems.publicationyear,biblioitems.pages,biblioitems.size,biblioitems.publicationyear,biblioitems.isbn
-                  FROM tmp_holdsqueue
-                       JOIN biblio      USING (biblionumber)
-				  LEFT JOIN biblioitems USING (biblionumber)
-                  LEFT JOIN items       USING (  itemnumber)
-                /;
-    if ($branchlimit) {
-	    $query .=" WHERE tmp_holdsqueue.holdingbranch = ?";
-        push @bind_params, $branchlimit;
-    }
-    $query .= " ORDER BY ccode, location, cn_sort, author, title, pickbranch, reservedate";
-	my $sth = $dbh->prepare($query);
-	$sth->execute(@bind_params);
-	my $items = [];
-    while ( my $row = $sth->fetchrow_hashref ){
-	$row->{reservedate} = format_date($row->{reservedate});
-	my $record = GetMarcBiblio($row->{biblionumber});
-    if ($record){
-        $row->{subtitle} = GetRecordValue('subtitle',$record,'')->[0]->{subfield};
-	    $row->{parts} = GetRecordValue('parts',$record,'')->[0]->{subfield};
-	    $row->{numbers} = GetRecordValue('numbers',$record,'')->[0]->{subfield};
-	}
-        push @$items, $row;
-    }
-    return $items;
-}
 # writing the template
 output_html_with_http_headers $query, $cookie, $template->output;

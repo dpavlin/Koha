@@ -459,6 +459,9 @@ with this method.
 # flushing the caching mechanism.
 
 my %sysprefs;
+sub _flush_preferences {
+    %sysprefs = ();
+}
 
 sub preference {
     my $self = shift;

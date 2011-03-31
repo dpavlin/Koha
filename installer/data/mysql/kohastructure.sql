@@ -2610,6 +2610,22 @@ CREATE TABLE `fieldmapping` (
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+--
+-- Table structure for table `transport_cost`
+--
+
+DROP TABLE IF EXISTS `transport_cost`;
+CREATE TABLE `transport_cost` (
+      `frombranch` varchar(10) NOT NULL,
+      `tobranch` varchar(10) NOT NULL,
+      `cost` decimal(4,3) NOT NULL,
+      `disable_transfer` tinyint(1) NOT NULL DEFAULT 0,
+      CHECK ( `frombranch` <> `tobranch` ), -- a dud check, mysql does not support that
+      CHECK ( cost >= 0.0 AND cost <= 1.0), -- a dud check, mysql does not support that
+      PRIMARY KEY (`frombranch`, `tobranch`),
+      CONSTRAINT `transport_cost_ibfk_1` FOREIGN KEY (`frombranch`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT `transport_cost_ibfk_2` FOREIGN KEY (`tobranch`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
