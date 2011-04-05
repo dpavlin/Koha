@@ -4204,11 +4204,11 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
 
 $DBversion = "XXX";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
-    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraUseXml','1','Tell Zebra to use MARCXML instead of ISO2907 for indexing. Very important for libraries with records bigger than the allowed by ISO2907 (e.g. with lots of items in a single record).',NULL,'YesNo')");
-    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraNoshadow','0','Tell Zebra to use shadow records when updating. Prevents locking on records while updating the database. Refer to zebra documentation for more info on the drawbacks.',NULL,'YesNo')");
-    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraqueueVerboseLogging','0','Tell ZebraQueue daemon to be more verbose on logging.',NULL,'YesNo')");
-    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('ZebraBiblioUpdateRatio','6','Tell the ZebraQueue daemon how often to search for updates in the biblios database. This number is multiplied by ZebraAuthUpdateRatios value.',NULL,'Integer')");
-    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('ZebraAuthUpdateRatio','10','Tell the ZebraQueue daemon in seconds how often to search for updates in the authorities database.',NULL,'Integer')");
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraUseXml','1','[Experimental zebraqueue daemon ONLY] Tell Zebra to use MARCXML instead of ISO2907 for indexing. Very important for libraries with records bigger than the allowed by ISO2907 (e.g. with lots of items in a single record).',NULL,'YesNo')");
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraNoshadow','0','[Experimental zebraqueue daemon ONLY] Tell Zebra to use shadow records when updating. Prevents locking on records while updating the database. Refer to zebra documentation for more info on the drawbacks.',NULL,'YesNo')");
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraqueueVerboseLogging','0','[Experimental zebraqueue daemon ONLY] Tell zebraqueue daemon to be more verbose on logging.',NULL,'YesNo')");
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraBiblioUpdateRatio','6','[Experimental zebraqueue daemon ONLY] By default, tell zebraqueue daemon to search for updates every ZebraBiblioUpdateRatio*ZebraAuthUpdateRatio seconds in the biblios database.',NULL,'Integer')");
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraAuthUpdateRatio','10','[Experimental zebraqueue daemon ONLY] By default, tell zebraqueue daemon to search for updates every ZebraAuthUpdateRatio seconds in the authorities  database.',NULL,'Integer')");
     print "Upgrade to $DBversion done (Add sysprefs to control zebraqueue_daemon scripts: ZebraUseXml, ZebraNoshadow, ZebraqueueVerboseLogging, ZebraBiblioUpdateRatio, ZebraAuthUpdateRatio)\n";
     SetVersion ($DBversion);
 }
