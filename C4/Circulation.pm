@@ -2255,7 +2255,7 @@ sub AddRenewal {
     unless ($datedue) {
 
         my $borrower = C4::Members::GetMemberDetails( $borrowernumber, 0 ) or return undef;
-        my $itemtype = (C4::Context->preference('item-level_itypes')) ? $biblio->{'itype'} : $biblio->{'itemtype'} ,
+        my $itemtype = (C4::Context->preference('item-level_itypes')) ? $biblio->{'itype'} : $biblio->{'itemtype'};
 
         $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
                                         C4::Dates->new($issuedata->{date_due}, 'iso') :
@@ -2718,7 +2718,7 @@ sub CalcDateDue {
 
 	# if Hard Due Dates are used, retreive them and apply as necessary
         my ($hardduedate, $hardduedatecompare) = GetHardDueDate($borrower->{'categorycode'},$itemtype, $branch);
-	if ( $hardduedate && $hardduedate->output('iso') ne '0000-00-00') {
+	if ( $hardduedate && $hardduedate->output('iso') && $hardduedate->output('iso') ne '0000-00-00') {
             # if the calculated due date is after the 'before' Hard Due Date (ceiling), override
             if ( $datedue->output( 'iso' ) gt $hardduedate->output( 'iso' ) && $hardduedatecompare == -1) {
                 $datedue = $hardduedate;

@@ -343,7 +343,7 @@ sub branchinfotable {
         for my $field (
             'branchaddress1', 'branchaddress2',
             'branchaddress3', 'branchzip',
-            'branchcity', 'branchcountry',
+            'branchcity', 'branchstate', 'branchcountry',
             'branchphone', 'branchfax',
             'branchemail', 'branchurl',
             'branchip',       'branchprinter', 'branchnotes'
@@ -383,7 +383,7 @@ sub branchinfotable {
                 categorytype    => $cat->{'categorytype'},
             };
     	}
-        push @branchcategories, { categorytype => $ctype , $ctype => 1 , catloop => \@categories};
+        push @branchcategories, { categorytype => $ctype , $ctype => 1 , catloop => ( @categories ? \@categories : undef) };
 	}
     $innertemplate->param(
         branches         => \@loop_data,
@@ -402,6 +402,7 @@ sub _branch_to_template {
          branchaddress3 => $data->{'branchaddress3'},
          branchzip      => $data->{'branchzip'},
          branchcity     => $data->{'branchcity'},
+         branchstate    => $data->{'branchstate'},
          branchcountry  => $data->{'branchcountry'},
          branchphone    => $data->{'branchphone'},
          branchfax      => $data->{'branchfax'},

@@ -624,7 +624,7 @@ sub SendQueuedMessages (;$) {
         # This is just begging for subclassing
         next MESSAGE if ( lc($message->{'message_transport_type'}) eq 'rss' );
         if ( lc( $message->{'message_transport_type'} ) eq 'email' ) {
-            _send_message_by_email( $message );
+            _send_message_by_email( $message, $params->{'username'}, $params->{'password'}, $params->{'method'} );
         }
         elsif ( lc( $message->{'message_transport_type'} ) eq 'sms' ) {
             _send_message_by_sms( $message );
@@ -789,6 +789,7 @@ ENDSQL
 
 sub _send_message_by_email ($;$$$) {
     my $message = shift or return;
+    my ($username, $password, $method) = @_;
 
     my $to_address = $message->{to_address};
     unless ($to_address) {
@@ -815,7 +816,9 @@ sub _send_message_by_email ($;$$$) {
         }
     }
 
-	my $content = encode('utf8', $message->{'content'});
+    my $utf8   = decode('MIME-Header', $message->{'subject'} );
+    $message->{subject}= encode('MIME-Header', $utf8);
+    my $content = encode('utf8', $message->{'content'});
     my %sendmail_params = (
         To   => $to_address,
         From => $message->{'from_address'} || C4::Context->preference('KohaAdminEmailAddress'),
@@ -824,6 +827,7 @@ sub _send_message_by_email ($;$$$) {
         Message => $content,
         'content-type' => $message->{'content_type'} || 'text/plain; charset="UTF-8"',
     );
+    $sendmail_params{'Auth'} = {user => $username, pass => $password, method => $method} if $username;
     if ( my $bcc = C4::Context->preference('OverdueNoticeBcc') ) {
        $sendmail_params{ Bcc } = $bcc;
     }

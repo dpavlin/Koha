@@ -79,6 +79,8 @@ BEGIN {
       &GetUsedMarcStructure
       &GetXmlBiblio
       &GetCOinSBiblio
+      &GetMarcPrice
+      &GetMarcQuantity
 
       &GetAuthorisedValueDesc
       &GetMarcStructure
@@ -1243,6 +1245,72 @@ sub GetCOinSBiblio {
     return $coins_value;
 }
 
+
+=head2 GetMarcPrice
+
+return the prices in accordance with the Marc format.
+=cut
+
+sub GetMarcPrice {
+    my ( $record, $marcflavour ) = @_;
+    my @listtags;
+    my $subfield;
+    
+    if ( $marcflavour eq "MARC21" ) {
+        @listtags = ('345', '020');
+        $subfield="c";
+    } elsif ( $marcflavour eq "UNIMARC" ) {
+        @listtags = ('345', '010');
+        $subfield="d";
+    } else {
+        return;
+    }
+    
+    for my $field ( $record->field(@listtags) ) {
+        for my $subfield_value  ($field->subfield($subfield)){
+            #check value
+            return $subfield_value if ($subfield_value);
+        }
+    }
+    return 0; # no price found
+}
+
+=head2 GetMarcQuantity
+
+return the quantity of a book. Used in acquisition only, when importing a file an iso2709 from a bookseller
+Warning : this is not really in the marc standard. In Unimarc, Electre (the most widely used bookseller) use the 969$a
+
+=cut
+
+sub GetMarcQuantity {
+    my ( $record, $marcflavour ) = @_;
+    my @listtags;
+    my $subfield;
+    
+    if ( $marcflavour eq "MARC21" ) {
+        return 0
+    } elsif ( $marcflavour eq "UNIMARC" ) {
+        @listtags = ('969');
+        $subfield="a";
+    } else {
+        return;
+    }
+    
+    for my $field ( $record->field(@listtags) ) {
+        for my $subfield_value  ($field->subfield($subfield)){
+            #check value
+            if ($subfield_value) {
+                 # in France, the cents separator is the , but sometimes, ppl use a .
+                 # in this case, the price will be x100 when unformatted ! Replace the . by a , to get a proper price calculation
+                $subfield_value =~ s/\./,/ if C4::Context->preference("CurrencyFormat") eq "FR";
+                return $subfield_value;
+            }
+        }
+    }
+    return 0; # no price found
+}
+
+
 =head2 GetAuthorisedValueDesc
 
   my $subfieldvalue =get_authorised_value_desc(
@@ -1326,10 +1394,10 @@ ISBNs stored in differents places depending on MARC flavour
 sub GetMarcISBN {
     my ( $record, $marcflavour ) = @_;
     my $scope;
-    if ( $marcflavour eq "MARC21" ) {
-        $scope = '020';
-    } else {    # assume unimarc if not marc21
+    if ( $marcflavour eq "UNIMARC" ) {
         $scope = '010';
+    } else {    # assume marc21 if not unimarc
+        $scope = '020';
     }
     my @marcisbns;
     my $isbn = "";
@@ -1366,10 +1434,10 @@ The note are stored in differents places depending on MARC flavour
 sub GetMarcNotes {
     my ( $record, $marcflavour ) = @_;
     my $scope;
-    if ( $marcflavour eq "MARC21" ) {
-        $scope = '5..';
-    } else {    # assume unimarc if not marc21
+    if ( $marcflavour eq "UNIMARC" ) {
         $scope = '3..';
+    } else {    # assume marc21 if not unimarc
+        $scope = '5..';
     }
     my @marcnotes;
     my $note = "";
@@ -1406,12 +1474,12 @@ The subjects are stored in differents places depending on MARC flavour
 sub GetMarcSubjects {
     my ( $record, $marcflavour ) = @_;
     my ( $mintag, $maxtag );
-    if ( $marcflavour eq "MARC21" ) {
-        $mintag = "600";
-        $maxtag = "699";
-    } else {    # assume unimarc if not marc21
+    if ( $marcflavour eq "UNIMARC" ) {
         $mintag = "600";
         $maxtag = "611";
+    } else {    # assume marc21 if not unimarc
+        $mintag = "600";
+        $maxtag = "699";
     }
 
     my @marcsubjects;
@@ -1479,12 +1547,12 @@ sub GetMarcAuthors {
     # tagslib useful for UNIMARC author reponsabilities
     my $tagslib =
       &GetMarcStructure( 1, '' );    # FIXME : we don't have the framework available, we take the default framework. May be buggy on some setups, will be usually correct.
-    if ( $marcflavour eq "MARC21" ) {
-        $mintag = "700";
-        $maxtag = "720";
-    } elsif ( $marcflavour eq "UNIMARC" ) {    # assume unimarc if not marc21
+    if ( $marcflavour eq "UNIMARC" ) {
         $mintag = "700";
         $maxtag = "712";
+    } elsif ( $marcflavour eq "MARC21" || $marcflavour eq "NORMARC" ) { # assume marc21 or normarc if not unimarc
+        $mintag = "700";
+        $maxtag = "720";
     } else {
         return;
     }
@@ -1599,12 +1667,12 @@ The series are stored in differents places depending on MARC flavour
 sub GetMarcSeries {
     my ( $record, $marcflavour ) = @_;
     my ( $mintag, $maxtag );
-    if ( $marcflavour eq "MARC21" ) {
-        $mintag = "440";
-        $maxtag = "490";
-    } else {    # assume unimarc if not marc21
+    if ( $marcflavour eq "UNIMARC" ) {
         $mintag = "600";
         $maxtag = "619";
+    } else {    # assume marc21 if not unimarc
+        $mintag = "440";
+        $maxtag = "490";
     }
 
     my @marcseries;
@@ -2397,6 +2465,40 @@ sub PrepareItemrecordDisplay {
                         -tabindex => '',
                         -multiple => 0,
                     );
+                } elsif ( $tagslib->{$tag}->{$subfield}->{value_builder} ) {
+                        # opening plugin
+                        my $plugin = C4::Context->intranetdir . "/cataloguing/value_builder/" . $tagslib->{$tag}->{$subfield}->{'value_builder'};
+                        if (do $plugin) {
+                            my $temp;
+                            my $extended_param = plugin_parameters( $dbh, $temp, $tagslib, $subfield_data{id}, undef );
+                            my ( $function_name, $javascript ) = plugin_javascript( $dbh, $temp, $tagslib, $subfield_data{id}, undef );
+                            $subfield_data{random}     = int(rand(1000000));    # why do we need 2 different randoms?
+                            my $index_subfield = int(rand(1000000));
+                            $subfield_data{id} = "tag_".$tag."_subfield_".$subfield."_".$index_subfield;
+                            $subfield_data{marc_value} = qq[<input tabindex="1" id="$subfield_data{id}" name="field_value" class="input_marceditor" size="67" maxlength="255"
+                                onfocus="Focus$function_name($subfield_data{random}, '$subfield_data{id}');"
+                                 onblur=" Blur$function_name($subfield_data{random}, '$subfield_data{id}');" />
+                                <a href="#" class="buttonDot" onclick="Clic$function_name('$subfield_data{id}'); return false;" title="Tag Editor">...</a>
+                                $javascript];
+                        } else {
+                            warn "Plugin Failed: $plugin";
+                            $subfield_data{marc_value} = qq(<input tabindex="1" id="$subfield_data{id}" name="field_value" class="input_marceditor" size="67" maxlength="255" />); # supply default input form
+                        }
+                }
+                elsif ( $tag eq '' ) {       # it's an hidden field
+                    $subfield_data{marc_value} = qq(<input type="hidden" tabindex="1" id="$subfield_data{id}" name="field_value" class="input_marceditor" size="67" maxlength="255" value="$defaultvalue" />);
+                }
+                elsif ( $tagslib->{$tag}->{$subfield}->{'hidden'} ) {   # FIXME: shouldn't input type be "hidden" ?
+                    $subfield_data{marc_value} = qq(<input type="text" tabindex="1" id="$subfield_data{id}" name="field_value" class="input_marceditor" size="67" maxlength="255" value="$defaultvalue" />);
+                }
+                elsif ( length($defaultvalue) > 100
+                            or (C4::Context->preference("marcflavour") eq "UNIMARC" and
+                                  300 <= $tag && $tag < 400 && $subfield eq 'a' )
+                            or (C4::Context->preference("marcflavour") eq "MARC21"  and
+                                  500 <= $tag && $tag < 600                     )
+                          ) {
+                    # oversize field (textarea)
+                    $subfield_data{marc_value} = qq(<textarea tabindex="1" id="$subfield_data{id}" name="field_value" class="input_marceditor" size="67" maxlength="255">$defaultvalue</textarea>\n");
                 } else {
                     $subfield_data{marc_value} = "<input type=\"text\" name=\"field_value\" value=\"$defaultvalue\" size=\"50\" maxlength=\"255\" />";
                 }

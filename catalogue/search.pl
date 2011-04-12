@@ -250,7 +250,7 @@ my $advanced_search_types = C4::Context->preference("AdvancedSearchTypes");
 
 if (!$advanced_search_types or $advanced_search_types eq 'itemtypes') {                                                                 foreach my $thisitemtype ( sort {$itemtypes->{$a}->{'description'} cmp $itemtypes->{$b}->{'description'} } keys %$itemtypes ) {
     my %row =(  number=>$cnt++,
-                ccl => $itype_or_itemtype,
+                ccl => qq($itype_or_itemtype,phr),
                 code => $thisitemtype,
                 selected => $selected,
                 description => $itemtypes->{$thisitemtype}->{'description'},
@@ -384,7 +384,10 @@ my @indexes;
 
 # if a simple index (only one)  display the index used in the top search box
 if ($indexes[0] && (!$indexes[1] || $params->{'scan'})) {
-    $template->param("ms_".$indexes[0] => 1);}
+    my $idx = "ms_".$indexes[0];
+    $idx =~ s/\,/comma/g;  # template toolkit doesnt like variables with a , in it
+    $template->param($idx => 1);
+}
 
 
 # an operand can be a single term, a phrase, or a complete ccl query
@@ -673,17 +676,14 @@ my $row_count = 10; # FIXME:This probably should be a syspref
 my ($pubshelves, $total) = GetRecentShelves(2, $row_count, undef);
 my ($barshelves, $total) = GetRecentShelves(1, $row_count, $borrowernumber);
 
-my @pubshelves = @{$pubshelves};
-my @barshelves = @{$barshelves};
-
-if (@pubshelves) {
-        $template->param( addpubshelves     => scalar (@pubshelves));
-        $template->param( addpubshelvesloop => @pubshelves);
+if (@{$pubshelves}) {
+        $template->param( addpubshelves     => scalar @{$pubshelves});
+        $template->param( addpubshelvesloop => $pubshelves);
 }
 
-if (@barshelves) {
-        $template->param( addbarshelves     => scalar (@barshelves));
-        $template->param( addbarshelvesloop => @barshelves);
+if (@{$barshelves}) {
+        $template->param( addbarshelves     => scalar @{$barshelves});
+        $template->param( addbarshelvesloop => $barshelves);
 }
 
 

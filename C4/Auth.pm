@@ -34,7 +34,7 @@ use C4::VirtualShelves;
 use POSIX qw/strftime/;
 
 # use utf8;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout $servers $memcached);
 
 BEGIN {
     $VERSION = 3.02;        # set version for version checking
@@ -54,7 +54,17 @@ BEGIN {
         require C4::Auth_with_cas;             # no import
         import  C4::Auth_with_cas qw(checkpw_cas login_cas logout_cas login_cas_url);
     }
-
+    $servers = C4::Context->config('memcached_servers');
+    $memcached;
+    if ($servers) {
+	require Cache::Memcached;
+        $memcached = Cache::Memcached->new({
+					       servers => [ $servers ],
+					       debug   => 0,
+					       compress_threshold => 10_000,
+					       namespace => C4::Context->config('memcached_namespace') || 'koha',
+					   });
+    }
 }
 
 =head1 NAME
@@ -154,19 +164,19 @@ sub get_template_and_user {
         $template->param( loggedinusername => $user );
         $template->param( sessionID        => $sessionID );
 
-		my ($total, $pubshelves, $barshelves) = C4::Context->get_shelves_userenv();
-		if (defined($pubshelves)) {
-        	$template->param( 	pubshelves     	=> scalar (@$pubshelves),
-        						pubshelvesloop 	=> $pubshelves,
-							);
-			$template->param(	pubtotal		=> $total->{'pubtotal'}, ) if ($total->{'pubtotal'} > scalar (@$pubshelves));
-		}
-		if (defined($barshelves)) {
-        	$template->param(	barshelves     	=> scalar (@$barshelves),
-        						barshelvesloop 	=> $barshelves,
-							);
-			$template->param(	bartotal		=> $total->{'bartotal'}, ) if ($total->{'bartotal'} > scalar (@$barshelves));
-		}
+        my ($total, $pubshelves, $barshelves) = C4::Context->get_shelves_userenv();
+        if (defined($pubshelves)) {
+            $template->param( pubshelves     => scalar @{$pubshelves},
+                              pubshelvesloop => $pubshelves,
+            );
+            $template->param( pubtotal   => $total->{'pubtotal'}, ) if ($total->{'pubtotal'} > scalar @{$pubshelves});
+        }
+        if (defined($barshelves)) {
+            $template->param( barshelves      => scalar @{$barshelves},
+                              barshelvesloop  => $barshelves,
+            );
+            $template->param( bartotal  => $total->{'bartotal'}, ) if ($total->{'bartotal'} > scalar @{$barshelves});
+        }
 
         $borrowernumber = getborrowernumber($user) if defined($user);
 
@@ -287,11 +297,11 @@ sub get_template_and_user {
         $template->param( sessionID        => $sessionID );
         
         my ($total, $pubshelves) = C4::Context->get_shelves_userenv();  # an anonymous user has no 'barshelves'...
-        if (defined(($pubshelves))) {
-            $template->param(   pubshelves      => scalar (@$pubshelves),
+        if (defined $pubshelves) {
+            $template->param(   pubshelves      => scalar @{$pubshelves},
                                 pubshelvesloop  => $pubshelves,
                             );
-            $template->param(   pubtotal        => $total->{'pubtotal'}, ) if ($total->{'pubtotal'} > scalar (@$pubshelves));
+            $template->param(   pubtotal        => $total->{'pubtotal'}, ) if ($total->{'pubtotal'} > scalar @{$pubshelves});
         }
 
     }
@@ -386,6 +396,15 @@ sub get_template_and_user {
         } elsif (C4::Context->preference("SearchMyLibraryFirst") && C4::Context->userenv && C4::Context->userenv->{'branch'}) {
             $opac_name = C4::Context->userenv->{'branch'};
         }
+	my $checkstyle = C4::Context->preference("opaccolorstylesheet");
+	if ($checkstyle =~ /http/)
+	{
+            	$template->param( opacexternalsheet => $checkstyle);
+	} else
+	{
+		my $opaccolorstylesheet = C4::Context->preference("opaccolorstylesheet");  
+            $template->param( opaccolorstylesheet => $opaccolorstylesheet);
+	}
         $template->param(
             AmazonContent             => "" . C4::Context->preference("AmazonContent"),
             AnonSuggestions           => "" . C4::Context->preference("AnonSuggestions"),
@@ -425,7 +444,6 @@ sub get_template_and_user {
             hidelostitems             => C4::Context->preference("hidelostitems"),
             mylibraryfirst            => (C4::Context->preference("SearchMyLibraryFirst") && C4::Context->userenv) ? C4::Context->userenv->{'branch'} : '',
             opaclayoutstylesheet      => "" . C4::Context->preference("opaclayoutstylesheet"),
-            opaccolorstylesheet       => "" . C4::Context->preference("opaccolorstylesheet"),
             opacstylesheet            => "" . C4::Context->preference("opacstylesheet"),
             opacbookbag               => "" . C4::Context->preference("opacbookbag"),
             opaccredits               => "" . C4::Context->preference("opaccredits"),
@@ -458,7 +476,7 @@ sub get_template_and_user {
             SyndeticsCoverImageSize      => C4::Context->preference("SyndeticsCoverImageSize"),
         );
 
-        $template->param(OpacPublic => '1') if ($template->param( 'loggedinusername') || C4::Context->preference("OpacPublic"));
+        $template->param(OpacPublic => '1') if ($user || C4::Context->preference("OpacPublic"));
     }
 	$template->param(listloop=>[{shelfname=>"Freelist", shelfnumber=>110}]);
     return ( $template, $borrowernumber, $cookie, $flags);
@@ -842,12 +860,12 @@ sub checkauth {
 				$total->{'bartotal'} = $totshelves;
 				($pubshelves, $totshelves) = C4::VirtualShelves::GetRecentShelves(2, $row_count, undef);
 				$total->{'pubtotal'} = $totshelves;
-				$session->param('barshelves', $barshelves->[0]);
-				$session->param('pubshelves', $pubshelves->[0]);
+				$session->param('barshelves', $barshelves);
+				$session->param('pubshelves', $pubshelves);
 				$session->param('totshelves', $total);
 
-				C4::Context::set_shelves_userenv('bar',$barshelves->[0]);
-				C4::Context::set_shelves_userenv('pub',$pubshelves->[0]);
+				C4::Context::set_shelves_userenv('bar',$barshelves);
+				C4::Context::set_shelves_userenv('pub',$pubshelves);
 				C4::Context::set_shelves_userenv('tot',$total);
 			}
         	else {
@@ -867,9 +885,9 @@ sub checkauth {
 			my ($total, $totshelves, $pubshelves);
 			($pubshelves, $totshelves) = C4::VirtualShelves::GetRecentShelves(2, $row_count, undef);
 			$total->{'pubtotal'} = $totshelves;
-			$session->param('pubshelves', $pubshelves->[0]);
+			$session->param('pubshelves', $pubshelves);
 			$session->param('totshelves', $total);
-			C4::Context::set_shelves_userenv('pub',$pubshelves->[0]);
+			C4::Context::set_shelves_userenv('pub',$pubshelves);
 			C4::Context::set_shelves_userenv('tot',$total);
 
 			# setting a couple of other session vars...
@@ -913,6 +931,15 @@ sub checkauth {
     my $template_name = ( $type eq 'opac' ) ? 'opac-auth.tmpl' : 'auth.tmpl';
     my $template = gettemplate( $template_name, $type, $query );
     $template->param(branchloop => \@branch_loop,);
+    my $checkstyle = C4::Context->preference("opaccolorstylesheet");
+    if ($checkstyle =~ /\//)
+	{
+            	$template->param( opacexternalsheet => $checkstyle);
+	} else
+	{
+		my $opaccolorstylesheet = C4::Context->preference("opaccolorstylesheet");  
+            $template->param( opaccolorstylesheet => $opaccolorstylesheet);
+	}
     $template->param(
     login        => 1,
         INPUTS               => \@inputs,
@@ -927,7 +954,6 @@ sub checkauth {
         opacreadinghistory   => C4::Context->preference("opacreadinghistory"),
         opacsmallimage       => C4::Context->preference("opacsmallimage"),
         opaclayoutstylesheet => C4::Context->preference("opaclayoutstylesheet"),
-        opaccolorstylesheet  => C4::Context->preference("opaccolorstylesheet"),
         opaclanguagesdisplay => C4::Context->preference("opaclanguagesdisplay"),
         opacuserjs           => C4::Context->preference("opacuserjs"),
         opacbookbag          => "" . C4::Context->preference("opacbookbag"),
@@ -965,7 +991,7 @@ sub checkauth {
         url         => $self_url,
         LibraryName => C4::Context->preference("LibraryName"),
     );
-    $template->param( \%info );
+    $template->param( %info );
 #    $cookie = $query->cookie(CGISESSID => $session->id
 #   );
     print $query->header(
@@ -1345,6 +1371,9 @@ sub get_session {
     }
     elsif ($storage_method eq 'Pg') {
         $session = new CGI::Session("driver:PostgreSQL;serializer:yaml;id:md5", $sessionID, {Handle=>$dbh});
+    }
+    elsif ($storage_method eq 'memcached' && $servers){
+	$session = new CGI::Session("driver:memcached;serializer:yaml;id:md5", $sessionID, { Memcached => $memcached } );
     }
     else {
         # catch all defaults to tmp should work on all systems

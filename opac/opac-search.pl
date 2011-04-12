@@ -66,7 +66,7 @@ my $build_grouped_results = C4::Context->preference('OPACGroupResults');
 if ($format =~ /(rss|atom|opensearchdescription)/) {
 	$template_name = 'opac-opensearch.tmpl';
 }
-elsif ($build_grouped_results) {
+elsif (@params && $build_grouped_results) {
     $template_name = 'opac-results-grouped.tmpl';
 }
 elsif ((@params>=1) || ($cgi->param("q")) || ($cgi->param('multibranchlimit')) || ($cgi->param('limit-yr')) ) {
@@ -84,7 +84,7 @@ else {
     authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
     }
 );
-if ($template_name = 'opac-results.tmpl') {
+if ($template_name eq 'opac-results.tmpl') {
    $template->param('COinSinOPACResults' => C4::Context->preference('COinSinOPACResults'));
 }
 
@@ -164,8 +164,8 @@ my $advanced_search_types = C4::Context->preference("AdvancedSearchTypes");
 
 if (!$advanced_search_types or $advanced_search_types eq 'itemtypes') {
 	foreach my $thisitemtype ( sort {$itemtypes->{$a}->{'description'} cmp $itemtypes->{$b}->{'description'} } keys %$itemtypes ) {
-        my %row =(  number=>$cnt++,
-				ccl => $itype_or_itemtype,
+	    my %row =(  number=>$cnt++,
+		ccl => "$itype_or_itemtype,phr",
                 code => $thisitemtype,
                 selected => $selected,
                 description => $itemtypes->{$thisitemtype}->{'description'},

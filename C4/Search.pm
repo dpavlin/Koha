@@ -30,6 +30,8 @@ use C4::XSLT;
 use C4::Branch;
 use C4::Reserves;    # CheckReserves
 use C4::Debug;
+use C4::Items;
+use YAML;
 use URI::Escape;
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $DEBUG);
@@ -121,18 +123,19 @@ sub FindDuplicate {
         }
     }
 
-    # FIXME: add error handling
-    my ( $error, $searchresults ) = SimpleSearch($query); # FIXME :: hardcoded !
+    my ( $error, $searchresults, undef ) = SimpleSearch($query); # FIXME :: hardcoded !
     my @results;
-    foreach my $possible_duplicate_record (@$searchresults) {
-        my $marcrecord =
-          MARC::Record->new_from_usmarc($possible_duplicate_record);
-        my $result = TransformMarcToKoha( $dbh, $marcrecord, '' );
+    if (!defined $error) {
+        foreach my $possible_duplicate_record (@{$searchresults}) {
+            my $marcrecord =
+            MARC::Record->new_from_usmarc($possible_duplicate_record);
+            my $result = TransformMarcToKoha( $dbh, $marcrecord, '' );
 
-        # FIXME :: why 2 $biblionumber ?
-        if ($result) {
-            push @results, $result->{'biblionumber'};
-            push @results, $result->{'title'};
+            # FIXME :: why 2 $biblionumber ?
+            if ($result) {
+                push @results, $result->{'biblionumber'};
+                push @results, $result->{'title'};
+            }
         }
     }
     return @results;
@@ -154,11 +157,15 @@ This function provides a simple search API on the bibliographic catalog
     * $max_results - if present, determines the maximum number of records to fetch. undef is All. defaults to undef.
 
 
-=item C<Output:>
+=item C<Return:>
 
-    * $error is a empty unless an error is detected
-    * \@results is an array of records.
+    Returns an array consisting of three elements
+    * $error is undefined unless an error is detected
+    * $results is a reference to an array of records.
     * $total_hits is the number of hits that would have been returned with no limit
+
+    If an error is returned the two other return elements are undefined. If error itself is undefined
+    the other two elements are always defined
 
 =item C<usage in the script:>
 
@@ -173,23 +180,23 @@ if (defined $error) {
     exit;
 }
 
-my $hits = scalar @$marcresults;
+my $hits = @{$marcresults};
 my @results;
 
-for my $i (0..$hits) {
-    my %resultsloop;
-    my $marcrecord = MARC::File::USMARC::decode($marcresults->[$i]);
-    my $biblio = TransformMarcToKoha(C4::Context->dbh,$marcrecord,'');
+for my $r ( @{$marcresults} ) {
+    my $marcrecord = MARC::File::USMARC::decode($r);
+    my $biblio = TransformMarcToKoha(C4::Context->dbh,$marcrecord,q{});
 
-    #build the hash for the template.
-    $resultsloop{title}           = $biblio->{'title'};
-    $resultsloop{subtitle}        = $biblio->{'subtitle'};
-    $resultsloop{biblionumber}    = $biblio->{'biblionumber'};
-    $resultsloop{author}          = $biblio->{'author'};
-    $resultsloop{publishercode}   = $biblio->{'publishercode'};
-    $resultsloop{publicationyear} = $biblio->{'publicationyear'};
+    #build the iarray of hashs for the template.
+    push @results, {
+        title           => $biblio->{'title'},
+        subtitle        => $biblio->{'subtitle'},
+        biblionumber    => $biblio->{'biblionumber'},
+        author          => $biblio->{'author'},
+        publishercode   => $biblio->{'publishercode'},
+        publicationyear => $biblio->{'publicationyear'},
+        };
 
-    push @results, \%resultsloop;
 }
 
 $template->param(result=>\@results);
@@ -207,14 +214,14 @@ sub SimpleSearch {
         return ( undef, $search_result, scalar($result->{hits}) );
     }
     else {
+        return ( 'No query entered', undef, undef ) unless $query;
         # FIXME hardcoded value. See catalog/search.pl & opac-search.pl too.
-        my @servers = defined ( $servers ) ? @$servers : ( "biblioserver" );
-        my @results;
+        my @servers = defined ( $servers ) ? @$servers : ( 'biblioserver' );
         my @zoom_queries;
         my @tmpresults;
         my @zconns;
-        my $total_hits;
-        return ( "No query entered", undef, undef ) unless $query;
+        my $results = [];
+        my $total_hits = 0;
 
         # Initialize & Search Zebra
         for ( my $i = 0 ; $i < @servers ; $i++ ) {
@@ -258,7 +265,7 @@ sub SimpleSearch {
 
                 for my $j ( $first_record..$last_record ) {
                     my $record = $tmpresults[ $i - 1 ]->record( $j-1 )->raw(); # 0 indexed
-                    push @results, $record;
+                    push @{$results}, $record;
                 }
             }
         }
@@ -270,7 +277,7 @@ sub SimpleSearch {
             $zoom_query->destroy();
         }
 
-        return ( undef, \@results, $total_hits );
+        return ( undef, $results, $total_hits );
     }
 }
 
@@ -865,6 +872,7 @@ sub getIndexes{
                     'Date-of-acquisition',
                     'Date-of-publication',
                     'Dewey-classification',
+                    'EAN',
                     'extent',
                     'fic',
                     'fiction',
@@ -902,6 +910,7 @@ sub getIndexes{
                     'mc-rtype',
                     'mus',
                     'name',
+                    'Music-number',
                     'Name-geographic',
                     'Name-geographic-heading',
                     'Name-geographic-see',
@@ -943,6 +952,7 @@ sub getIndexes{
                     'su-to',
                     'su-ut',
                     'ut',
+                    'UPC',
                     'Term-genre-form',
                     'Term-genre-form-heading',
                     'Term-genre-form-see',
@@ -951,6 +961,7 @@ sub getIndexes{
                     'Title',
                     'Title-cover',
                     'Title-series',
+                    'Title-host',
                     'Title-uniform',
                     'Title-uniform-heading',
                     'Title-uniform-see',
@@ -993,6 +1004,8 @@ sub getIndexes{
                     'reserves',
                     'restricted',
                     'stack',
+                    'stocknumber',
+                    'inv',
                     'uri',
                     'withdrawn',
 
@@ -1120,10 +1133,12 @@ sub buildQuery {
                 my $indexes_set;
 
 # If the user is sophisticated enough to specify an index, turn off field weighting, stemming, and stopword handling
-                if ( $operands[$i] =~ /(:|=)/ || $scan ) {
+                if ( $operands[$i] =~ /\w(:|=)/ || $scan ) {
                     $weight_fields    = 0;
                     $stemming         = 0;
                     $remove_stopwords = 0;
+                } else {
+                    $operands[$i] =~ s/\?/{?}/g; # need to escape question marks
                 }
                 my $operand = $operands[$i];
                 my $index   = $indexes[$i];
@@ -1144,7 +1159,6 @@ sub buildQuery {
                 }
                 # ISBN,ISSN,Standard Number, don't need special treatment
                 elsif ( $index eq 'nb' || $index eq 'ns' ) {
-                    $indexes_set++;
                     (
                         $stemming,      $auto_truncation,
                         $weight_fields, $fuzzy_enabled,
@@ -1159,7 +1173,7 @@ sub buildQuery {
 
                 # Set default structure attribute (word list)
                 my $struct_attr = q{};
-                unless ( $indexes_set || !$index || $index =~ /(st-|phr|ext|wrdl)/ ) {
+                unless ( $indexes_set || !$index || $index =~ /(st-|phr|ext|wrdl|nb|ns)/ ) {
                     $struct_attr = ",wrdl";
                 }
 
@@ -1351,7 +1365,7 @@ sub buildQuery {
     # This is flawed , means we can't search anything with : in it
     # if user wants to do ccl or cql, start the query with that
 #    $query =~ s/:/=/g;
-    $query =~ s/(?<=(ti|au|pb|su|an|kw|mc)):/=/g;
+    $query =~ s/(?<=(ti|au|pb|su|an|kw|mc|nb|ns)):/=/g;
     $query =~ s/(?<=(wrdl)):/=/g;
     $query =~ s/(?<=(trn|phr)):/=/g;
     $limit =~ s/:/=/g;
@@ -1582,8 +1596,14 @@ sub searchResults {
                 $item->{$code} = $field->subfield( $subfieldstosearch{$code} );
             }
 
-			my $hbranch     = C4::Context->preference('HomeOrHoldingBranch') eq 'homebranch' ? 'homebranch'    : 'holdingbranch';
-			my $otherbranch = C4::Context->preference('HomeOrHoldingBranch') eq 'homebranch' ? 'holdingbranch' : 'homebranch';
+	        # Hidden items
+	        my @items = ($item);
+	        my (@hiddenitems) = GetHiddenItemnumbers(@items);
+    	    $item->{'hideatopac'} = 1 if (@hiddenitems); 
+
+            my $hbranch     = C4::Context->preference('HomeOrHoldingBranch') eq 'homebranch' ? 'homebranch'    : 'holdingbranch';
+            my $otherbranch = C4::Context->preference('HomeOrHoldingBranch') eq 'homebranch' ? 'holdingbranch' : 'homebranch';
+
             # set item's branch name, use HomeOrHoldingBranch syspref first, fall back to the other one
             if ($item->{$hbranch}) {
                 $item->{'branchname'} = $branches{$item->{$hbranch}};
@@ -1656,6 +1676,7 @@ sub searchResults {
                     || $item->{itemlost}
                     || $item->{damaged}
                     || $item->{notforloan} > 0
+                    || $item->{hideatopac}
 		    || $reservestatus eq 'Waiting'
                     || ($transfertwhen ne ''))
                 {
@@ -1667,11 +1688,11 @@ sub searchResults {
                     $item->{status} = $item->{wthdrawn} . "-" . $item->{itemlost} . "-" . $item->{damaged} . "-" . $item->{notforloan};
                     $other_count++;
 
-					my $key = $prefix . $item->{status};
-					foreach (qw(wthdrawn itemlost damaged branchname itemcallnumber)) {
-                    	$other_items->{$key}->{$_} = $item->{$_};
-					}
-                    $other_items->{$key}->{intransit} = ($transfertwhen ne '') ? 1 : 0;
+                    my $key = $prefix . $item->{status};
+                    foreach (qw(wthdrawn itemlost damaged branchname itemcallnumber hideatopac)) {
+                        $other_items->{$key}->{$_} = $item->{$_};
+                    }
+                    $other_items->{$key}->{intransit} = ( $transfertwhen ne '' ) ? 1 : 0;
                     $other_items->{$key}->{onhold} = ($reservestatus) ? 1 : 0;
 					$other_items->{$key}->{notforloan} = GetAuthorisedValueDesc('','',$item->{notforloan},'','',$notforloan_authorised_value) if $notforloan_authorised_value;
 					$other_items->{$key}->{count}++ if $item->{$hbranch};
@@ -1683,7 +1704,7 @@ sub searchResults {
                     $can_place_holds = 1;
                     $available_count++;
 					$available_items->{$prefix}->{count}++ if $item->{$hbranch};
-					foreach (qw(branchname itemcallnumber)) {
+					foreach (qw(branchname itemcallnumber hideatopac)) {
                     	$available_items->{$prefix}->{$_} = $item->{$_};
 					}
 					$available_items->{$prefix}->{location} = $shelflocations->{ $item->{location} };
@@ -1748,6 +1769,35 @@ sub searchResults {
         $oldbiblio->{orderedcount}         = $ordered_count;
         $oldbiblio->{isbn} =~
           s/-//g;    # deleting - in isbn to enable amazon content
+
+        if (C4::Context->preference("AlternateHoldingsField") && $items_count == 0) {
+            my $fieldspec = C4::Context->preference("AlternateHoldingsField");
+            my $subfields = substr $fieldspec, 3;
+            my $holdingsep = C4::Context->preference("AlternateHoldingsSeparator") || ' ';
+            my @alternateholdingsinfo = ();
+            my @holdingsfields = $marcrecord->field(substr $fieldspec, 0, 3);
+            my $alternateholdingscount = 0;
+
+            for my $field (@holdingsfields) {
+                my %holding = ( holding => '' );
+                my $havesubfield = 0;
+                for my $subfield ($field->subfields()) {
+                    if ((index $subfields, $$subfield[0]) >= 0) {
+                        $holding{'holding'} .= $holdingsep if (length $holding{'holding'} > 0);
+                        $holding{'holding'} .= $$subfield[1];
+                        $havesubfield++;
+                    }
+                }
+                if ($havesubfield) {
+                    push(@alternateholdingsinfo, \%holding);
+                    $alternateholdingscount++;
+                }
+            }
+
+            $oldbiblio->{'ALTERNATEHOLDINGS'} = \@alternateholdingsinfo;
+            $oldbiblio->{'alternateholdings_count'} = $alternateholdingscount;
+        }
+
         push( @newresults, $oldbiblio )
             if(not $hidelostitems
                or (($items_count > $itemlost_count )
@@ -2609,11 +2659,11 @@ AND (authtypecode IS NOT NULL AND authtypecode<>\"\")|);
         warn "BIBLIOADDSAUTHORITIES: $error";
             return (0,0) ;
           }
-      if ($results && scalar(@$results)==1) {
+      if ( @{$results} == 1 ) {
         my $marcrecord = MARC::File::USMARC::decode($results->[0]);
         $field->add_subfields('9'=>$marcrecord->field('001')->data);
         $countlinked++;
-      } elsif (scalar(@$results)>1) {
+      } elsif ( @{$results} > 1 ) {
    #More than One result
    #This can comes out of a lack of a subfield.
 #         my $marcrecord = MARC::File::USMARC::decode($results->[0]);

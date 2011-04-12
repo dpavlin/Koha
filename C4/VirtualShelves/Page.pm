@@ -57,6 +57,8 @@ sub shelfpage ($$$$$) {
     $query            or die "No query";
     $template         or die "No template";
     $template->param( { loggedinuser => $loggedinuser } );
+    my $edit;
+    my $shelves;
     my @paramsloop;
     my $totitems;
     my $shelfoff    = ( $query->param('shelfoff') ? $query->param('shelfoff') : 1 );
@@ -163,6 +165,7 @@ sub shelfpage ($$$$$) {
                 my ( $shelfnumber2, $shelfname, $owner, $category, $sortfield ) = GetShelf($shelfnumber);
                 my $member = GetMember( 'borrowernumber' => $owner );
                 my $ownername = defined($member) ? $member->{firstname} . " " . $member->{surname} : '';
+                $edit = 1;
                 $template->param(
                     edit                => 1,
                     shelfnumber         => $shelfnumber2,
@@ -312,7 +315,7 @@ sub shelfpage ($$$$$) {
                 $stay = 0;
             }
             $showadd = 1;
-            $stay and $template->param( shelves => 1 );
+            $stay and $template->param( shelves => 1 ) and $shelves = 1;
             last SWITCH;
         }
     }
@@ -359,7 +362,7 @@ sub shelfpage ($$$$$) {
         $qhash{$_} = $query->param($_) if $query->param($_);
     }
     ( scalar keys %qhash ) and $url .= '?' . join '&', map { "$_=$qhash{$_}" } keys %qhash;
-    if ( $query->param('viewshelf') ) {
+    if ( $shelfnumber ) {
         $template->param( { pagination_bar => pagination_bar( $url, ( int( $totitems / $shelflimit ) ) + ( ( $totitems % $shelflimit ) > 0 ? 1 : 0 ), $itemoff, "itemoff" ) } );
     } else {
         $template->param(
@@ -373,13 +376,13 @@ sub shelfpage ($$$$$) {
         "BiblioDefaultView" . C4::Context->preference("BiblioDefaultView") => 1,
         csv_profiles                                                       => GetCsvProfilesLoop()
     );
-    if (   $template->param('viewshelf')
-        or $template->param('shelves')
-        or $template->param('edit') ) {
+    if (   $shelfnumber
+        or $shelves
+        or $edit ) {
         $template->param( vseflag => 1 );
     }
-    if ($template->param('shelves') or    # note: this part looks duplicative, but is intentional
-        $template->param('edit')
+    if ($shelves or    # note: this part looks duplicative, but is intentional
+        $edit
       ) {
         $template->param( seflag => 1 );
     }
@@ -393,18 +396,18 @@ sub shelfpage ($$$$$) {
 
     if ( defined $barshelves ) {
         $template->param(
-            barshelves     => scalar( @{ $barshelves->[0] } ),
-            barshelvesloop => $barshelves->[0],
+            barshelves     => scalar( @{ $barshelves } ),
+            barshelvesloop => $barshelves,
         );
-        $template->param( bartotal => $total->{'bartotal'}, ) if ( $total->{'bartotal'} > scalar( @{ $barshelves->[0] } ) );
+        $template->param( bartotal => $total->{'bartotal'}, ) if ( $total->{'bartotal'} > scalar( @{ $barshelves } ) );
     }
 
     if ( defined $pubshelves ) {
         $template->param(
-            pubshelves     => scalar( @{ $pubshelves->[0] } ),
-            pubshelvesloop => $pubshelves->[0],
+            pubshelves     => scalar( @{ $pubshelves } ),
+            pubshelvesloop => $pubshelves,
         );
-        $template->param( pubtotal => $total->{'pubtotal'}, ) if ( $total->{'pubtotal'} > scalar( @{ $pubshelves->[0] } ) );
+        $template->param( pubtotal => $total->{'pubtotal'}, ) if ( $total->{'pubtotal'} > scalar( @{ $pubshelves } ) );
     }
 
     output_html_with_http_headers $query, $cookie, $template->output;

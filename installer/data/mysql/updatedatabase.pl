@@ -864,7 +864,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
-$DBversion = "3.00.00.042";
+$DBversion = "3.00.00.04";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("ALTER TABLE aqbooksellers CHANGE name name mediumtext NOT NULL");
 	print "Upgrade to $DBversion done (disallow NULL in aqbooksellers.name; part of fix for bug 1251)\n";
@@ -4199,6 +4199,108 @@ $DBversion = "3.03.00.040";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('UseControlNumber',0,'If ON, record control number (w subfields) and control number (001) are used for linking of bibliographic records.','','YesNo');");
     print "Upgrade to $DBversion done (Add syspref UseControlNumber)\n";
+}
+
+$DBversion = "3.03.00.041";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('AlternateHoldingsField','','The MARC field/subfield that contains alternate holdings information for bibs taht do not have items attached (e.g. 852abchi for libraries converting from MARC Magician).',NULL,'free')");
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('AlternateHoldingsSeparator','','The string to use to separate subfields in alternate holdings displays.',NULL,'free')");
+    print "Upgrade to $DBversion done (Add sysprefs to control alternate holdings information display)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.03.00.042';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("ALTER TABLE `items` DROP INDEX `itemsstocknumberidx`;");
+    $dbh->do("ALTER TABLE items ADD INDEX itemstocknumberidx (stocknumber);");
+    print "Upgrade to $DBversion done (Change items.stocknumber to be not unique)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = "3.03.00.043";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+
+    $dbh->do("INSERT INTO authorised_values (category,authorised_value,lib,lib_opac) VALUES ('YES_NO','0','No','No')");
+    $dbh->do("INSERT INTO authorised_values (category,authorised_value,lib,lib_opac) VALUES ('YES_NO','1','Yes','Yes')");
+
+	print "Upgrade to $DBversion done ( add generic boolean YES_NO authorised_values pair )\n";
+	SetVersion ($DBversion);
+}
+
+$DBversion = '3.03.00.044';
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("ALTER TABLE `aqbasketgroups` ADD `freedeliveryplace` TEXT NULL AFTER `deliveryplace`;");
+    print "Upgrade to $DBversion done (adding freedeliveryplace to basketgroups)\n";
+}
+
+$DBversion = '3.03.00.045';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    #Remove obsolete columns from aqbooksellers if needed
+    my $a = $dbh->selectall_hashref('SHOW columns from aqbooksellers','Field');
+    my $sqldrop="ALTER TABLE aqbooksellers DROP COLUMN ";
+    foreach(qw/deliverydays followupdays followupscancel invoicedisc nocalc specialty/) {
+      $dbh->do($sqldrop.$_) if exists $a->{$_};
+    }
+    #Remove obsolete column from aqbudgets if needed
+    #The correct column is budget_notes
+    $a = $dbh->selectall_hashref('SHOW columns from aqbudgets','Field');
+    if(exists $a->{budget_description}) {
+      $dbh->do("ALTER TABLE aqbudgets DROP COLUMN budget_description");
+    }
+    print "Upgrade to $DBversion done (Remove obsolete columns from aqbooksellers and aqbudgets if needed)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = "3.03.00.046";
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("ALTER TABLE overduerules ALTER delay1 SET DEFAULT NULL, ALTER delay2 SET DEFAULT NULL, ALTER delay3 SET DEFAULT NULL");
+    print "Upgrade to $DBversion done (Setting NULL default value for delayn columns in table overduerules)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = '3.03.00.047';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("ALTER TABLE borrowers ADD `state` mediumtext AFTER city;");
+    $dbh->do("ALTER TABLE borrowers ADD `B_state` mediumtext AFTER B_city;");
+    $dbh->do("ALTER TABLE borrowers ADD `altcontactstate` mediumtext AFTER altcontactaddress3;");
+    $dbh->do("ALTER TABLE deletedborrowers ADD `state` mediumtext AFTER city;");
+    $dbh->do("ALTER TABLE deletedborrowers ADD `B_state` mediumtext AFTER B_city;");
+    $dbh->do("ALTER TABLE deletedborrowers ADD `altcontactstate` mediumtext AFTER altcontactaddress3;");
+    print "Upgrade to $DBversion done (Add state field to patron's addresses)\n";
+}
+
+$DBversion = '3.03.00.048';
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("ALTER TABLE branches ADD `branchstate` mediumtext AFTER `branchcity`;");
+    print "Upgrade to $DBversion done (Add state to branch address)\n";
+    SetVersion ($DBversion);
+}
+
+$DBversion = '3.03.00.049';
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("ALTER TABLE `accountlines` ADD `note` text NULL default NULL");
+    $dbh->do("ALTER TABLE `accountlines` ADD `manager_id` int( 11 ) NULL ");
+    print "Upgrade to $DBversion done (adding note and manager_id fields in accountlines table)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = "3.03.00.050";
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("
+	INSERT IGNORE INTO `systempreferences` (variable,value,explanation,options,type) VALUES('OpacHiddenItems','','This syspref allows to define custom rules for hiding specific items at opac. See docs/opac/OpacHiddenItems.txt for more informations.','','Textarea');
+	");
+    print "Upgrade to $DBversion done (Adding OpacHiddenItems syspref)\n";
+    SetVersion($DBversion);
+}
+
+$DBversion = "3.03.00.051";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    print "Upgrade to $DBversion done (Remove spaces and dashes from message_attribute names)\n";
+    $dbh->do("UPDATE message_attributes SET message_name = 'Item_Due' WHERE message_name='Item Due'");
+    $dbh->do("UPDATE message_attributes SET message_name = 'Advance_Notice' WHERE message_name='Advance Notice'");
+    $dbh->do("UPDATE message_attributes SET message_name = 'Hold_Filled' WHERE message_name='Hold Filled'");
+    $dbh->do("UPDATE message_attributes SET message_name = 'Item_Check_in' WHERE message_name='Item Check-in'");
+    $dbh->do("UPDATE message_attributes SET message_name = 'Item_Checkout' WHERE message_name='Item Checkout'");    
     SetVersion ($DBversion);
 }
 
