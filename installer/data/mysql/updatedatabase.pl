@@ -4132,8 +4132,8 @@ $DBversion = '3.03.00.032';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES ('TraceSubjectSubdivisions', 1, 'Create searches on all subdivisions for subject tracings.','1','YesNo')");
     print "Upgrade to $DBversion done ( include subdivisions when generating subject tracing searches )\n";
-    SetVersion ($DBversion);
 }
+
 
 $DBversion = '3.03.00.033';
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
@@ -4304,6 +4304,14 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion ($DBversion);
 }
 
+$DBversion = "3.03.00.052";
+if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
+    $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('WaitingNotifyAtCheckin',0,'If ON, notify librarians of waiting holds for the patron whose items they are checking in.',NULL,'YesNo');");
+    print "Upgrade to $DBversion done (Add syspref WaitingNotifyAtCheckin)\n";
+    SetVersion ($DBversion);
+}
+
+
 $DBversion = "XXX";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES ('ZebraUseXml','1','[Experimental zebraqueue daemon ONLY] Tell Zebra to use MARCXML instead of ISO2907 for indexing. Very important for libraries with records bigger than the allowed by ISO2907 (e.g. with lots of items in a single record).',NULL,'YesNo')");
@@ -4314,6 +4322,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     print "Upgrade to $DBversion done (Add sysprefs to control zebraqueue_daemon scripts: ZebraUseXml, ZebraNoshadow, ZebraqueueVerboseLogging, ZebraBiblioUpdateRatio, ZebraAuthUpdateRatio)\n";
     SetVersion ($DBversion);
 }
+
 
 =head1 FUNCTIONS
 
