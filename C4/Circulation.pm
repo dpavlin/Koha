@@ -910,7 +910,70 @@ sub CanBookBeIssued {
             $needsconfirmation{'resreservedate'} = format_date($res->{'reservedate'});
         }
     }
-	return ( \%issuingimpossible, \%needsconfirmation );
+    
+    ## check for high holds decreasing loan period
+    if (C4::Context->preference("decreaseLoanHighHolds") == 1)
+    {
+        my ($reserved,$num,$duration,$returndate)=checkHighHolds($item,$borrower);
+        #print "reserved: $reserved\n".Dumper($num);
+        if ($num>=C4::Context->preference("decreaseLoanHighHoldsValue"))
+        {
+            $needsconfirmation{HIGHHOLDS} = 1;
+            $needsconfirmation{'num_holds'} = $num;
+            $needsconfirmation{'duration'} = $duration;
+            $needsconfirmation{'returndate'} = format_date($returndate);
+        }
+    }
+
+    return ( \%issuingimpossible, \%needsconfirmation );
+}
+
+=head2 CheckHighHolds
+
+    used when syspref decreaseLoanHighHolds is active. Returns 1 or 0 to define whether the minimum value held in
+    decreaseLoanHighHoldsValue is exceeded, the total number of outstanding holds, the number of days the loan
+    has been decreased to (held in syspref decreaseLoanHighHoldsValue), and the new due date
+
+=cut
+
+sub checkHighHolds {
+    my ($item,$borrower) = @_;
+    my $biblio = GetBiblioFromItemNumber($item->{itemnumber});
+    my $branch = _GetCircControlBranch($item,$borrower);
+    my $dbh = C4::Context->dbh;
+    my $sth;
+    $sth = $dbh->prepare("select count(borrowernumber) as num_holds from reserves where biblionumber=?");
+    $sth->execute($item->{'biblionumber'});
+    my $holds = $sth->fetchrow_array;
+    if ($holds>0)
+    {
+        my $issuedate = strftime( "%Y-%m-%d", localtime );
+        my $startdate=C4::Dates->new( $issuedate, 'iso' );
+        my $calendar = C4::Calendar->new(  branchcode => $branch );
+
+        my $itype = ( C4::Context->preference('item-level_itypes') ) ? $biblio->{'itype'} : $biblio->{'itemtype'};
+        my $due = C4::Circulation::CalcDateDue( C4::Dates->new( $issuedate, 'iso' ), $itype, $branch, $borrower );
+        my $normaldue = sprintf("%04d-%02d-%02d",($due->{'dmy_arrayref'}[5]+1900),($due->{'dmy_arrayref'}[4]+1),
+            $due->{'dmy_arrayref'}[3]);
+
+        my $datedue = $calendar->addDate($startdate, C4::Context->preference("decreaseLoanHighHoldsDuration"));
+        my $returndate = sprintf("%04d-%02d-%02d",($datedue->{'dmy_arrayref'}[5]+1900),($datedue->{'dmy_arrayref'}[4]+1),
+            $datedue->{'dmy_arrayref'}[3]);
+
+        my $daysBetween = $calendar->daysBetween($datedue, $due);
+        if ($daysBetween>0)
+        {
+            return (1,$holds,C4::Context->preference("decreaseLoanHighHoldsDuration"),$returndate);
+        }
+        else
+        {
+            return (0,0,0,0);
+        }
+    }
+    else
+    {
+        return (0,0,0,0);
+    }
 }
 
 =head2 AddIssue
