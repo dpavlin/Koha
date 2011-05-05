@@ -34,6 +34,7 @@ my $template_name;
 
 if (!defined $branch) {
     $branch = q{};
+}
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "members/member.tmpl",
