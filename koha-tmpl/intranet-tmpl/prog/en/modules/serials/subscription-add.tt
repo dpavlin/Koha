@@ -1216,9 +1216,9 @@ $(document).ready(function() {
                     <option value="8">1/quarter (seasonal)</option>
                 [% END %]
                 [% IF ( periodicity13 ) %]
-                    <option value="13" selected="selected">1/4 month (3/year)</option>
+                    <option value="13" selected="selected">1/4 months (3/year)</option>
                 [% ELSE %]
-                    <option value="13">1/4 month (3/year)</option>
+                    <option value="13">1/4 months (3/year)</option>
                 [% END %]
 
                 [% IF ( periodicity9 ) %]
