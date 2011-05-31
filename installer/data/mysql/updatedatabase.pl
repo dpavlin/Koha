@@ -4367,6 +4367,19 @@ $DBversion = "3.05.00.004";
 if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     $dbh->do("INSERT INTO `systempreferences` (variable,value,explanation,options,type) VALUES('ShowReviewerPhoto',1,'If ON, photo of reviewer will be shown beside comments in OPAC',NULL,'YesNo');");
     print "Upgrade to $DBversion done (Add syspref ShowReviewerPhoto)\n";
+}
+    
+$DBversion = "3.05.00.XXX";
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("ALTER TABLE issues CHANGE date_due date_due datetime");
+    $dbh->do("ALTER TABLE issues CHANGE returndate returndate datetime");
+    $dbh->do("ALTER TABLE issues CHANGE lastreneweddate lastreneweddate datetime");
+    $dbh->do("ALTER TABLE issues CHANGE issuedate issuedate datetime");
+    $dbh->do("ALTER TABLE old_issues CHANGE date_due date_due datetime");
+    $dbh->do("ALTER TABLE old_issues CHANGE returndate returndate datetime");
+    $dbh->do("ALTER TABLE old_issues CHANGE lastreneweddate lastreneweddate datetime");
+    $dbh->do("ALTER TABLE old_issues CHANGE issuedate issuedate datetime");
+    print "Upgrade to $DBversion done (Setting up issues tables for hourly loans)\n";
     SetVersion($DBversion);
 }
 
