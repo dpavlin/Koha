@@ -60,22 +60,11 @@ foreach my $issue ( @$issues ) {
     my ($year,$month,$day)=Parse_Date($issue->{'date_due'});
     ($year,$month,$day)=split /-|\/|\.|:/,$issue->{'date_due'} unless ($year && $month);
 #    Decode_Date_EU2($string))
-    my $datestart = Date::ICal->new( 
-	day => $day, 
-	month => $month, 
-	year => $year,
-	hour => 9,
-	min => 0,
-	sec => 0
-    )->ical;
-    my $dateend = Date::ICal->new( 
-	day => $day, 
-	month => $month, 
-	year => $year,
-	hour => 10,
-	min => 0,
-	sec => 0
-    )->ical;
+    $issue->{date_due}->truncate( to => 'hours');
+    $issue->{date_due}->set_hour(9);
+    my $datestart = Date::ICal->new($issue->{date_due}->epoch())->ical(); 
+    $issue->{date_due}->set_hour(10);
+    my $dateend = Date::ICal->new($issue->{date_due}->epoch())->ical();  
     $vevent->add_properties(
         summary => "$issue->{'title'} Due",
         description =>

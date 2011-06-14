@@ -23,6 +23,7 @@ use C4::Context;
 use C4::Circulation;
 use C4::Members;
 use C4::Dates qw(format_date);
+use Koha::DateUtils;
 
 use vars qw($VERSION @ISA @EXPORT);
 
@@ -180,7 +181,7 @@ sub printslip ($) {
     my $borrower   = GetMemberDetails($borrowernumber);
 	my $issueslist = GetPendingIssues($borrowernumber); 
 	foreach my $it (@$issueslist){
-		$it->{'date_due'}=format_date($it->{'date_due'});
+		$it->{date_due}=output_pref($it->{date_due});
     }		
     my @issues = sort { $b->{'timestamp'} <=> $a->{'timestamp'} } @$issueslist;
     remoteprint(\@issues, $borrower );
