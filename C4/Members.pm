@@ -32,6 +32,9 @@ use C4::Accounts;
 use C4::Biblio;
 use C4::SQLHelper qw(InsertInTable UpdateInTable SearchInTable);
 use C4::Members::Attributes qw(SearchIdMatchingAttribute);
+use DateTime;
+use DateTime::Format::DateParse;
+
 
 our ($VERSION,@ISA,@EXPORT,@EXPORT_OK,$debug);
 
@@ -1023,10 +1026,16 @@ The keys include C<biblioitems> fields except marc and marcxml.
 
 #'
 sub GetPendingIssues {
+<<<<<<< HEAD
     my @borrowernumbers = @_;
 
     unless (@borrowernumbers ) { # return a ref_to_array
         return \@borrowernumbers; # to not cause surprise to caller
+=======
+    my (@borrowernumbers) = @_;
+    if (! @borrowernumbers ) {
+        return;
+>>>>>>> 48dbf5f... Get basic 24 Hr loan working
     }
 
     # Borrowers part of the query
@@ -1075,9 +1084,12 @@ sub GetPendingIssues {
     my $sth = C4::Context->dbh->prepare($query);
     $sth->execute(@borrowernumbers);
     my $data = $sth->fetchall_arrayref({});
-    my $today = C4::Dates->new->output('iso');
+    my $tz = C4::Context->tz();
+    my $today = DateTime->now( time_zone => $tz);
     foreach (@{$data}) {
-        if ($_->{date_due}  and $_->{date_due} lt $today) {
+        $_->{date_due} or next;
+        $_->{date_due} = DateTime::Format::DateParse->parse_datetime($_->{date_due}, $tz->name());
+        if ( DateTime->compare($_->{date_due}, $today) == -1 ) {
             $_->{overdue} = 1;
         }
     }
