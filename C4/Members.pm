@@ -1026,16 +1026,10 @@ The keys include C<biblioitems> fields except marc and marcxml.
 
 #'
 sub GetPendingIssues {
-<<<<<<< HEAD
     my @borrowernumbers = @_;
 
     unless (@borrowernumbers ) { # return a ref_to_array
         return \@borrowernumbers; # to not cause surprise to caller
-=======
-    my (@borrowernumbers) = @_;
-    if (! @borrowernumbers ) {
-        return;
->>>>>>> 48dbf5f... Get basic 24 Hr loan working
     }
 
     # Borrowers part of the query
