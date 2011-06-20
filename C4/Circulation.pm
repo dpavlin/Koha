@@ -910,7 +910,7 @@ sub CanBookBeIssued {
             $needsconfirmation{'resreservedate'} = format_date($res->{'reservedate'});
         }
     }
-    
+
     ## check for high holds decreasing loan period
     if (C4::Context->preference("decreaseLoanHighHolds") == 1)
     {
@@ -921,7 +921,7 @@ sub CanBookBeIssued {
             $needsconfirmation{HIGHHOLDS} = 1;
             $needsconfirmation{'num_holds'} = $num;
             $needsconfirmation{'duration'} = $duration;
-            $needsconfirmation{'returndate'} = format_date($returndate);
+            $needsconfirmation{'returndate'} = output_pref($returndate);
         }
     }
 
@@ -941,38 +941,32 @@ sub checkHighHolds {
     my $biblio = GetBiblioFromItemNumber($item->{itemnumber});
     my $branch = _GetCircControlBranch($item,$borrower);
     my $dbh = C4::Context->dbh;
-    my $sth;
-    $sth = $dbh->prepare("select count(borrowernumber) as num_holds from reserves where biblionumber=?");
+    my $sth = $dbh->prepare('select count(borrowernumber) as num_holds from reserves where biblionumber=?');
     $sth->execute($item->{'biblionumber'});
-    my $holds = $sth->fetchrow_array;
-    if ($holds>0)
+    my ($holds) = $sth->fetchrow_array;
+    if ($holds)
     {
-        my $issuedate = strftime( "%Y-%m-%d", localtime );
-        my $startdate=C4::Dates->new( $issuedate, 'iso' );
-        my $calendar = C4::Calendar->new(  branchcode => $branch );
+        my $issuedate = DateTime->new( time_zone => C4::Context->tz());
+        #    my $startdate=C4::Dates->new( $issuedate, 'iso' );
+        my $calendar = Koha::Calendar->new(  branchcode => $branch );
 
         my $itype = ( C4::Context->preference('item-level_itypes') ) ? $biblio->{'itype'} : $biblio->{'itemtype'};
-        my $due = C4::Circulation::CalcDateDue( C4::Dates->new( $issuedate, 'iso' ), $itype, $branch, $borrower );
-        my $normaldue = sprintf("%04d-%02d-%02d",($due->{'dmy_arrayref'}[5]+1900),($due->{'dmy_arrayref'}[4]+1),
-            $due->{'dmy_arrayref'}[3]);
+        my $orig_due = C4::Circulation::CalcDateDue( $issuedate, $itype, $branch, $borrower );
 
-        my $datedue = $calendar->addDate($startdate, C4::Context->preference("decreaseLoanHighHoldsDuration"));
-        my $returndate = sprintf("%04d-%02d-%02d",($datedue->{'dmy_arrayref'}[5]+1900),($datedue->{'dmy_arrayref'}[4]+1),
-            $datedue->{'dmy_arrayref'}[3]);
+        my $reduced_datedue = $calendar->addDate($issuedate, C4::Context->preference("decreaseLoanHighHoldsDuration"));
 
-        my $daysBetween = $calendar->daysBetween($datedue, $due);
-        if ($daysBetween>0)
+        if (DateTime->compare($reduced_datedue,$orig_due) == -1 )
         {
-            return (1,$holds,C4::Context->preference("decreaseLoanHighHoldsDuration"),$returndate);
+            return (1,$holds,C4::Context->preference("decreaseLoanHighHoldsDuration"),$reduced_datedue);
         }
         else
         {
-            return (0,0,0,0);
+            return (0,0,0,undef);
         }
     }
     else
     {
-        return (0,0,0,0);
+        return (0,0,0,undef);
     }
 }
 
