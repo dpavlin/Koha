@@ -783,7 +783,7 @@ sub CanBookBeIssued {
     #
 	my ($current_loan_count, $max_loans_allowed) = TooMany( $borrower, $item->{biblionumber}, $item );
     # if TooMany max_loans_allowed returns 0 the user doesn't have permission to check out this book
-    if ($max_loans_allowed eq 0) {
+    if (defined $max_loans_allowed && $max_loans_allowed == 0) {
         $needsconfirmation{PATRON_CANT} = 1;
     } else {
         if($max_loans_allowed){
@@ -912,11 +912,12 @@ sub CanBookBeIssued {
     }
 
     ## check for high holds decreasing loan period
-    if (C4::Context->preference("decreaseLoanHighHolds") == 1)
+    my $decrease_loan = C4::Context->preference('decreaseLoanHighHolds');
+    if ($decrease_loan && $decrease_loan == 1)
     {
         my ($reserved,$num,$duration,$returndate)=checkHighHolds($item,$borrower);
         #print "reserved: $reserved\n".Dumper($num);
-        if ($num>=C4::Context->preference("decreaseLoanHighHoldsValue"))
+        if ($num >= C4::Context->preference("decreaseLoanHighHoldsValue"))
         {
             $needsconfirmation{HIGHHOLDS} = 1;
             $needsconfirmation{'num_holds'} = $num;
