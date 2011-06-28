@@ -947,8 +947,7 @@ sub checkHighHolds {
     my ($holds) = $sth->fetchrow_array;
     if ($holds)
     {
-        my $issuedate = DateTime->new( time_zone => C4::Context->tz());
-        #    my $startdate=C4::Dates->new( $issuedate, 'iso' );
+        my $issuedate = DateTime->now( time_zone => C4::Context->tz());
         my $calendar = Koha::Calendar->new(  branchcode => $branch );
 
         my $itype = ( C4::Context->preference('item-level_itypes') ) ? $biblio->{'itype'} : $biblio->{'itemtype'};
