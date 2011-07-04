@@ -22,8 +22,8 @@ select
 	items.itemnumber,
 	biblio.title,
 	author,
-	barcode
-	
+	barcode,
+	issuedate
 from issues
 join borrowers on borrowers.borrowernumber = issues.borrowernumber
 join items on issues.itemnumber = items.itemnumber 
