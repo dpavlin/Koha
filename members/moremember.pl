@@ -33,7 +33,7 @@
 =cut
 
 use strict;
-#use warnings; FIXME - Bug 2505
+use warnings;
 use CGI;
 use C4::Context;
 use C4::Auth;
@@ -52,9 +52,8 @@ use C4::Branch; # GetBranchName
 use C4::Form::MessagingPreferences;
 use C4::NewsChannels; #get slip news
 use List::MoreUtils qw/uniq/;
-
-#use Smart::Comments;
-#use Data::Dumper;
+use DateTime;
+use Koha::DateUtils;
 
 use vars qw($debug);
 
@@ -64,7 +63,7 @@ BEGIN {
 
 my $dbh = C4::Context->dbh;
 
-my $input = new CGI;
+my $input = CGI->new;
 $debug or $debug = $input->param('debug') || 0;
 my $print = $input->param('print');
 my $override_limit = $input->param("override_limit") || 0;
@@ -242,90 +241,19 @@ if ( C4::Context->preference('OPACPrivacy') ) {
 #
 my @borrowernumbers = GetMemberRelatives($borrowernumber);
 my $issue       = GetPendingIssues($borrowernumber);
-my $relissue    = GetPendingIssues(@borrowernumbers);
-my $issuecount = scalar(@$issue);
-my $relissuecount  = scalar(@$relissue);
+my $relissue    = [];
+if ( @borrowernumbers ) {
+    $relissue    = GetPendingIssues(@borrowernumbers);
+}
 my $roaddetails = &GetRoadTypeDetails( $data->{'streettype'} );
-my $today       = POSIX::strftime("%Y-%m-%d", localtime);	# iso format
-my @issuedata;
+my $today       = DateTime->now( time_zone => C4::Context->tz);
+$today->truncate(to => 'days');
 my @borrowers_with_issues;
 my $overdues_exist = 0;
 my $totalprice = 0;
 
-my @issuedata = build_issue_data($issue, $issuecount);
-my @relissuedata = build_issue_data($relissue, $relissuecount);
-
-sub build_issue_data {
-    my $issue = shift;
-    my $issuecount = shift;
-
-    my $localissue;
-
-    for ( my $i = 0 ; $i < $issuecount ; $i++ ) {
-        # Getting borrower details
-        my $memberdetails = GetMemberDetails($issue->[$i]{'borrowernumber'});
-        $issue->[$i]{'borrowername'} = $memberdetails->{'firstname'} . " " . $memberdetails->{'surname'};
-        $issue->[$i]{'cardnumber'} = $memberdetails->{'cardnumber'};
-        my $datedue = $issue->[$i]{'date_due'};
-        my $issuedate = $issue->[$i]{'issuedate'};
-        $issue->[$i]{'date_due'}  = C4::Dates->new($issue->[$i]{'date_due'}, 'iso')->output('syspref');
-        $issue->[$i]{'issuedate'} = C4::Dates->new($issue->[$i]{'issuedate'},'iso')->output('syspref');
-        my $biblionumber = $issue->[$i]{'biblionumber'};
-        my %row = %{ $issue->[$i] };
-        $totalprice += $issue->[$i]{'replacementprice'};
-        $row{'replacementprice'} = $issue->[$i]{'replacementprice'};
-        # item lost, damaged loops
-        if ($row{'itemlost'}) {
-            my $fw = GetFrameworkCode($issue->[$i]{'biblionumber'});
-            my $category = GetAuthValCode('items.itemlost',$fw);
-            my $lostdbh = C4::Context->dbh;
-            my $sth = $lostdbh->prepare("select lib from authorised_values where category=? and authorised_value =? ");
-            $sth->execute($category, $row{'itemlost'});
-            my $loststat = $sth->fetchrow;
-            if ($loststat) {
-               $row{'itemlost'} = $loststat;
-            }
-        }
-        if ($row{'damaged'}) {
-            my $fw = GetFrameworkCode($issue->[$i]{'biblionumber'});
-            my $category = GetAuthValCode('items.damaged',$fw);
-            my $damageddbh = C4::Context->dbh;
-            my $sth = $damageddbh->prepare("select lib from authorised_values where category=? and authorised_value =? ");
-            $sth->execute($category, $row{'damaged'});
-            my $damagedstat = $sth->fetchrow;
-            if ($damagedstat) {
-               $row{'itemdamaged'} = $damagedstat;
-            }
-        }
-        # end lost, damaged
-        if ( $datedue lt $today ) {
-            $overdues_exist = 1;
-            $row{'red'} = 1;
-        }
-         if ( $issuedate eq $today ) {
-            $row{'today'} = 1; 
-         }
-
-        #find the charge for an item
-        my ( $charge, $itemtype ) =
-          GetIssuingCharges( $issue->[$i]{'itemnumber'}, $borrowernumber );
-
-        my $itemtypeinfo = getitemtypeinfo($itemtype);
-        $row{'itemtype_description'} = $itemtypeinfo->{description};
-        $row{'itemtype_image'}       = $itemtypeinfo->{imageurl};
-
-        $row{'charge'} = sprintf( "%.2f", $charge );
-
-        my ( $renewokay,$renewerror ) = CanBookBeRenewed( $borrowernumber, $issue->[$i]{'itemnumber'}, $override_limit );
-        $row{'norenew'} = !$renewokay;
-        $row{'can_confirm'} = ( !$renewokay && $renewerror ne 'on_reserve' );
-        $row{"norenew_reason_$renewerror"} = 1 if $renewerror;
-        $row{'renew_failed'}  = $renew_failed{ $issue->[$i]{'itemnumber'} };
-        $row{'return_failed'} = $return_failed{$issue->[$i]{'barcode'}};   
-        push( @$localissue, \%row );
-    }
-    return $localissue;
-}
+my @issuedata = build_issue_data($issue);
+my @relissuedata = build_issue_data($relissue);
 
 
 ### ###############################################################################
@@ -461,8 +389,6 @@ $template->param(
     totaldue_raw    => $total,
     issueloop       => @issuedata,
     relissueloop    => @relissuedata,
-	issuecount      => $issuecount,
-    relissuecount   => $relissuecount,
     overdues_exist  => $overdues_exist,
     error           => $error,
     $error          => 1,
@@ -485,3 +411,90 @@ $template->param(
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;
+
+sub build_issue_data {
+    my $issues = shift;
+
+    my $localissue;
+
+    foreach my $issue ( @{$issues} ) {
+
+        # Getting borrower details
+        my $memberdetails = GetMemberDetails( $issue->{borrowernumber} );
+        $issue->{borrowername} =
+          $memberdetails->{firstname} . ' ' . $memberdetails->{surname};
+        $issue->{cardnumber} = $memberdetails->{cardnumber};
+        my $issuedate;
+        if ($issue->{issuedate} ) {
+            $issuedate = $issue->{issuedate}->clone();
+        }
+
+        #wtf $issue->{'date_due'}  = format_date($issue->[$i]->{issuedate});
+        $issue->{date_due}  = output_pref( $issue->{date_due} );
+        $issue->{issuedate} = output_pref( $issue->{issuedate} ) if defined $issue->{issuedate};
+        my $biblionumber = $issue->{biblionumber};
+        my %row          = %{$issue};
+        $totalprice += $issue->{replacementprice};
+
+        # item lost, damaged loops
+        if ( $row{'itemlost'} ) {
+            my $fw       = GetFrameworkCode( $issue->{biblionumber} );
+            my $category = GetAuthValCode( 'items.itemlost', $fw );
+            my $lostdbh  = C4::Context->dbh;
+            my $sth      = $lostdbh->prepare(
+"select lib from authorised_values where category=? and authorised_value =? "
+            );
+            $sth->execute( $category, $row{'itemlost'} );
+            my $loststat = $sth->fetchrow;
+            if ($loststat) {
+                $row{'itemlost'} = $loststat;
+            }
+        }
+        if ( $row{'damaged'} ) {
+            my $fw         = GetFrameworkCode( $issue->{biblionumber} );
+            my $category   = GetAuthValCode( 'items.damaged', $fw );
+            my $damageddbh = C4::Context->dbh;
+            my $sth        = $damageddbh->prepare(
+"select lib from authorised_values where category=? and authorised_value =? "
+            );
+            $sth->execute( $category, $row{'damaged'} );
+            my $damagedstat = $sth->fetchrow;
+            if ($damagedstat) {
+                $row{'itemdamaged'} = $damagedstat;
+            }
+        }
+
+        # end lost, damaged
+        if ( $issue->{overdue} ) {
+            $overdues_exist = 1;
+            $row{red} = 1;
+        }
+        if ($issuedate) {
+            $issuedate->truncate( to => 'days' );
+            if ( DateTime->compare( $issuedate, $today ) == 0 ) {
+                $row{today} = 1;
+            }
+        }
+
+        #find the charge for an item
+        my ( $charge, $itemtype ) =
+          GetIssuingCharges( $issue->{itemnumber}, $borrowernumber );
+
+        my $itemtypeinfo = getitemtypeinfo($itemtype);
+        $row{'itemtype_description'} = $itemtypeinfo->{description};
+        $row{'itemtype_image'}       = $itemtypeinfo->{imageurl};
+
+        $row{'charge'} = sprintf( "%.2f", $charge );
+
+        my ( $renewokay, $renewerror ) =
+          CanBookBeRenewed( $borrowernumber, $issue->{itemnumber},
+            $override_limit );
+        $row{'norenew'} = !$renewokay;
+        $row{'can_confirm'} = ( !$renewokay && $renewerror ne 'on_reserve' );
+        $row{"norenew_reason_$renewerror"} = 1 if $renewerror;
+        $row{renew_failed}  = $renew_failed{ $issue->{itemnumber} };
+        $row{return_failed} = $return_failed{ $issue->{barcode} };
+        push( @{$localissue}, \%row );
+    }
+    return $localissue;
+}

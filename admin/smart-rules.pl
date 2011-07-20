@@ -18,7 +18,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use strict;
-#use warnings; FIXME - Bug 2505
+use warnings;
 use CGI;
 use C4::Context;
 use C4::Output;
@@ -28,7 +28,7 @@ use C4::Debug;
 use C4::Branch; # GetBranches
 use C4::Dates qw/format_date format_date_in_iso/;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $dbh = C4::Context->dbh;
 
 # my $flagsrequired;
@@ -100,9 +100,9 @@ elsif ($op eq 'delete-branch-item') {
 }
 # save the values entered
 elsif ($op eq 'add') {
-    my $sth_search = $dbh->prepare("SELECT COUNT(*) AS total FROM issuingrules WHERE branchcode=? AND categorycode=? AND itemtype=?");
-    my $sth_insert = $dbh->prepare("INSERT INTO issuingrules (branchcode, categorycode, itemtype, maxissueqty, renewalsallowed, reservesallowed, issuelength, hardduedate, hardduedatecompare, fine, finedays, firstremind, chargeperiod,rentaldiscount) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-    my $sth_update=$dbh->prepare("UPDATE issuingrules SET fine=?, finedays=?, firstremind=?, chargeperiod=?, maxissueqty=?, renewalsallowed=?, reservesallowed=?, issuelength=?, hardduedate=?, hardduedatecompare=?, rentaldiscount=?  WHERE branchcode=? AND categorycode=? AND itemtype=?");
+    my $sth_search = $dbh->prepare('SELECT COUNT(*) AS total FROM issuingrules WHERE branchcode=? AND categorycode=? AND itemtype=?');
+    my $sth_insert = $dbh->prepare('INSERT INTO issuingrules (branchcode, categorycode, itemtype, maxissueqty, renewalsallowed, reservesallowed, issuelength, lengthunit, hardduedate, hardduedatecompare, fine, finedays, firstremind, chargeperiod,rentaldiscount) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    my $sth_update=$dbh->prepare("UPDATE issuingrules SET fine=?, finedays=?, firstremind=?, chargeperiod=?, maxissueqty=?, renewalsallowed=?, reservesallowed=?, issuelength=?, lengthunit = ?, hardduedate=?, hardduedatecompare=?, rentaldiscount=?  WHERE branchcode=? AND categorycode=? AND itemtype=?");
     
     my $br = $branch; # branch
     my $bor  = $input->param('categorycode'); # borrower category
@@ -117,6 +117,7 @@ elsif ($op eq 'add') {
     $maxissueqty =~ s/\s//g;
     $maxissueqty = undef if $maxissueqty !~ /^\d+/;
     my $issuelength  = $input->param('issuelength');
+    my $lengthunit  = $input->param('lengthunit');
     my $hardduedate = $input->param('hardduedate');
     $hardduedate = format_date_in_iso($hardduedate);
     my $hardduedatecompare = $input->param('hardduedatecompare');
@@ -126,9 +127,9 @@ elsif ($op eq 'add') {
     $sth_search->execute($br,$bor,$cat);
     my $res = $sth_search->fetchrow_hashref();
     if ($res->{total}) {
-        $sth_update->execute($fine, $finedays,$firstremind, $chargeperiod, $maxissueqty, $renewalsallowed,$reservesallowed, $issuelength,$hardduedate,$hardduedatecompare,$rentaldiscount, $br,$bor,$cat);
+        $sth_update->execute($fine, $finedays,$firstremind, $chargeperiod, $maxissueqty, $renewalsallowed,$reservesallowed, $issuelength,$lengthunit, $hardduedate,$hardduedatecompare,$rentaldiscount, $br,$bor,$cat);
     } else {
-        $sth_insert->execute($br,$bor,$cat,$maxissueqty,$renewalsallowed,$reservesallowed,$issuelength,$hardduedate,$hardduedatecompare,$fine,$finedays,$firstremind,$chargeperiod,$rentaldiscount);
+        $sth_insert->execute($br,$bor,$cat,$maxissueqty,$renewalsallowed,$reservesallowed,$issuelength,$lengthunit,$hardduedate,$hardduedatecompare,$fine,$finedays,$firstremind,$chargeperiod,$rentaldiscount);
     }
 } 
 elsif ($op eq "set-branch-defaults") {

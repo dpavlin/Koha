@@ -27,7 +27,7 @@
 =cut
 
 use strict;
-#use warnings; FIXME - Bug 2505
+use warnings;
 use CGI;
 use C4::Context;
 use C4::Auth;

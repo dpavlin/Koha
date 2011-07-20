@@ -176,13 +176,13 @@ my %handlers = (
 		    handler => \&handle_fee_paid,
 		    protocol => {
 			2 => {
-			    template => "A18A2A3",
-			    template_len => 0,
+			    template => "A18A2A2A3",
+			    template_len => 25,
 			    fields => [(FID_FEE_AMT), (FID_INST_ID),
 				       (FID_PATRON_ID), (FID_TERMINAL_PWD),
 				       (FID_PATRON_PWD), (FID_FEE_ID),
-				       (FID_TRANSACTION_ID)],
-			}
+                       (FID_TRANSACTION_ID)],
+               }
 		    }
 		},
 		(ITEM_INFORMATION) => {
@@ -817,7 +817,7 @@ sub login_core ($$$) {
 		$server->{sip_username} = $uid;
 		$server->{sip_password} = $pwd;
 
-		my $auth_status = api_auth($uid,$pwd);
+		my $auth_status = api_auth($uid,$pwd,$inst);
 		if (!$auth_status or $auth_status !~ /^ok$/i) {
 			syslog("LOG_WARNING", "api_auth failed for SIP terminal '%s' of '%s': %s",
 						$uid, $inst, ($auth_status||'unknown'));
@@ -1027,7 +1027,7 @@ sub handle_end_patron_session {
 
     ($trans_date) = @{$self->{fixed_fields}};
 
-    $ils->check_inst_id($fields->{FID_INST_ID}, "handle_end_patron_session");
+    $ils->check_inst_id($fields->{(FID_INST_ID)}, 'handle_end_patron_session');
 
     ($status, $screen_msg, $print_line) = $ils->end_patron_session($fields->{(FID_PATRON_ID)});
 
@@ -1585,17 +1585,17 @@ sub patron_status_string {
     return $patron_status;
 }
 
-sub api_auth($$) {
-	# AUTH
-	my ($username,$password) = (shift,shift);
-	$ENV{REMOTE_USER} = $username;
-	my $query = CGI->new();
-	$query->param(userid   => $username);
-	$query->param(password => $password);
-	my ($status, $cookie, $sessionID) = check_api_auth($query, {circulate=>1}, "intranet");
-	# print STDERR "check_api_auth returns " . ($status || 'undef') . "\n";
-	# print "api_auth userenv = " . &dump_userenv;
-	return $status;
+sub api_auth {
+    my ($username,$password, $branch) = @_;
+    $ENV{REMOTE_USER} = $username;
+    my $query = CGI->new();
+    $query->param(userid   => $username);
+    $query->param(password => $password);
+    if ($branch) {
+        $query->param(branch => $branch);
+    }
+    my ($status, $cookie, $sessionID) = check_api_auth($query, {circulate=>1}, 'intranet');
+    return $status;
 }
 
 1;

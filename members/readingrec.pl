@@ -30,6 +30,7 @@ use C4::Output;
 use C4::Members;
 use C4::Branch;
 use List::MoreUtils qw/any/;
+use Koha::DateUtils;
 
 use C4::Dates qw/format_date/;
 
@@ -71,9 +72,9 @@ foreach my $issue (@{$issues}){
 	$line{title}           = $issue->{'title'};
 	$line{author}          = $issue->{'author'};
 	$line{classification}  = $issue->{'classification'} || $issue->{'itemcallnumber'};
-	$line{date_due}        = format_date($issue->{'date_due'});
-	$line{returndate}      = format_date($issue->{'returndate'});
-	$line{issuedate}       = format_date($issue->{'issuedate'});
+	$line{date_due}        = format_sqldatetime($issue->{date_due});
+	$line{returndate}      = format_sqldatetime($issue->{returndate});
+	$line{issuedate}       = format_sqldatetime($issue->{issuedate});
 	$line{issuingbranch}   = GetBranchName($issue->{'branchcode'});
 	$line{renewals}        = $issue->{'renewals'};
 	$line{barcode}         = $issue->{'barcode'};

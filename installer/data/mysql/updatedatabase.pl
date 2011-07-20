@@ -4370,6 +4370,8 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
     SetVersion($DBversion);
 }
 
+
+
 =head1 FUNCTIONS
 
 =head2 DropAllForeignKeys($table)

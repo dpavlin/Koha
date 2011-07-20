@@ -28,10 +28,13 @@ use C4::Branch;
 use C4::Category;
 
 my $query = new CGI;
+my $quicksearch = $query->param('quicksearch');
 my $branch = $query->param('branchcode');
 my $template_name;
 
-$branch = q{} unless defined $branch;
+if (!defined $branch) {
+    $branch = q{};
+}
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "members/member.tmpl",

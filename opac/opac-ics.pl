@@ -27,6 +27,8 @@ use Data::ICal;
 use Data::ICal::Entry::Event;
 use Date::ICal;
 use Date::Calc qw (Parse_Date);
+use DateTime;
+use DateTime::Event::ICal;
 
 use C4::Auth;
 use C4::Koha;
@@ -53,29 +55,15 @@ my ( $borr ) =  GetMemberDetails( $borrowernumber );
 my $calendar = Data::ICal->new();
 
 # get issued items ....
-my ($issues) = GetPendingIssues($borrowernumber);
+my $issues = GetPendingIssues($borrowernumber);
 
 foreach my $issue ( @$issues ) {
     my $vevent = Data::ICal::Entry::Event->new();
-    my ($year,$month,$day)=Parse_Date($issue->{'date_due'});
-    ($year,$month,$day)=split /-|\/|\.|:/,$issue->{'date_due'} unless ($year && $month);
-#    Decode_Date_EU2($string))
-    my $datestart = Date::ICal->new( 
-	day => $day, 
-	month => $month, 
-	year => $year,
-	hour => 9,
-	min => 0,
-	sec => 0
-    )->ical;
-    my $dateend = Date::ICal->new( 
-	day => $day, 
-	month => $month, 
-	year => $year,
-	hour => 10,
-	min => 0,
-	sec => 0
-    )->ical;
+    $issue->{date_due}->truncate( to => 'hours');
+    $issue->{date_due}->set_hour(9);
+    my $datestart = Date::ICal->new($issue->{date_due}->epoch())->ical(); 
+    $issue->{date_due}->set_hour(10);
+    my $dateend = Date::ICal->new($issue->{date_due}->epoch())->ical();  
     $vevent->add_properties(
         summary => "$issue->{'title'} Due",
         description =>
