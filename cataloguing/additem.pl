@@ -411,6 +411,28 @@ my ($template, $loggedinuser, $cookie)
                  });
 
 
+# XXX dpavlin -- signatura zatvorenog spremista
+sub ffzg_zs_callnumber {
+	my ($record) = @_;
+	my ($tagfield,$tagsubfield) = &GetMarcFromKohaField("items.itemcallnumber",$frameworkcode);
+	if ($record->field($tagfield)->subfield($tagsubfield) =~ m/^ZS#(\w\w)\s(\d+)-(\d+)$/ ) {
+		my ( $prefix, $min, $max ) = ( $1, $2, $3 );
+		my $sth = $dbh->prepare(qq{ select ffzg_zs_nextval(?) });
+		$sth->execute( $prefix );
+		my ($itemcallnumber) = $sth->fetchrow;
+
+warn "ZS: $prefix $min - $max => $itemcallnumber\n";
+
+		if ( $itemcallnumber < $min || $itemcallnumber > $max ) {
+			die "can't find next itemcallnumber for $prefix $min-$max, got: $itemcallnumber";
+		}
+		my $fieldItem = $record->field($tagfield);
+		$fieldItem->update($tagsubfield => $prefix . ' ' . $itemcallnumber);
+	}
+	return $record;
+}
+
+
 # Does the user have a restricted item editing permission?
 my $uid = Koha::Patrons->find( $loggedinuser )->userid;
 my $restrictededition = $uid ? haspermission($uid,  {'editcatalogue' => 'edit_items_restricted'}) : undef;
@@ -481,6 +503,8 @@ if ($op eq "additem") {
     }
 
     my $addedolditem = TransformMarcToKoha( $record );
+
+	$record = ffzg_zs_callnumber( $record ); # XXX dpavlin
 
     # If we have to add or add & duplicate, we add the item
     if ( $add_submit || $add_duplicate_submit ) {
@@ -693,6 +717,9 @@ if ($op eq "additem") {
     # MARC::Record builded => now, record in DB
     # warn "R: ".$record->as_formatted;
     # check that the barcode don't exist already
+
+	$itemtosave = ffzg_zs_callnumber( $itemtosave ); # XXX dpavlin
+
     my $addedolditem = TransformMarcToKoha($itemtosave);
     my $exist_itemnumber = get_item_from_barcode($addedolditem->{'barcode'});
     if ($exist_itemnumber && $exist_itemnumber != $itemnumber) {

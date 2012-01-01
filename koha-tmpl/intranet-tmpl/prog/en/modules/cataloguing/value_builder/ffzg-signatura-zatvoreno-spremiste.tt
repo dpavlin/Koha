@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD Xhtml 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Signature za zatvoreno spremište</title>
+<style type=text/css>
+
+label {
+	font-family: monospace;
+	font-weight: bold;
+}
+
+</style>
+<script type="text/javascript" src="[% themelang %]/lib/jquery/jquery.js"></script>
+</head>
+<body>
+<h1>Signature za zatvoreno spremište</h1>
+<form name="f_pop" onSubmit="return report()">
+<input type="hidden" name="plugin_name" value="ffzg-signatura-zatvoreno-spremiste.pl" />
+<table>
+
+	[% FOREACH group IN optgroup %]
+		<tr><th colspan=2>[% group.label %]</th></tr>
+
+		[% FOREACH opt IN group.option %]
+			<tr><td>
+				<input type=radio name=f1 value="ZS#[% opt.value %]" id="r[% opt.value %]">
+				<label for="r[% opt.value %]">[% opt.value %]</label>
+			</td><td>[% opt.display %]</td><tr>
+		[% END %]
+	[% END %]
+
+	<tr><th colspan="2">
+		<input type="submit" value="OK" />
+		<input type="button" value="Cancel" onClick="self.close()">
+	</th></tr>
+</table>
+</form>
+<script>
+
+function report() {
+
+	var doc = opener.document;
+	var field = doc.getElementById("[% index %]");
+	field.value = $('input:radio:checked').val();
+	field.readOnly = true;
+	self.close();
+	return false;
+
+}
+
+</script>
+</body>
+</html>
