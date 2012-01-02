@@ -1,0 +1,299 @@
+@import url("opac.css");
+
+.firstrow {
+	display: block;
+	padding: 0 0 0.1em 0em;
+}
+
+.secondrow {
+	display: block;
+	padding: 0 0 0.6em 0em;
+}
+
+
+
+/*
+	color: #707070;
+	color: #990033;
+	color: #990033;
+*/
+
+.results_summary {
+	font-size: 100%;
+}
+
+.results_summary .label {
+	color: #707070;
+}
+
+.label2 {
+	color: #990033;
+	font-weight: bold;
+}
+
+.label3 {
+	color: #990033;
+}
+
+.results_summary img {
+	margin: 0;
+}
+
+.results_summary.inline {
+	display: inline;
+}
+
+#catalogue_detail_biblio .results_summary.tags {
+	border: 1px solid #E8E8E8;
+	padding: 2px 20px;
+	background: #f3f3f3;
+	margin: 10px 30px;
+}
+
+.results_summary.tags .label {
+	color: #990033;
+}
+
+.results_summary.tags a {
+	font-weight: normal;
+}
+
+.results_summary.actions {
+	margin-top: 6px;
+	margin-left: 30px;
+	display: inline;
+}
+
+.results_summary.actions a {
+	margin-left: 0.2em;
+}
+
+.results_summary.actions #login4tags {
+	display: inline;
+}
+
+.results_summary input {
+	color : #333;
+	font-size : 85%;
+	font-weight : normal;
+	padding : 2px;
+	border: 1px solid #ccc;
+}
+
+.results_summary.actions .addtolist {
+	background: url("../../famfamfam/silk/bullet_star.png") no-repeat scroll left center transparent;
+	padding-left: 16px;
+}
+
+#catalogue_detail_biblio h1 {
+	font-size: 136%;
+	display: inline;
+	color: #069;
+}
+
+#catalogue_detail_biblio h5 {
+	font-size: 134%;
+	font-weight: normal;
+	display: inline;
+}
+
+#catalogue_detail_biblio .results_summary {
+	font-size: 100%;
+	color: #020202;
+}
+
+#catalogue_detail_biblio .firstrow {
+	padding: 0 0 1em 0;
+}
+
+
+h1#libraryname {
+	border: 0px solid #ccc;
+	float : left !important;
+	margin:-.66em .8em -.66em 1.8em;
+	padding:0;
+	width:80px;
+	height:80px;
+	text-align: right;
+}
+
+
+
+/* header knjiznica.ffzg.hr */
+
+
+#knjiznica-main
+{
+	height: auto;
+	margin: 0 auto 0 auto;
+	padding-bottom: 0.5em;
+	font-size: 11px;
+	font-weight: normal;
+	color: #A52A2A;
+	color: #3d3535;
+}
+#knjiznica-header
+{
+	vertical-align: top;
+	text-align: left;
+	padding: 5px 0px 22px 1px;
+	font-size: 11px;
+	font-weight: lighter;
+	color: #00008B;
+	z-index: 100;
+}
+
+.knjiznica-title
+{
+	font-size: 26px;
+	font-style: normal;
+	font-weight: bold;
+	font-family: Trebuchet MS, Lucida, Arial, sans-serif;
+/*	color: #90200A; */
+	color: #336699;
+	padding-right: 20px;
+}
+.knjiznica-darktitle
+{
+	font-family: Trebuchet MS, Lucida, Arial, sans-serif;
+	font-size: 24px;
+	font-style: normal;
+	font-weight: bold;
+	color: #3D3535;
+}
+
+.knjiznica-subt {
+	font-family: Trebuchet MS, Lucida, Arial, sans-serif;
+	font-size: 17px;
+	font-style: normal;
+	color: #3D3535;
+	padding-right: 20px;
+	padding-left: 3px;
+}
+
+.knjiznica-subt2 {
+	color: #369;
+}
+
+#knjiznica-navigation {
+	text-align: right;
+	margin-top: -3em;
+}
+
+.knjiznica-navigation {
+	font-size: 14px;
+	font-weight: normal;
+	text-align: right;
+	border-bottom: 0px solid #efefef;
+	z-index: 50;
+}
+
+.knjiznica-navigation a:link, .knjiznica-navigation a:active, .knjiznica-navigation a:visited {
+        background: #EDEEEA url(http://mjesec.ffzg.hr/img/ffk/corner.gif) no-repeat right top;
+        color: #3D3535;
+        text-decoration: none;
+        padding: 3px 7px 3px 7px;
+	letter-spacing: -0.03em;
+	font-weight: normal;
+}
+
+.knjiznica-navigation a:hover {
+        background: #FFdd76 url(http://mjesec.ffzg.hr/img/ffk/corner.png) no-repeat right top;
+        color: #000000;
+        text-decoration: none;
+        padding: 3px 7px 3px 7px;
+	font-weight: normal;
+}
+
+.resultscontrol {
+	border : 1px solid #e8e8e8;
+}
+
+#addtolist fieldset.action {
+	text-align: right;
+}
+
+#action a.print {
+	background-image: url("../../famfamfam/silk/printer.png")
+}
+
+#action a.addtocart {
+	background-image: url("../../famfamfam/silk/cart_add.png")
+}
+
+#action a.addtoshelf {
+	background-image: url("../../famfamfam/silk/star.png")
+}
+
+#listsmenulink img {
+	padding: 0;
+}
+
+#opacnav {
+    width: 16em
+}
+
+.yui-t1 #yui-main .yui-b {
+    margin-left: 17em;
+    }
+
+#menu-custom {
+    background: none repeat scroll 0 0 #739ACF;
+    list-style: none outside none;
+    margin: 0;
+    padding: 0;
+    width: 16em;
+}
+#menu-custom li {
+    color: #FFFFFF;
+    list-style: none outside none;
+    margin: 0;
+    padding: 0;
+}
+#menu-custom a {
+    background: none repeat scroll 0 0 #739ACF;
+    background: none repeat scroll 0 0 #EDEEEA;
+    border-bottom: 1px solid #393939;
+    border-bottom: 2px solid #fff;
+    color: #FFFFFF;
+    color: #000000;
+    display: block;
+    font-weight: normal;
+    margin: 0;
+    padding: 8px 12px;
+    text-decoration: none;
+}
+#menu-custom a:hover {
+        background: #FFDD76;
+        color: #000;
+        padding-bottom: 8px;
+}
+
+#news h1, #opacnav h1 {
+    font-size: 108%;
+    padding: 3px 6px;
+}
+
+#news h1 {
+    background: #FFDD76;
+    background: #EEE;
+}
+
+#opacnav h1 {
+    background: #b1d881;
+    background: #84ABDE;
+    color: #fff;
+    color: #ffffcc;
+}
+
+#catalogue_detail_biblio h1.title {
+	font-size: 131%;
+}
+
+#news table {
+    width: 100%;
+}
+
+.searchresults .tagstatus {
+	display: inline;
+}
