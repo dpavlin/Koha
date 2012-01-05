@@ -21,3 +21,11 @@
 .inv_nr a:link {
 	color: #7A7A7A;
 }
+
+.emph {
+	color: red;
+}
+
+.isbd1 {
+	font-size: 120%;
+}

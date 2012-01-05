@@ -143,6 +143,17 @@ my $marcurlsarray    = GetMarcUrls    ($record,$marcflavour);
 my $marchostsarray  = GetMarcHosts($record,$marcflavour);
 my $subtitle         = GetRecordValue('subtitle', $record, $fw);
 
+# FFZG
+my $partnum         = GetRecordValue('partnum', $record, $fw);
+my $partname         = GetRecordValue('partname', $record, $fw);
+my $medium         = GetRecordValue('medium', $record, $fw);
+my $responsibility         = GetRecordValue('responsibility', $record, $fw);
+my $impressum         = GetRecordValue('impressum', $record, $fw);
+my $oldcall         = GetRecordValue('oldcall', $record, $fw);
+my $udc         = GetRecordValue('udc', $record, $fw);
+my $textholding         = GetRecordValue('textholding', $record, $fw);
+# /FFZG
+
 my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
 
 my $dbh = C4::Context->dbh;
@@ -378,6 +389,16 @@ $template->param(
     MARCISBNS => $marcisbnsarray,
     MARCHOSTS => $marchostsarray,
     subtitle    => $subtitle,
+    # FFZG -- added
+	partnum		=> $partnum,
+	partname    => $partname,
+	medium		=> $medium,
+	responsibility    => $responsibility,
+	impressum	=> $impressum,
+	oldcall		=> $oldcall,
+	udc			=> $udc,
+	textholding	=> $textholding,
+    # /FFZG
     itemdata_ccode      => $itemfields{ccode},
     itemdata_enumchron  => $itemfields{enumchron},
     itemdata_uri        => $itemfields{uri},
