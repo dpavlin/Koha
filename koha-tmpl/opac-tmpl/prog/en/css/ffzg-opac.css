@@ -189,7 +189,7 @@ h1#libraryname {
 }
 
 .knjiznica-navigation a:link, .knjiznica-navigation a:active, .knjiznica-navigation a:visited {
-        background: #EDEEEA url(http://mjesec.ffzg.hr/img/ffk/corner.gif) no-repeat right top;
+        background: #EDEEEA url(../../images/corner.gif) no-repeat right top;
         color: #3D3535;
         text-decoration: none;
         padding: 3px 7px 3px 7px;
@@ -198,7 +198,7 @@ h1#libraryname {
 }
 
 .knjiznica-navigation a:hover {
-        background: #FFdd76 url(http://mjesec.ffzg.hr/img/ffk/corner.png) no-repeat right top;
+        background: #FFdd76 url(../../images/corner.png) no-repeat right top;
         color: #000000;
         text-decoration: none;
         padding: 3px 7px 3px 7px;
