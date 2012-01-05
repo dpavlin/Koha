@@ -6,7 +6,7 @@
 [% USE Price %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Catalog &rsaquo; Item details for [% title | html %] [% FOREACH subtitl IN subtitle %] [% subtitl.subfield | html %][% END %]</title>
+<title>Koha &rsaquo; Catalog &rsaquo; Item details for [% FOREACH ITEM_DAT IN ITEM_DATA %] (barcode #[% ITEM_DAT.barcode %]) [% END %] [% title | html %] [% FOREACH subtitl IN subtitle %] [% subtitl.subfield | html %][% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>h3{padding-top: 1em; border-top: 2px solid #CCCCCC;}#exportLabelexportModal_{border-top: 0px;}</style>
 </head>
@@ -51,13 +51,21 @@
     <br clear="all" />
     [% IF ( ONLY_ONE ) %]
         <div class="dialog message">You are only viewing one item.  <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblionumber | uri %]&amp;bi=[% biblioitemnumber | uri %]#item[% itemnumber | uri %]">View All</a></div>
+        <div class="dialog message">Press <strong>F4</strong> to add RFID tag.</div>
     [% END %]
+<!-- XXX dpavlin 2012-02-22 -- persistent location of RFID chip based on itemnumber -->
+[% IF ( ONLY_ONE || count < 2 ) %]
+<img src="/intranet-tmpl/prog/img/rfidPosition[% ITEM_DAT.itemnumber % 3 + 1 %].jpg" style="position:absolute; right: 1em">
+<div class="dialog message">Press <strong>F4</strong> to add RFID tag.</div>
+[% END %]
+<!-- /insert RFID -->
     [% FOREACH ITEM_DAT IN ITEM_DATA %]
     <div class="yui-g">
         <h3 id="item[% ITEM_DAT.itemnumber | html %]">Barcode [% ITEM_DAT.barcode | html %]  [% IF ( ITEM_DAT.notforloantext ) %][% ITEM_DAT.notforloantext | html %] [% END %]</h3>
         <div class="listgroup"><h4>Item information [% IF ( CAN_user_editcatalogue_edit_catalogue ) %][% UNLESS ( ITEM_DAT.nomod ) %]
          [% IF ( CAN_user_editcatalogue_edit_items ) %]
             <a href="/cgi-bin/koha/cataloguing/additem.pl?op=edititem&amp;biblionumber=[% ITEM_DAT.biblionumber | uri %]&amp;itemnumber=[% ITEM_DAT.itemnumber | uri %]"><i class="fa fa-pencil"></i> Edit item</a>
+            <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% ITEM_DAT.biblionumber %]&amp;itemnumber=[% ITEM_DAT.itemnumber %]">[RFID Tag]</a>
          [% END %]
          [% END %][% END %]</h4>
             <div class="rows">
@@ -69,6 +77,7 @@
             [% IF ( ITEM_DAT.collection ) %]<li><span class="label">Collection:</span> [% ITEM_DAT.collection | html %]</li> [% END %]
             <li><span class="label">Item callnumber:</span> [% ITEM_DAT.itemcallnumber | html %]&nbsp;</li>
             [% IF ( ITEM_DAT.displaycopy ) %]<li><span class="label">Copy number:</span> [% ITEM_DAT.copyvol | html %]&nbsp;</li> [% END %]
+			[% IF ( ITEM_DAT.stocknumber ) %]<li><span class="label">Stocknumber:</span><span class="emph">[% ITEM_DAT.stocknumber %]</span>&nbsp;</li> [% END %]
             [% IF ( ITEM_DAT.replacementprice ) %]<li><span class="label">Replacement price:</span> [% ITEM_DAT.replacementprice | $Price %]&nbsp;</li> [% END %]
 	    [% IF ITEM_DAT.materials %]<li><span class="label">Materials specified:</span> [% ITEM_DAT.materials | html %] </li> [% END %]
             </ol></div></div>
