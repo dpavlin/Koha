@@ -303,7 +303,10 @@
                     0
                   [% END %]
                 </td>
+<!--
                 <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber | uri %]">[% order.title | html %]</a>
+-->
+                <td><a target="_new" href="/cgi-bin/koha/cataloguing/additem.pl?biblionumber=[% order.biblionumber %]">[% order.title |html %]</a>
                 [% IF ( order.author ) %] / [% order.author | html %][% END %]
                 [% IF ( order.isbn ) %] - [% order.isbn | html %][% END %]
                 [% IF ( order.publishercode ) %]
