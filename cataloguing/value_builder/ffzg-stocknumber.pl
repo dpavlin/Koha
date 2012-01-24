@@ -68,6 +68,10 @@ sub plugin_javascript {
 
         function Clic$field_number() {
                 var code = document.getElementById('$field_number');
+
+		if ( ! confirm('Jeste li sigurni da želite dodijeliti novi inventarni broj?') )
+			return;
+
                 var url = '../cataloguing/plugin_launcher.pl?plugin_name=ffzg-stocknumber.pl&code=' + code.value;
                 var blurcallbackstocknumber = {
                     success: function(o) {
