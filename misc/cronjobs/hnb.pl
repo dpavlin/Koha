@@ -20,9 +20,11 @@ while(<>) {
 	my ( $sifra, $oznaka, $broj, $kupovni, $srednji, $prodajni ) = unpack 'A3A3A3A15A15A15', $_;
 	warn "$sifra|$oznaka|$broj|$kupovni|$srednji|$prodajni|\n";
 
+	my $tecaj = $srednji / $broj;
+
 	print qq{
-		INSERT INTO currency SET currency='$oznaka',symbol='$oznaka',rate=$srednji,active=0
-		ON DUPLICATE KEY UPDATE rate=$srednji ;
+		INSERT INTO currency SET currency='$oznaka',symbol='$oznaka',rate=$tecaj,active=0
+		ON DUPLICATE KEY UPDATE rate=$tecaj ;
 	};
 
 }
