@@ -52,6 +52,35 @@ unless (defined $item) {
   $template->param( 'BarcodeNotFound' => 1 );
 }
 
+# XXX FFZG #1059 -- dpavlin 2012-02-07 print spine labels
+
+use URI::Escape;
+
+my $ip = $query->remote_addr;
+
+if ( my $station = $query->param('station') ) {
+
+	warn "PRINTED $barcode on $station\n";
+
+	my $insert = $dbh->prepare(qq{
+		insert into items_print_log (barcode,itemnumber,station) values (?,?,?)
+	});
+	$insert->execute( $item->{barcode}, $item->{biblioitemnumber}, $station );
+
+} else {
+
+	my $print_data = join(' ',
+		$item->{barcode},
+		$item->{itemcallnumber},
+	);
+
+	print $query->redirect( 'http://printer-zebra.vbz.ffzg.hr/print.cgi?print=' . uri_escape($print_data) . '&return=' . uri_escape($query->self_url) );
+	exit 0;
+
+}
+
+# XXX /FFZG
+
 my $body;
 
 my $data;
@@ -83,6 +112,26 @@ while ( my ( $key, $value ) = each(%$data) ) {
 }
 
 $body = $scheme;
+
+# XXX FFZG
+
+$body .= qq|
+<style type="text/css">
+#printed_label {
+	display: block;
+	border: 1px solid #ccc;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+#print_button {
+	display: none;
+}
+</style>
+<img id="printed_label" src="http://printer-zebra.vbz.ffzg.hr/$barcode.png">
+|;
+
+# XXX /FFZG
 
 $template->param( autoprint => C4::Context->preference("SpineLabelAutoPrint") );
 $template->param( content   => $body );
