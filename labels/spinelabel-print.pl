@@ -74,7 +74,7 @@ if ( my $station = $query->param('station') ) {
 		$item->{itemcallnumber},
 	);
 
-	print $query->redirect( 'http://printer-zebra.vbz.ffzg.hr/print.cgi?print=' . uri_escape($print_data) . '&return=' . uri_escape($query->self_url) );
+	print $query->redirect( 'http://printer-zebra.vbz.ffzg.hr/print.cgi?print=' . uri_escape_utf8($print_data) . '&return=' . uri_escape($query->self_url) );
 	exit 0;
 
 }
