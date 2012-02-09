@@ -115,19 +115,30 @@ $body = $scheme;
 
 # XXX FFZG
 
-$body .= qq|
+my $url = $query->url;
+my $station = $query->param('station');
+
+$body = qq|
 <style type="text/css">
-#printed_label {
-	display: block;
-	border: 1px solid #ccc;
-	position: absolute;
-	top: 0;
-	left: 0;
-}
 #print_button {
 	display: none;
 }
+#printed_label {
+	border: 1px solid #aaa;
+}
+body {
+	margin: 1em;
+}
 </style>
+
+<form action="$url" method="post">
+Enter another barcode:
+<input type=text name=barcode autofocus>
+<input type=submit value="Print">
+</form>
+
+<h1>Last printed call number for $barcode on $station</h1>
+
 <img id="printed_label" src="http://printer-zebra.vbz.ffzg.hr/$barcode.png">
 |;
 
