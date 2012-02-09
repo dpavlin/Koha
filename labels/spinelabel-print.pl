@@ -67,7 +67,7 @@ if ( my $station = $query->param('station') ) {
 	});
 	$insert->execute( $item->{barcode}, $item->{biblioitemnumber}, $station );
 
-} else {
+} elsif ( $item ) {
 
 	my $print_data = join(' ',
 		$item->{barcode},
