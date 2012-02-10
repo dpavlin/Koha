@@ -133,13 +133,21 @@ body {
 
 <form action="$url" method="post">
 Enter another barcode:
-<input type=text name=barcode autofocus>
+<input id=focus_barcode type=text name=barcode autofocus>
 <input type=submit value="Print">
 </form>
 
 <h1>Last printed call number for $barcode on $station</h1>
 
 <img id="printed_label" src="http://printer-zebra.vbz.ffzg.hr/$barcode.png">
+
+<script type="text/javascript">
+function formfocus() {
+	document.getElementById('focus_barcode').focus();
+}
+window.onload = formfocus;
+</script>
+
 |;
 
 # XXX /FFZG
