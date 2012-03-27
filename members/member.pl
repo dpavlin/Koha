@@ -97,8 +97,9 @@ else {
 my $searchfields = $input->param('searchfields');
 my @searchfields = $searchfields ? split( ',', $searchfields ) : ( "firstname", "surname", "othernames", "cardnumber", "userid", "email" );
 
+warn "[$member]";
 # FIXME dpavlin - FER
-$member =~ s/^.*%B60198321(\d{10})\d&.*$/S$1/ && warn "JMBAG: $1";
+$member =~ s/^.*%B601983\d\d(\d{10})\d&.*$/S$1/ && warn "JMBAG: $1";
 $member =~ s/,//g;   #remove any commas from search string
 $member =~ s/\*/%/g;
 

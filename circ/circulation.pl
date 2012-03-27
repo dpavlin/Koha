@@ -98,7 +98,7 @@ for (@failedrenews) { $renew_failed{$_} = 1; }
 
 my $findborrower = $query->param('findborrower');
 # FIXME dpavlin - FER
-$findborrower =~ s/^.*%B60198321(\d{10})\d&.*$/S$1/ && warn "JMBAG: $1";
+$findborrower =~ s/^.*%B601983\d\d(\d{10})\d&.*$/S$1/ && warn "JMBAG: $1";
 $findborrower =~ s|,| |g;
 my $borrowernumber = $query->param('borrowernumber');
 
