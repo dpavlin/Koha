@@ -32,6 +32,8 @@ use C4::VirtualShelves;
 use POSIX qw/strftime/;
 use List::MoreUtils qw/ any /;
 
+use Cache::Memcached;
+
 # use utf8;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout);
 
@@ -605,6 +607,17 @@ sub _session_log {
     close L;
 }
 
+sub clear_saml {
+	my $query = shift;
+	my $cookie = [
+		$query->cookie( 'CGISESSID' => '' ),
+		$query->cookie( 'SimpleSAMLAuthToken' => '' ),
+		$query->cookie( 'AuthMemCookie' => '' ),
+		$query->cookie( 'PHPSESSID' => '' ),
+	];
+	return ( undef, $cookie, undef ); # FIXME
+}
+
 sub checkauth {
     my $query = shift;
 	$debug and warn "Checking Auth";
@@ -633,14 +646,133 @@ sub checkauth {
     # when using authentication against multiple CAS servers, as configured in Auth_cas_servers.yaml
     my $casparam = $query->param('cas');
 
-    if ( $userid = $ENV{'REMOTE_USER'} ) {
-        # Using Basic Authentication, no cookies required
-        $cookie = $query->cookie(
-            -name    => 'CGISESSID',
-            -value   => '',
-            -expires => ''
-        );
-        $loggedin = 1;
+    $userid = $ENV{'REMOTE_USER'};
+    $sessionID = $query->cookie("CGISESSID");
+
+    if ( $sessionID && $userid ) {
+	my $s = get_session($sessionID);
+	if ( $s->param('sessiontype') eq 'anon' ) {
+		undef $sessionID; # remove anonymous session if we have SAML user
+	}
+    }
+
+#    ($userid,$sessionID) = () if $userid eq '_everyone';
+	return clear_saml $query if $userid eq '_everyone';
+
+    if ( ! $sessionID && $userid ) { # anonymous SAML user
+	warn "# userid: $userid";
+
+	# create new user from SAML data
+	if ( my $token = $query->cookie('AuthMemCookie') ) {
+
+		my $memd = new Cache::Memcached { 'servers' => [ '127.0.0.1:11211' ], 'compress_threshold' => 10_000 };
+		if ( my $data = $memd->get($token) ) {
+
+			my $saml;
+			foreach ( split(/[\n\r]+/,$data) ) {
+				my ($n,$v) = split /=/, $_;
+				$saml->{$n} = $v;
+			}
+
+			my $categorycode =
+				$saml->{ATTR_code} =~ m/^\d{10}$/ ? 'S' : # JMBAG
+				$saml->{ATTR_code} =~ m/^\w\w\d+/ ? 'D' :
+				'O';
+
+			my $cardnumber =  $categorycode . $saml->{ATTR_code};
+
+			if ( my $borrowernumber = getborrowernumber($saml->{ATTR_nick}) ) {
+				warn "SAML login OK $borrowernumber using ATTR_nick: ", $saml->{ATTR_nick};
+			} elsif ( my $borrowernumber = getborrowernumber( $cardnumber ) ) {
+				warn "SAML login OK $borrowernumber using cardnumber: $cardnumber update userid: $userid";
+				my $sth = $dbh->prepare(qq{ update borrowers set userid = ? where userid = cardnumber and cardnumber = ? });
+				$sth->execute( $userid, $cardnumber );
+			} else {
+				my $borrower = {
+					cardnumber => $cardnumber,
+					categorycode => $categorycode,
+
+					userid    => $saml->{ATTR_nick},
+					firstname => $saml->{ATTR_first_name},
+					surname   => $saml->{ATTR_last_name},
+					branchcode => 'SRE', # FIXME
+					email     => $saml->{ATTR_email},
+					dateexpiry => '2020-12-13',
+					password => $token, # required so AddMember won't erase userid
+				};
+
+				AddMember( %$borrower );
+
+				warn "ADDED $data";
+
+			}
+
+			# Create session for SAML user
+
+			my $sql = qq{
+			SELECT
+				borrowernumber	as number,
+				userid		as id,
+				cardnumber,
+				firstname,
+				surname,
+				borrowers.branchcode	as branch,
+				branches.branchname	as branchname, 
+				flags,
+				email			as emailaddress
+                	FROM borrowers 
+                	LEFT JOIN branches on borrowers.branchcode=branches.branchcode
+			where userid=?
+			};
+			my $sth = $dbh->prepare($sql);
+			$sth->execute( $userid );
+			die "can't find $userid" unless $sth->rows;
+
+			my $session = get_session('') or die "can't create session";
+			my $sessionID = $session->id;
+			C4::Context->_new_userenv($sessionID);
+			$cookie = $query->cookie(CGISESSID => $sessionID);
+
+			my $row = $sth->fetchrow_hashref;
+
+			$session->param( $_ => $row->{$_} ) foreach keys %$row;
+
+			$session->param('ip', $ENV{'REMOTE_ADDR'});
+			$session->param('lasttime',time());
+
+			$session->param('AuthMemCookie', $token);
+
+			C4::Context::set_userenv(
+				$session->param('number'),       $session->param('id'),
+				$session->param('cardnumber'),   $session->param('firstname'),
+				$session->param('surname'),      $session->param('branch'),
+				$session->param('branchname'),   $session->param('flags'),
+				$session->param('emailaddress'), $session->param('branchprinter')
+			);
+
+			my $row_count = 10; # FIXME:This probably should be a syspref
+			my ($total, $totshelves, $barshelves, $pubshelves);
+			($barshelves, $totshelves) = C4::VirtualShelves::GetRecentShelves(1, $row_count, $session->param('number'));
+			$total->{'bartotal'} = $totshelves;
+			($pubshelves, $totshelves) = C4::VirtualShelves::GetRecentShelves(2, $row_count, undef);
+			$total->{'pubtotal'} = $totshelves;
+			$session->param('barshelves', $barshelves);
+			$session->param('pubshelves', $pubshelves);
+			$session->param('totshelves', $total);
+
+			C4::Context::set_shelves_userenv('bar',$barshelves);
+			C4::Context::set_shelves_userenv('pub',$pubshelves);
+			C4::Context::set_shelves_userenv('tot',$total);
+
+			$loggedin = 1;
+
+		} else {
+			die "Can't find SAML token $token for user $userid\n";
+		}
+	} else {
+		die "Can't find SAML token for user $userid\n";
+	}
+
     }
     elsif ( $sessionID = $query->cookie("CGISESSID")) {     # assignment, not comparison
         my $session = get_session($sessionID);
@@ -675,6 +807,12 @@ sub checkauth {
 			$userid = undef;
 		}
         elsif ($logout) {
+		if ( my $token = $session->param('AuthMemCookie') ) {
+			my $memd = new Cache::Memcached { 'servers' => [ '127.0.0.1:11211' ], 'compress_threshold' => 10_000 };
+			#$memd->set( $token => '' ); # invalidate AuthMemCookie and leave anonymous user logged in
+			$memd->delete( $token );
+		}
+
             # voluntary logout the user
             $session->flush;
             $session->delete();
@@ -686,6 +824,9 @@ sub checkauth {
 	    if ($cas and $caslogout) {
 		logout_cas($query);
 	    }
+
+		return clear_saml($query); # FIXME
+
         }
         elsif ( $lasttime < time() - $timeout ) {
             # timed logout
