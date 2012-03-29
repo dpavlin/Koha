@@ -1631,7 +1631,7 @@ sub searchResults {
 
 	        # Hidden items
             if ($is_opac) {
-	            my @hi = GetHiddenItemnumbers($item);
+	            my @hi = C4::Items::GetHiddenItemnumbers($item);
 	        $item->{'hideatopac'} = @hi;
               push @hiddenitems, @hi;
             }
