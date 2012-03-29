@@ -5,13 +5,19 @@ use lib qw( ./lib );
 use Plack::Middleware::Debug;
 use Plack::App::Directory;
 
-# change configuration from startup script below:
+# override configuration from startup script below:
+# (requires --reload option)
+
+$ENV{PLACK_DEBUG} = 1; # toggle debugging
+$ENV{MEMCACHED_SERVERS} = "localhost:11211";
+#$ENV{MEMCACHED_DEBUG} = 1;
+
+#$ENV{PLACK_MINIFY} = 1;
 
 $ENV{PROFILE_PER_PAGE} = 1; # reset persistant and profile counters after each page, like CGI
-$ENV{PLACK_DEBUG} = 1; # toggle debugging
-$ENV{MEMCACHED_SERVERS} = ""; # disable memcache
 
 use C4::Context;
+=for preload
 use C4::Languages;
 use C4::Members;
 use C4::Dates;
@@ -21,39 +27,44 @@ use C4::Koha;
 use C4::XSLT;
 use C4::Branch;
 use C4::Category;
+=cut
 
 use Devel::Size 0.77; # 0.71 doesn't work for Koha
-my $watch_size = [
-	map { s/^.*C4/C4/; s/\//::/g; s/\.pm$//; $_ } # fix paths
-	grep { /C4/ }
-	keys %INC
-];
+my $watch_capture_regex = '(C4|Koha)';
 
-my $app=Plack::App::CGIBin->new(root => $ENV{INTRANETDIR} || $ENV{OPACDIR});
+sub watch_for_size {
+	my @watch =
+	map { s/^.*$watch_capture_regex/$1/; s/\//::/g; s/\.pm$//; $_ } # fix paths
+	grep { /$watch_capture_regex/ }
+	keys %INC
+	;
+	warn "# watch_for_size ",join(' ',@watch);
+	return @watch;
+};
+
+my $app=Plack::App::CGIBin->new(root => $ENV{INTRANET} ? $ENV{INTRANETDIR} : $ENV{OPACDIR});
 
 builder {
 
 	enable_if { $ENV{PLACK_DEBUG} } 'Debug',  panels => [
  		qw(Koha Persistant),
 		qw(Environment Response Timer Memory),
-#		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
+		# optional plugins (uncomment to enable) are sorted according to performance implact
+		[ 'Devel::Size', for => \&watch_for_size ],
+#		[ 'DBIProfile', profile => 2 ],
 #		[ 'DBITrace', level => 1 ], # a LOT of fine-graded SQL trace
-		[ 'DBIProfile', profile => 2 ],
-#		[ 'Devel::Size', for => $watch_size ],
+#		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
 	];
 
 	enable_if { $ENV{PLACK_DEBUG} } 'StackTrace';
 
 	enable_if { $ENV{INTRANETDIR} } "Plack::Middleware::Static",
-		path => qr{^/intranet-tmpl/}, root => '/srv/koha/koha-tmpl/';
-
-	enable_if { $ENV{OPACDIR} } "Plack::Middleware::Static",
-		path => qr{^/opac-tmpl/}, root => '/srv/koha/koha-tmpl/';
+		path => qr{^/(intranet|opac)-tmpl/},
+		root => "$ENV{INTRANETDIR}/koha-tmpl/";
 
 	enable_if { $ENV{PLACK_MINIFIER} } "Plack::Middleware::Static::Minifier",
 		path => qr{^/(intranet|opac)-tmpl/},
-		root => './koha-tmpl/';
-
+		root => "$ENV{INTRANETDIR}/koha-tmpl/";
 
 	mount "/cgi-bin/koha" => $app;
 
