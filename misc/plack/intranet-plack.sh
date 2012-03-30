@@ -12,6 +12,6 @@ if [ ! -e "$INTRANETDIR/C4" ] ; then
 	exit 1
 fi
 
-# we are not wathcing all CGI scripts since that tends to use a lot of CPU time for plackup
+# CGI scripts are automatically reloaded
 opt="--reload -R $INTRANETDIR/C4"
-sudo -E -u $site-koha plackup -I $INTRANETDIR $opt --port 5001 $dir/koha.psgi
+sudo -E -u $site-koha plackup -I $INTRANETDIR -I $INTRANETDIR/installer $opt --port 5001 $dir/koha.psgi
