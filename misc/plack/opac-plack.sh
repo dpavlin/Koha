@@ -8,8 +8,8 @@ test ! -z "$1" && site=$1 && shift
 dir=`dirname $0`
 
 export KOHA_CONF=/etc/koha/sites/$site/koha-conf.xml 
-export OPACDIR="$( xmlstarlet sel -t -v 'yazgfs/config/opacdir' $KOHA_CONF | sed 's,/cgi-bin/opac,,' )"
-export LOGDIR="$( xmlstarlet sel -t -v 'yazgfs/config/logdir' $KOHA_CONF )"
+export OPACDIR="$( sudo -u $site-koha xmlstarlet sel -t -v 'yazgfs/config/opacdir' $KOHA_CONF | sed 's,/cgi-bin/opac,,' )"
+export LOGDIR="$( sudo -u $site-koha xmlstarlet sel -t -v 'yazgfs/config/logdir' $KOHA_CONF )"
 
 # uncomment to enable logging
 #opt="$opt --access-log $LOGDIR/opac-access.log --error-log $LOGDIR/opac-error.log"
