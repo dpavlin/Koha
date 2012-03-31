@@ -33,14 +33,14 @@ use C4::Auth;
 
 our $query        	= new CGI;
 our @biblionumber 	= $query->param('biblionumber');
-my $selectedshelf 	= $query->param('selectedshelf');
-my $newshelf 		= $query->param('newshelf');
+our $selectedshelf 	= $query->param('selectedshelf');
+our $newshelf 		= $query->param('newshelf');
 our $shelfnumber  	= $query->param('shelfnumber');
 our $newvirtualshelf	= $query->param('newvirtualshelf');
 our $category     	= $query->param('category');
 our $authorized          = 1;
 our $errcode		= 0;
-my @biblios;
+our @biblios;
 
 our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
