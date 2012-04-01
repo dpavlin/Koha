@@ -86,7 +86,7 @@ BEGIN {
         require Cache::Memcached;
         $memcached = Cache::Memcached->new({
         servers => [ $servers ],
-        debug   => 0,
+        debug   => $ENV{MEMCACHE_DEBUG},
         compress_threshold => 10_000,
         expire_time => 600,
         namespace => $ENV{'MEMCACHED_NAMESPACE'} || 'koha'
