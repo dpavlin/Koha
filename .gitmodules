@@ -1,0 +1,6 @@
+[submodule "p5-plack-devel-debug-devel-size"]
+	path = p5-plack-devel-debug-devel-size
+	url = git@github.com:dpavlin/p5-plack-devel-debug-devel-size.git
+[submodule "misc/plack/p5-plack-devel-debug-devel-size"]
+	path = misc/plack/p5-plack-devel-debug-devel-size
+	url = git://github.com/dpavlin/p5-plack-devel-debug-devel-size.git
