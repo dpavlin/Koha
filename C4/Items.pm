@@ -34,6 +34,8 @@ use List::MoreUtils qw/any/;
 use Data::Dumper; # used as part of logging item record changes, not just for
                   # debugging; so please don't remove this
 
+use Koha::Persistant;
+
 use vars qw($VERSION @ISA @EXPORT);
 
 BEGIN {
@@ -741,17 +743,7 @@ sub GetItemStatus {
     my ( $tag, $subfield ) =
       GetMarcFromKohaField( "items.notforloan", $fwk );
     if ( $tag and $subfield ) {
-        my $sth =
-          $dbh->prepare(
-            "SELECT authorised_value
-            FROM marc_subfield_structure
-            WHERE tagfield=?
-                AND tagsubfield=?
-                AND frameworkcode=?
-            "
-          );
-        $sth->execute( $tag, $subfield, $fwk );
-        if ( my ($authorisedvaluecat) = $sth->fetchrow ) {
+        if ( my $authorisedvaluecat = marc_subfield_structure( tagfield => $tag, tagsubfield => $subfield, frameworkcode => $fwk ) ) {
             my $authvalsth =
               $dbh->prepare(
                 "SELECT authorised_value,lib
@@ -829,16 +821,7 @@ sub GetItemLocation {
     my ( $tag, $subfield ) =
       GetMarcFromKohaField( "items.location", $fwk );
     if ( $tag and $subfield ) {
-        my $sth =
-          $dbh->prepare(
-            "SELECT authorised_value
-            FROM marc_subfield_structure 
-            WHERE tagfield=? 
-                AND tagsubfield=? 
-                AND frameworkcode=?"
-          );
-        $sth->execute( $tag, $subfield, $fwk );
-        if ( my ($authorisedvaluecat) = $sth->fetchrow ) {
+        if ( my $authorisedvaluecat = marc_subfield_structure( tagfield => $tag, tagsubfield => $subfield, frameworkcode => $fwk ) ) {
             my $authvalsth =
               $dbh->prepare(
                 "SELECT authorised_value,lib
@@ -1245,75 +1228,31 @@ sub GetItemsInfo {
         }
         $data->{'datedue'}        = $datedue;
 
-        # get notforloan complete status if applicable
-        my $sthnflstatus = $dbh->prepare(
-            'SELECT authorised_value
-            FROM   marc_subfield_structure
-            WHERE  kohafield="items.notforloan"
-        '
-        );
+#use Data::Dump qw(dump);
+#warn "XXX data = ",dump($data);
 
-        $sthnflstatus->execute;
-        my ($authorised_valuecode) = $sthnflstatus->fetchrow;
-        if ($authorised_valuecode) {
-            $sthnflstatus = $dbh->prepare(
-                "SELECT lib FROM authorised_values
-                 WHERE  category=?
-                 AND authorised_value=?"
-            );
-            $sthnflstatus->execute( $authorised_valuecode,
-                $data->{itemnotforloan} );
-            my ($lib) = $sthnflstatus->fetchrow;
-            $data->{notforloanvalue} = $lib;
+        # get notforloan complete status if applicable
+        if ( my $category = marc_subfield_structure( kohafield => 'items.notforloan', frameworkcode => $data->{frameworkcode} ) ) {
+            $data->{notforloanvalue} = authorised_value( category => $category, $data->{itemnotforloan} )->{lib};
         }
 
         # get restricted status and description if applicable
-        my $restrictedstatus = $dbh->prepare(
-            'SELECT authorised_value
-            FROM   marc_subfield_structure
-            WHERE  kohafield="items.restricted"
-        '
-        );
-
-        $restrictedstatus->execute;
-        ($authorised_valuecode) = $restrictedstatus->fetchrow;
-        if ($authorised_valuecode) {
-            $restrictedstatus = $dbh->prepare(
-                "SELECT lib,lib_opac FROM authorised_values
-                 WHERE  category=?
-                 AND authorised_value=?"
-            );
-            $restrictedstatus->execute( $authorised_valuecode,
-                $data->{restricted} );
-
-            if ( my $rstdata = $restrictedstatus->fetchrow_hashref ) {
+        if ( $data->{restricted} ) { # FIXME -- why do I get undef?
+            my $category = marc_subfield_structure( kohafield => 'items.restricted', frameworkcode => $data->{frameworkcode} );
+            if ( my $rstdata = authorised_value( $category, $data->{restricted} ) ) {
                 $data->{restricted} = $rstdata->{'lib'};
                 $data->{restrictedopac} = $rstdata->{'lib_opac'};
             }
         }
 
         # my stack procedures
-        my $stackstatus = $dbh->prepare(
-            'SELECT authorised_value
-             FROM   marc_subfield_structure
-             WHERE  kohafield="items.stack"
-        '
-        );
-        $stackstatus->execute;
-
-        ($authorised_valuecode) = $stackstatus->fetchrow;
-        if ($authorised_valuecode) {
-            $stackstatus = $dbh->prepare(
-                "SELECT lib
-                 FROM   authorised_values
-                 WHERE  category=?
-                 AND    authorised_value=?
-            "
-            );
-            $stackstatus->execute( $authorised_valuecode, $data->{stack} );
-            my ($lib) = $stackstatus->fetchrow;
-            $data->{stack} = $lib;
+        if ( $data->{stack} ) { # FIXME -- why do I get undef?
+            my $category = marc_subfield_structure( kohafield => 'items.stack', frameworkcode => $data->{frameworkcode} );
+            if ( my $row = authorised_value( $category, $data->{stack} ) ) {
+                $data->{stack} = $row->{lib};
+            }
         }
+
         # Find the last 3 people who borrowed this item.
         my $sth2 = $dbh->prepare("SELECT * FROM old_issues,borrowers
                                     WHERE itemnumber = ?

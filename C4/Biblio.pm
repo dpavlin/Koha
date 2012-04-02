@@ -37,6 +37,8 @@ use C4::Charset;
 use C4::Linker;
 use C4::OAI::Sets;
 
+use Koha::Persistant;
+
 use vars qw($VERSION @ISA @EXPORT);
 
 BEGIN {
@@ -1056,8 +1058,10 @@ sub GetMarcStructure {
     $frameworkcode = "" unless $frameworkcode;
 
     if ( defined $marc_structure_cache and exists $marc_structure_cache->{$forlibrarian}->{$frameworkcode} ) {
+        $Koha::Persistant::stats->{GetMarcStructure}->[0]++;
         return $marc_structure_cache->{$forlibrarian}->{$frameworkcode};
     }
+    $Koha::Persistant::stats->{GetMarcStructure}->[1]++;
 
     #     my $sth = $dbh->prepare(
     #         "SELECT COUNT(*) FROM marc_tag_structure WHERE frameworkcode=?");
@@ -1487,9 +1491,7 @@ sub GetAuthorisedValueDesc {
     }
 
     if ( $category ne "" ) {
-        my $sth = $dbh->prepare( "SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ?" );
-        $sth->execute( $category, $value );
-        my $data = $sth->fetchrow_hashref;
+        my $data = authorised_value( $category, $value );
         return ( $opac && $data->{'lib_opac'} ) ? $data->{'lib_opac'} : $data->{'lib'};
     } else {
         return $value;    # if nothing is found return the original value

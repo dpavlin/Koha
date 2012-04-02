@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use Plack::Builder;
 use Plack::App::CGIBin;
-use lib './p5-plack-devel-debug-devel-size/lib';
+use lib qw( ./lib );
 use Plack::Middleware::Debug;
 use Plack::App::Directory;
 
@@ -22,18 +22,20 @@ my $watch_size = [
 	grep { /C4/ }
 	keys %INC
 ];
-	
+
+$ENV{PROFILE_PER_PAGE} = 1; # used by plack to reset after each page, like CGI
 
 my $app=Plack::App::CGIBin->new(root => $ENV{INTRANETDIR} || $ENV{OPACDIR});
 
 builder {
 
 	enable_if { $ENV{PLACK_DEBUG} } 'Debug',  panels => [
+ 		qw(Koha Persistant),
 		qw(Environment Response Timer Memory),
-#		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
+		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
 #		[ 'DBITrace', level => 1 ], # a LOT of fine-graded SQL trace
 		[ 'DBIProfile', profile => 2 ],
-		[ 'Devel::Size', for => $watch_size ],
+#		[ 'Devel::Size', for => $watch_size ],
 	];
 
 	enable_if { $ENV{PLACK_DEBUG} } 'StackTrace';

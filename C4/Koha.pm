@@ -71,6 +71,7 @@ BEGIN {
 
 # expensive functions
 memoize('GetAuthorisedValues');
+memoize('GetItemTypes');
 
 =head1 NAME
 
@@ -240,7 +241,7 @@ sub GetItemTypes {
     my $dbh   = C4::Context->dbh;
     my $query = qq|
         SELECT *
-        FROM   itemtypes
+        FROM   itemtypes -- memoize
     |;
     my $sth = $dbh->prepare($query);
     $sth->execute;
@@ -411,7 +412,7 @@ sub getframeworkinfo {
     my ($frameworkcode) = @_;
     my $dbh             = C4::Context->dbh;
     my $sth             =
-      $dbh->prepare("select * from biblio_framework where frameworkcode=?");
+      $dbh->prepare("select * from biblio_framework where frameworkcode=? -- getframeworkinfo");
     $sth->execute($frameworkcode);
     my $res = $sth->fetchrow_hashref;
     return $res;
@@ -428,7 +429,7 @@ Returns information about an itemtype.
 sub getitemtypeinfo {
     my ($itemtype) = @_;
     my $dbh        = C4::Context->dbh;
-    my $sth        = $dbh->prepare("select * from itemtypes where itemtype=?");
+    my $sth        = $dbh->prepare("select * from itemtypes where itemtype=? -- getitemtypeinfo");
     $sth->execute($itemtype);
     my $res = $sth->fetchrow_hashref;
 
@@ -1161,10 +1162,7 @@ Returns authorised value description
 sub GetKohaAuthorisedValueLib {
   my ($category,$authorised_value,$opac) = @_;
   my $value;
-  my $dbh = C4::Context->dbh;
-  my $sth = $dbh->prepare("select lib, lib_opac from authorised_values where category=? and authorised_value=?");
-  $sth->execute($category,$authorised_value);
-  my $data = $sth->fetchrow_hashref;
+  my $data = authorised_value($category,$authorised_value);
   $value = ($opac && $$data{'lib_opac'}) ? $$data{'lib_opac'} : $$data{'lib'};
   return $value;
 }

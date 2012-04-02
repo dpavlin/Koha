@@ -7,7 +7,13 @@ site=ffzg
 test ! -z "$1" && site=$1 && shift
 dir=`dirname $0`
 
-export KOHA_CONF=/etc/koha/sites/$site/koha-conf.xml 
+# enable memcache - it's safe even on installation which don't have it
+# since Koha has check on C4::Context
+export MEMCACHED_SERVERS=localhost:11211
+export MEMCACHED_NAMESPACE=$site
+export MEMCACHED_DEBUG=1
+
+export KOHA_CONF=/etc/koha/sites/$site/koha-conf.xml
 export OPACDIR="$( sudo -u $site-koha xmlstarlet sel -t -v 'yazgfs/config/opacdir' $KOHA_CONF | sed 's,/cgi-bin/opac,,' )"
 export LOGDIR="$( sudo -u $site-koha xmlstarlet sel -t -v 'yazgfs/config/logdir' $KOHA_CONF )"
 
