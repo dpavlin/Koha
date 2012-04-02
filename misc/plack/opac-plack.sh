@@ -19,6 +19,6 @@ export LOGDIR="$( sudo -u $site-koha xmlstarlet sel -t -v 'yazgfs/config/logdir'
 
 # uncomment to enable logging
 #opt="$opt --access-log $LOGDIR/opac-access.log --error-log $LOGDIR/opac-error.log"
-#opt="$opt --server Starman -M FindBin --max-requests 50 --workers 4 -E deployment"
+opt="$opt --server Starman -M FindBin --max-requests 50 --workers 4 -E deployment"
 opt="$opt --reload -R $OPACDIR/../C4 -R $OPACDIR/../Koha"
 sudo -E -u $site-koha plackup -I $OPACDIR/.. $opt $* $dir/koha.psgi
