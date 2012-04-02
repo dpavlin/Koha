@@ -127,7 +127,7 @@ sub authorised_value {
 	shift if $_[0] eq 'category';
 	my ( $category, $value ) = @_;
 	my $row = sql_cache("SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ? -- key:authorised_value", $category, $value);
-	warn "## authorised_value $category $value = ",dump $row;
+	warn "## authorised_value $category $value = ",dump $row if $debug >= 2;
 	return $row;
 }
 
@@ -162,7 +162,7 @@ sub marc_subfield_structure {
 		confess "called with unknown options ",dump($args)
 	}
 
-	warn "## marc_subfield_structure ",dump($args)," = ",dump $row;
+	warn "## marc_subfield_structure ",dump($args)," = ",dump $row if $debug >= 2;
 	return $row->{authorised_value};
 }
 
