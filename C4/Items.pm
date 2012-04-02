@@ -743,17 +743,7 @@ sub GetItemStatus {
     my ( $tag, $subfield ) =
       GetMarcFromKohaField( "items.notforloan", $fwk );
     if ( $tag and $subfield ) {
-        my $sth =
-          $dbh->prepare(
-            "SELECT authorised_value
-            FROM marc_subfield_structure
-            WHERE tagfield=?
-                AND tagsubfield=?
-                AND frameworkcode=?
-            "
-          );
-        $sth->execute( $tag, $subfield, $fwk );
-        if ( my ($authorisedvaluecat) = $sth->fetchrow ) {
+        if ( my $authorisedvaluecat = marc_subfield_structure( tagfield => $tag, tagsubfield => $subfield, frameworkcode => $fwk ) ) {
             my $authvalsth =
               $dbh->prepare(
                 "SELECT authorised_value,lib
@@ -831,16 +821,7 @@ sub GetItemLocation {
     my ( $tag, $subfield ) =
       GetMarcFromKohaField( "items.location", $fwk );
     if ( $tag and $subfield ) {
-        my $sth =
-          $dbh->prepare(
-            "SELECT authorised_value
-            FROM marc_subfield_structure 
-            WHERE tagfield=? 
-                AND tagsubfield=? 
-                AND frameworkcode=?"
-          );
-        $sth->execute( $tag, $subfield, $fwk );
-        if ( my ($authorisedvaluecat) = $sth->fetchrow ) {
+        if ( my $authorisedvaluecat = marc_subfield_structure( tagfield => $tag, tagsubfield => $subfield, frameworkcode => $fwk ) ) {
             my $authvalsth =
               $dbh->prepare(
                 "SELECT authorised_value,lib
@@ -1247,45 +1228,31 @@ sub GetItemsInfo {
         }
         $data->{'datedue'}        = $datedue;
 
-        # get notforloan complete status if applicable
-        my $sthnflstatus = $dbh->prepare(
-            'SELECT authorised_value
-            FROM   marc_subfield_structure
-            WHERE  kohafield="items.notforloan"
-        '
-        );
+use Data::Dump qw(dump);
+warn "XXX data = ",dump($data);
 
-        $sthnflstatus->execute;
-        my ($authorised_valuecode) = $sthnflstatus->fetchrow;
-        if ($authorised_valuecode) {
-            $data->{notforloanvalue} = authorised_value( category => $authorised_valuecode, $data->{itemnotforloan} )->{lib};
+        # get notforloan complete status if applicable
+        if ( my $category = marc_subfield_structure( kohafield => 'items.notforloan', frameworkcode => $data->{frameworkcode} ) ) {
+            $data->{notforloanvalue} = authorised_value( category => $category, $data->{itemnotforloan} )->{lib};
         }
 
         # get restricted status and description if applicable
-	my $items_restricted = sql_cache("
-            SELECT authorised_value
-            FROM   marc_subfield_structure
-            WHERE  kohafield='items.restricted'
-        ");
-
-        if ( $items_restricted->{authorised_value} ) {
-            if ( my $rstdata = authorised_value( $items_restricted->{authorised_value}, $data->{restricted} ) ) {
+        if ( $data->{restricted} ) { # FIXME -- why do I get undef?
+            my $category = marc_subfield_structure( kohafield => 'items.restricted', frameworkcode => $data->{frameworkcode} );
+            if ( my $rstdata = authorised_value( $category, $data->{restricted} ) ) {
                 $data->{restricted} = $rstdata->{'lib'};
                 $data->{restrictedopac} = $rstdata->{'lib_opac'};
             }
         }
 
         # my stack procedures
-        my $items_stack = sql_cache("
-             SELECT authorised_value
-             FROM   marc_subfield_structure
-             WHERE  kohafield='items.stack' -- key:items.stack
-        ");
-        if ( $items_stack->{authorised_value} ) {
-            if ( my $row = authorised_value( $items_stack->{authorised_value}, $data->{stack} ) ) {
+        if ( $data->{stack} ) { # FIXME -- why do I get undef?
+            my $category = marc_subfield_structure( kohafield => 'items.stack', frameworkcode => $data->{frameworkcode} );
+            if ( my $row = authorised_value( $category, $data->{stack} ) ) {
                 $data->{stack} = $row->{lib};
             }
         }
+
         # Find the last 3 people who borrowed this item.
         my $sth2 = $dbh->prepare("SELECT * FROM old_issues,borrowers
                                     WHERE itemnumber = ?
