@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use Plack::Builder;
 use Plack::App::CGIBin;
-use lib qw( ./p5-plack-devel-debug-devel-size/lib ./lib );
+use lib qw( ./lib );
 use Plack::Middleware::Debug;
 use Plack::App::Directory;
 
