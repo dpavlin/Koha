@@ -86,13 +86,14 @@ BEGIN {
         require Cache::Memcached;
         $memcached = Cache::Memcached->new({
         servers => [ $servers ],
-        debug   => $ENV{MEMCACHE_DEBUG},
+        debug   => $ENV{MEMCACHED_DEBUG},
         compress_threshold => 10_000,
         expire_time => 600,
         namespace => $ENV{'MEMCACHED_NAMESPACE'} || 'koha'
     });
         # Verify memcached available (set a variable and test the output)
     $ismemcached = $memcached->set('ismemcached','1');
+	warn "INFO: memcache activated: $ismemcached\n";
     }
 
     $VERSION = '3.00.00.036';
