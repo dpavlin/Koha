@@ -1228,8 +1228,8 @@ sub GetItemsInfo {
         }
         $data->{'datedue'}        = $datedue;
 
-use Data::Dump qw(dump);
-warn "XXX data = ",dump($data);
+#use Data::Dump qw(dump);
+#warn "XXX data = ",dump($data);
 
         # get notforloan complete status if applicable
         if ( my $category = marc_subfield_structure( kohafield => 'items.notforloan', frameworkcode => $data->{frameworkcode} ) ) {
