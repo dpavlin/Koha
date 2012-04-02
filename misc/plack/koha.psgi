@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use Plack::Builder;
 use Plack::App::CGIBin;
-use lib './p5-plack-devel-debug-devel-size/lib';
+use lib qw( ./p5-plack-devel-debug-devel-size/lib ./lib );
 use Plack::Middleware::Debug;
 use Plack::App::Directory;
 
@@ -29,7 +29,7 @@ my $app=Plack::App::CGIBin->new(root => $ENV{INTRANETDIR} || $ENV{OPACDIR});
 builder {
 
 	enable_if { $ENV{PLACK_DEBUG} } 'Debug',  panels => [
-		qw(Environment Response Timer Memory),
+		qw(Environment Response Timer Memory Persistant),
 #		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
 #		[ 'DBITrace', level => 1 ], # a LOT of fine-graded SQL trace
 		[ 'DBIProfile', profile => 2 ],
