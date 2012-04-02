@@ -27,7 +27,7 @@ use base 'Exporter';
 use version; our $VERSION = qv('1.0.0');
 
 our @EXPORT = (
-    qw( sql_cache authorized_value )
+    qw( sql_cache authorised_value )
 );
 
 =head1 Persistant
@@ -62,31 +62,53 @@ sub DESTROY {
 }
 
 our $_sql_cache;
+our $_cache;
 our $stats;
 
 sub _sql_cache {
 	my $sql = shift;
 	my @var = @_;
 
+	my $cache;
+
 	my $key = $sql;
 	$key =~ s/\s\s+/ /gs;
-	$key = $1 if $key =~ s/^.*\s*--\s*key:\s*(.+)//;
-	my $full = join(' ', $key, @var);
-	# FIXME make multi-dimensional hash out of this?
+	my $stat_key = $key;
 
-	if ( exists $_sql_cache->{$full} ) {
+	my $eval;
+
+	if ( $key =~ s/^.*\s*--\s*key:\s*(.+)// ) {
+		$stat_key = $1;
+		$key = pop @_;
+		$eval = '$_cache->{';
+		$eval .= dump($_)."}->{" foreach @_;
+		$eval =~ s/\Q->{\E$//;
+		warn "# EVAL $eval";
+		eval "\$cache = $eval;";
+		die $! if $!;
+	} else {
+		$key = join(' ', $key, @var);
+		$cache = $_sql_cache;
+	}
+
+	if ( exists $cache->{$key} ) {
 		warn "### _sql_cache HIT $key\n";
-		$stats->{$key}->[0]++;
-		return $_sql_cache->{$full};
+		$stats->{$stat_key}->[0]++;
+		return $cache->{$key};
 	}
 	warn "### _sql_cache MISS $key\n";
-	$stats->{$key}->[1]++;
+	$stats->{$stat_key}->[1]++;
 	my $dbh = C4::Context->dbh;
 	my $sth = $dbh->prepare( $sql );
 	$sth->execute( @var );
 	my $v = $sth->fetchrow_hashref;
-	$_sql_cache->{$key} = $v;
-	warn "# row $key = ",dump($v);
+	if ( $eval ) {
+		eval $eval.'->{'.dump($key).'} = $v;';
+	} else {
+		$cache->{$key} = $v;
+	}
+	warn "# row $stat_key $key = ",dump($v);
+warn dump($_cache);
 	return $v;
 }
 
@@ -99,7 +121,7 @@ sub _sql_cache {
 sub authorised_value {
 	shift if $_[0] eq 'category';
 	my ( $category, $value ) = @_;
-	my $row = _sql_cache("SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ? -- key:autorhised_value", $category, $value);
+	my $row = _sql_cache("SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ? -- key:authorised_value", $category, $value);
 	warn dump $row;
 	return $row;
 }
