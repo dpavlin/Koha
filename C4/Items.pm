@@ -34,6 +34,8 @@ use List::MoreUtils qw/any/;
 use Data::Dumper; # used as part of logging item record changes, not just for
                   # debugging; so please don't remove this
 
+use Koha::Persistant;
+
 use vars qw($VERSION @ISA @EXPORT);
 
 BEGIN {
@@ -1256,63 +1258,33 @@ sub GetItemsInfo {
         $sthnflstatus->execute;
         my ($authorised_valuecode) = $sthnflstatus->fetchrow;
         if ($authorised_valuecode) {
-            $sthnflstatus = $dbh->prepare(
-                "SELECT lib FROM authorised_values
-                 WHERE  category=?
-                 AND authorised_value=?"
-            );
-            $sthnflstatus->execute( $authorised_valuecode,
-                $data->{itemnotforloan} );
-            my ($lib) = $sthnflstatus->fetchrow;
-            $data->{notforloanvalue} = $lib;
+            $data->{notforloanvalue} = authorised_value( category => $authorised_valuecode, $data->{itemnotforloan} )->{lib};
         }
 
         # get restricted status and description if applicable
-        my $restrictedstatus = $dbh->prepare(
-            'SELECT authorised_value
+	my $items_restricted = sql_cache("
+            SELECT authorised_value
             FROM   marc_subfield_structure
-            WHERE  kohafield="items.restricted"
-        '
-        );
+            WHERE  kohafield='items.restricted'
+        ");
 
-        $restrictedstatus->execute;
-        ($authorised_valuecode) = $restrictedstatus->fetchrow;
-        if ($authorised_valuecode) {
-            $restrictedstatus = $dbh->prepare(
-                "SELECT lib,lib_opac FROM authorised_values
-                 WHERE  category=?
-                 AND authorised_value=?"
-            );
-            $restrictedstatus->execute( $authorised_valuecode,
-                $data->{restricted} );
-
-            if ( my $rstdata = $restrictedstatus->fetchrow_hashref ) {
+        if ( $items_restricted->{authorised_value} ) {
+            if ( my $rstdata = authorised_value( $items_restricted->{authorised_value}, $data->{restricted} ) ) {
                 $data->{restricted} = $rstdata->{'lib'};
                 $data->{restrictedopac} = $rstdata->{'lib_opac'};
             }
         }
 
         # my stack procedures
-        my $stackstatus = $dbh->prepare(
-            'SELECT authorised_value
+        my $items_stack = sql_cache("
+             SELECT authorised_value
              FROM   marc_subfield_structure
-             WHERE  kohafield="items.stack"
-        '
-        );
-        $stackstatus->execute;
-
-        ($authorised_valuecode) = $stackstatus->fetchrow;
-        if ($authorised_valuecode) {
-            $stackstatus = $dbh->prepare(
-                "SELECT lib
-                 FROM   authorised_values
-                 WHERE  category=?
-                 AND    authorised_value=?
-            "
-            );
-            $stackstatus->execute( $authorised_valuecode, $data->{stack} );
-            my ($lib) = $stackstatus->fetchrow;
-            $data->{stack} = $lib;
+             WHERE  kohafield='items.stack' -- key:items.stack
+        ");
+        if ( $items_stack->{authorised_value} ) {
+            if ( my $row = authorised_value( $items_stack->{authorised_value}, $data->{stack} ) ) {
+                $data->{stack} = $row->{lib};
+            }
         }
         # Find the last 3 people who borrowed this item.
         my $sth2 = $dbh->prepare("SELECT * FROM old_issues,borrowers
