@@ -13,6 +13,7 @@ our $VERSION = '0.03';
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 
+warn "## FIXME ",__PACKAGE__, " patched with in-memory cache for fetch!";
 
 use base 'Exporter';
 
@@ -79,6 +80,8 @@ sub flush_cache {
   # clear the cache for a single function.  Pass this along to
   # Memoize, even though it cannot be handled correctly at this time
   # (whatever we do will be wrong, anyway).
+
+warn "## flush_cache";
 
   goto &Memoize::flush_cache if @_ == 1;
 
@@ -246,19 +249,29 @@ sub STORE {
   my @args = ($key, $value);
   push @args, $self->{expire_time} if defined $self->{expire_time};
   $self->{memcached_obj}->set(@args);
+warn "## STORE $key $value";
   return $self;
 }
 
+our $cache;
 
 sub FETCH {
   my $self = shift;
   my $key = $self->_get_key(shift);
-  return $self->{memcached_obj}->get($key);
+  if ( exists $cache->{$key} ) {
+	$Koha::Persistant::stats->{memcache_FETCH}->[0]++;
+	return $cache->{$key};
+  }
+  $Koha::Persistant::stats->{memcache_FETCH}->[1]++;
+warn "## FETCH $key";
+  my $v = $self->{memcached_obj}->get($key);
+  $cache->{$key} = $v;
+  return $v;
 }
-
 
 sub EXISTS {
   my $self = shift;
+warn "## EXISTS @_";
   return defined $self->FETCH(@_);
 }
 
@@ -267,6 +280,7 @@ sub DELETE {
   my $self = shift;
   my $key = $self->_get_key(shift);
   $self->{memcached_obj}->delete($key);
+warn "## DELETE $key";
   return $self;
 }
 
@@ -275,6 +289,7 @@ sub CLEAR {
   my $self = shift;
   # This is not safe because all object share memcached setup.
   $self->{memcached_obj}->flush_all;
+warn "## CLEAR";
   return $self;
 }
 
