@@ -1447,7 +1447,7 @@ sub searchResults {
     my %itemtypes;
     $bsth =
       $dbh->prepare(
-        "SELECT itemtype,description,imageurl,summary,notforloan FROM itemtypes"
+        "SELECT itemtype,description,imageurl,summary,notforloan FROM itemtypes -- C4::Search"
       );
     $bsth->execute();
     while ( my $bdata = $bsth->fetchrow_hashref ) {

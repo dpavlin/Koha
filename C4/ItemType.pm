@@ -79,7 +79,7 @@ sub all {
 
     my @itypes;
     for ( @{$dbh->selectall_arrayref(
-        "SELECT * FROM itemtypes ORDER BY description", { Slice => {} })} )
+        "SELECT * FROM itemtypes ORDER BY description -- C4::ItemType", { Slice => {} })} )
     {
         utf8::encode($_->{description});
         push @itypes, $class->new($_);
