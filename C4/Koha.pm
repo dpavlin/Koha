@@ -77,6 +77,7 @@ BEGIN {
 
 # expensive functions
 memoize('GetAuthorisedValues');
+memoize('GetItemTypes');
 
 =head1 NAME
 
