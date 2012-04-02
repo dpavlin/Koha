@@ -1058,8 +1058,10 @@ sub GetMarcStructure {
     $frameworkcode = "" unless $frameworkcode;
 
     if ( defined $marc_structure_cache and exists $marc_structure_cache->{$forlibrarian}->{$frameworkcode} ) {
+        $Koha::Persistant::stats->{GetMarcStructure}->[0]++;
         return $marc_structure_cache->{$forlibrarian}->{$frameworkcode};
     }
+    $Koha::Persistant::stats->{GetMarcStructure}->[1]++;
 
     #     my $sth = $dbh->prepare(
     #         "SELECT COUNT(*) FROM marc_tag_structure WHERE frameworkcode=?");
