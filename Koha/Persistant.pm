@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 use C4::Context;
-
+use Carp qw(confess);
 use Data::Dump qw(dump);
 
 use base 'Exporter';
@@ -29,6 +29,8 @@ use version; our $VERSION = qv('1.0.0');
 our @EXPORT = (
     qw( sql_cache authorised_value )
 );
+
+our $debug = $ENV{DEBUG} || 0;
 
 =head1 Persistant
 
@@ -65,7 +67,7 @@ our $_sql_cache;
 our $_cache;
 our $stats;
 
-sub _sql_cache {
+sub sql_cache {
 	my $sql = shift;
 	my @var = @_;
 
@@ -83,7 +85,7 @@ sub _sql_cache {
 		$eval = '$_cache->{';
 		$eval .= dump($_)."}->{" foreach @_;
 		$eval =~ s/\Q->{\E$//;
-		warn "# EVAL $eval";
+		#warn "# EVAL $eval";
 		eval "\$cache = $eval;";
 		die $! if $!;
 	} else {
@@ -91,12 +93,14 @@ sub _sql_cache {
 		$cache = $_sql_cache;
 	}
 
+	confess "key is undef" unless defined $key;
+
 	if ( exists $cache->{$key} ) {
-		warn "### _sql_cache HIT $key\n";
+		warn "## _sql_cache HIT $key\n" if $debug >= 2;
 		$stats->{$stat_key}->[0]++;
 		return $cache->{$key};
 	}
-	warn "### _sql_cache MISS $key\n";
+	warn "## _sql_cache MISS $key\n" if $debug >= 2;
 	$stats->{$stat_key}->[1]++;
 	my $dbh = C4::Context->dbh;
 	my $sth = $dbh->prepare( $sql );
@@ -107,8 +111,7 @@ sub _sql_cache {
 	} else {
 		$cache->{$key} = $v;
 	}
-	warn "# row $stat_key $key = ",dump($v);
-warn dump($_cache);
+	warn "### row $stat_key $key = ",dump($v) if $debug >= 3;
 	return $v;
 }
 
@@ -121,8 +124,8 @@ warn dump($_cache);
 sub authorised_value {
 	shift if $_[0] eq 'category';
 	my ( $category, $value ) = @_;
-	my $row = _sql_cache("SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ? -- key:authorised_value", $category, $value);
-	warn dump $row;
+	my $row = sql_cache("SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ? -- key:authorised_value", $category, $value);
+	warn "## authorised_value $category $value = ",dump $row;
 	return $row;
 }
 
