@@ -22,7 +22,8 @@ my $watch_size = [
 	grep { /C4/ }
 	keys %INC
 ];
-	
+
+$ENV{PROFILE_PER_PAGE} = 1; # used by plack to reset after each page, like CGI
 
 my $app=Plack::App::CGIBin->new(root => $ENV{INTRANETDIR} || $ENV{OPACDIR});
 

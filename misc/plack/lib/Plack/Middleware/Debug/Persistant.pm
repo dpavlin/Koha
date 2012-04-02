@@ -19,6 +19,7 @@ sub run {
 			} keys %$stats
 		] ) );
 	        $panel->nav_subtitle(sprintf("%d/%d %.2f%%",$hit,$miss,$hit * 100/($hit+$miss || 1)));
+		$Koha::Persistant::stats = {} if $ENV{PROFILE_PER_PAGE};
 	}
 }
 
