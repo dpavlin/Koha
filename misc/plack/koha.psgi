@@ -29,11 +29,12 @@ my $app=Plack::App::CGIBin->new(root => $ENV{INTRANETDIR} || $ENV{OPACDIR});
 builder {
 
 	enable_if { $ENV{PLACK_DEBUG} } 'Debug',  panels => [
-		qw(Environment Response Timer Memory Persistant),
-#		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
+ 		qw(Koha Persistant),
+		qw(Environment Response Timer Memory),
+		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
 #		[ 'DBITrace', level => 1 ], # a LOT of fine-graded SQL trace
 		[ 'DBIProfile', profile => 2 ],
-		[ 'Devel::Size', for => $watch_size ],
+#		[ 'Devel::Size', for => $watch_size ],
 	];
 
 	enable_if { $ENV{PLACK_DEBUG} } 'StackTrace';
