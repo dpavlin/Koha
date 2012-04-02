@@ -5,6 +5,12 @@ use lib qw( ./lib );
 use Plack::Middleware::Debug;
 use Plack::App::Directory;
 
+# change configuration from startup script below:
+
+$ENV{PROFILE_PER_PAGE} = 1; # reset persistant and profile counters after each page, like CGI
+$ENV{PLACK_DEBUG} = 1; # toggle debugging
+$ENV{MEMCACHED_SERVERS} = ""; # disable memcache
+
 use C4::Context;
 use C4::Languages;
 use C4::Members;
@@ -23,8 +29,6 @@ my $watch_size = [
 	keys %INC
 ];
 
-$ENV{PROFILE_PER_PAGE} = 1; # used by plack to reset after each page, like CGI
-
 my $app=Plack::App::CGIBin->new(root => $ENV{INTRANETDIR} || $ENV{OPACDIR});
 
 builder {
@@ -32,7 +36,7 @@ builder {
 	enable_if { $ENV{PLACK_DEBUG} } 'Debug',  panels => [
  		qw(Koha Persistant),
 		qw(Environment Response Timer Memory),
-		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
+#		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
 #		[ 'DBITrace', level => 1 ], # a LOT of fine-graded SQL trace
 		[ 'DBIProfile', profile => 2 ],
 #		[ 'Devel::Size', for => $watch_size ],
