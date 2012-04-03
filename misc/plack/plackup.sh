@@ -27,25 +27,27 @@ if [ ! -e "$INTRANETDIR/C4" ] ; then
 fi
 
 if [ -z "$1" ] ; then # type anything after site name for intranet!
-	INTRANET=1
+	INTRANET=0
 	PORT=5000
 else
+	INTRANET=1
 	PORT=5001
 	shift # pass rest of arguments to plackup
 fi
-
+export INTRANET # pass to plack
 
 # uncomment to enable logging
 #opt="$opt --access-log $LOGDIR/opac-access.log --error-log $LOGDIR/opac-error.log"
 
 # --max-requests 50 decreased from 1000 to keep memory usage sane
 # --workers 4       number of cores on machine
-opt="$opt --server Starman -M FindBin --port $PORT --max-requests 50 --workers 4"
+#test "$INTRANET" != 1 && \ # don't use Starman for intranet
+opt="$opt --server Starman -M FindBin --max-requests 50 --workers 4"
 
 # -E deployment     turn off access log on STDOUT
-#opt="-E deployment"
+opt="-E deployment"
 
 # comment out reload in production!
 opt="$opt --reload -R $INTRANETDIR/C4 -R $INTRANETDIR/Koha"
 
-sudo -E -u $site-koha plackup -I $INTRANETDIR $opt $* $dir/koha.psgi
+sudo -E -u $site-koha plackup --port $PORT -I $INTRANETDIR $opt $* $dir/koha.psgi
