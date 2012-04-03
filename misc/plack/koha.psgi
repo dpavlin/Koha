@@ -5,19 +5,25 @@ use lib qw( ./lib );
 use Plack::Middleware::Debug;
 use Plack::App::Directory;
 
+BEGIN {
+
 # override configuration from startup script below:
 # (requires --reload option)
 
-#$ENV{PLACK_DEBUG} = 1; # toggle debugging
-#$ENV{MEMCACHED_SERVERS} = "localhost:11211";
-#$ENV{MEMCACHED_DEBUG} = 1;
+$ENV{PLACK_DEBUG} = 1; # toggle debugging
+
+# memcache change requires restart
+$ENV{MEMCACHED_SERVERS} = "localhost:11211";
+#$ENV{MEMCACHED_DEBUG} = 0;
 
 #$ENV{PLACK_MINIFY} = 1;
 
 $ENV{PROFILE_PER_PAGE} = 1; # reset persistant and profile counters after each page, like CGI
+#$ENV{INTRANET} = 1; # usually passed from script
+
+} # BEGIN
 
 use C4::Context;
-=for preload
 use C4::Languages;
 use C4::Members;
 use C4::Dates;
@@ -27,6 +33,8 @@ use C4::Koha;
 use C4::XSLT;
 use C4::Branch;
 use C4::Category;
+=for preload
+use C4::Tags; # FIXME
 =cut
 
 use Devel::Size 0.77; # 0.71 doesn't work for Koha
@@ -42,7 +50,9 @@ sub watch_for_size {
 	return @watch;
 };
 
-my $app=Plack::App::CGIBin->new(root => $ENV{INTRANET} ? $ENV{INTRANETDIR} : $ENV{OPACDIR});
+my $CGI_ROOT = $ENV{INTRANET} ? $ENV{INTRANETDIR} : $ENV{OPACDIR};
+warn "# using Koha ", $ENV{INTRANET} ? 'intranet' : 'OPAC', " CGI from $CGI_ROOT\n";
+my $app=Plack::App::CGIBin->new(root => $CGI_ROOT);
 
 builder {
 
