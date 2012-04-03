@@ -1,0 +1,31 @@
+Bug 7844 - plack intranet tooling for developers
+
+koha.psgi example and plackup.sh script to run any Koha site
+intranet or opac interface under plack with optional multi-process
+Starman server
+
+  plackup.sh site-name [intranet]
+
+site-name is used to find config /etc/koha/sites/site-name/koha-conf.xml
+
+All configuration is specified in koha.psgi, which you are welcomed to edit
+and tune according to your development needs.
+
+When you are happy with it, rename it to site name and save it for safe-keeping.
+
+Test scenario:
+1. install plack and dependencies, using ./cpanm-install.pl
+
+2. start ./plackup.sh sitename
+
+3. open intranet page http://localhost:5001/cgi-bin/koha/mainpage.pl
+   and verify that it works
+
+4. start ./plackup.sh sitename i[ntranet]
+
+5. open OPAC http://localhost:5000/cgi-bin/koha/opac-main.pl
+   and verify that it works
+
+6. next step is to take a look into koha.psgi and enable additional
+   debug modules, save file and reload page (plackup will reload
+   code automatically)

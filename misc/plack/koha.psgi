@@ -8,8 +8,8 @@ use Plack::App::Directory;
 # override configuration from startup script below:
 # (requires --reload option)
 
-$ENV{PLACK_DEBUG} = 1; # toggle debugging
-$ENV{MEMCACHED_SERVERS} = "localhost:11211";
+#$ENV{PLACK_DEBUG} = 1; # toggle debugging
+#$ENV{MEMCACHED_SERVERS} = "localhost:11211";
 #$ENV{MEMCACHED_DEBUG} = 1;
 
 #$ENV{PLACK_MINIFY} = 1;
@@ -50,7 +50,7 @@ builder {
  		qw(Koha Persistant),
 		qw(Environment Response Timer Memory),
 		# optional plugins (uncomment to enable) are sorted according to performance implact
-		[ 'Devel::Size', for => \&watch_for_size ],
+#		[ 'Devel::Size', for => \&watch_for_size ], # https://github.com/dpavlin/p5-plack-devel-debug-devel-size
 #		[ 'DBIProfile', profile => 2 ],
 #		[ 'DBITrace', level => 1 ], # a LOT of fine-graded SQL trace
 #		[ 'Profiler::NYTProf', exclude => [qw(.*\.css .*\.png .*\.ico .*\.js .*\.gif)] ],
