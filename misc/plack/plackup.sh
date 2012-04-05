@@ -50,4 +50,4 @@ opt="-E deployment"
 # comment out reload in production!
 opt="$opt --reload -R $INTRANETDIR/C4 -R $INTRANETDIR/Koha"
 
-sudo -E -u $site-koha plackup --port $PORT -I $INTRANETDIR $opt $* $dir/koha.psgi
+sudo -E -u $site-koha plackup --port $PORT -I $INTRANETDIR -I $INTRANETDIR/installer $opt $* $dir/koha.psgi
