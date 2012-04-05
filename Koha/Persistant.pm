@@ -27,7 +27,7 @@ use base 'Exporter';
 use version; our $VERSION = qv('1.0.0');
 
 our @EXPORT = (
-    qw( sql_cache authorised_value marc_subfield_structure )
+    qw( sql_cache authorised_value )
 );
 
 our $debug = $ENV{DEBUG} || 0;
@@ -71,8 +71,6 @@ sub sql_cache {
 	my $sql = shift;
 	my @var = @_;
 
-	confess "no variables" unless @var;
-
 	my $cache;
 
 	my $key = $sql;
@@ -95,7 +93,7 @@ sub sql_cache {
 		$cache = $_sql_cache;
 	}
 
-	confess "key is undef $sql ",dump(@var) unless defined $key;
+	confess "key is undef" unless defined $key;
 
 	if ( exists $cache->{$key} ) {
 		warn "## _sql_cache HIT $key\n" if $debug >= 2;
@@ -129,41 +127,6 @@ sub authorised_value {
 	my $row = sql_cache("SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ? -- key:authorised_value", $category, $value);
 	warn "## authorised_value $category $value = ",dump $row if $debug >= 2;
 	return $row;
-}
-
-=head2 marc_subfield_structure
-
-  my $authorised_value = marc_subfield_structure( kohafield => 'items.notforloan', frameworkcode => 'LIB' );
-  my $authorised_value = marc_subfield_structure( tagfield => $tag, tagsubfield => $subfield, frameworkcode => 'LIB' );
-
-=cut
-
-sub marc_subfield_structure {
-	my $args = {@_};
-	my $row;
-	if ( exists $args->{kohafield} && exists $args->{frameworkcode} ) {
-		$row = sql_cache("
-				SELECT authorised_value
-				FROM   marc_subfield_structure
-				WHERE  kohafield=?
-					AND frameworkcode=?
-				-- key:mss_kf_fwc
-			", $args->{kohafield}, $args->{frameworkcode});
-	} elsif ( exists $args->{tagfield} && exists $args->{tagsubfield} && exists $args->{frameworkcode} ) {
-		$row = sql_cache("
-				SELECT authorised_value
-				FROM   marc_subfield_structure
-				WHERE tagfield=?
-					AND tagsubfield=?
-					AND frameworkcode=?
-				-- key:mss_tf_tsf_fwc
-			", $args->{tagfield}, $args->{tagsubfield}, $args->{frameworkcode});
-	} else {
-		confess "called with unknown options ",dump($args)
-	}
-
-	warn "## marc_subfield_structure ",dump($args)," = ",dump $row if $debug >= 2;
-	return $row->{authorised_value};
 }
 
 1;
