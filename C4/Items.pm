@@ -741,36 +741,11 @@ sub GetItemStatus {
     my ( $tag, $subfield ) =
       GetMarcFromKohaField( "items.notforloan", $fwk );
     if ( $tag and $subfield ) {
-        my $sth =
-          $dbh->prepare(
-            "SELECT authorised_value
-            FROM marc_subfield_structure
-            WHERE tagfield=?
-                AND tagsubfield=?
-                AND frameworkcode=?
-            "
-          );
-        $sth->execute( $tag, $subfield, $fwk );
-        if ( my ($authorisedvaluecat) = $sth->fetchrow ) {
-            my $authvalsth =
-              $dbh->prepare(
-                "SELECT authorised_value,lib
-                FROM authorised_values 
-                WHERE category=? 
-                ORDER BY lib
-                "
-              );
-            $authvalsth->execute($authorisedvaluecat);
-            while ( my ( $authorisedvalue, $lib ) = $authvalsth->fetchrow ) {
-                $itemstatus{$authorisedvalue} = $lib;
+        if ( my $code = C4::Koha::GetAuthValCodeFromField( $tag,  $subfield, $fwk ) ) {
+            foreach my $row ( C4::Koha::GetAuthorisedValues( $code ) ) { ; # no selected, not opac
+                $itemstatus{ $row->{authorised_value} } = $row->{lib};
             }
             return \%itemstatus;
-            exit 1;
-        }
-        else {
-
-            #No authvalue list
-            # build default
         }
     }
 
