@@ -5139,6 +5139,21 @@ if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
     SetVersion($DBversion);
 }
 
+$DBversion = "3.07.00.044";
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("ALTER TABLE aqbooksellers ADD deliverytime INT DEFAULT NULL");
+    print "Upgrade to $DBversion done (Add deliverytime field in aqbooksellers table)";
+    SetVersion($DBversion);
+}
+
+$DBversion = "3.07.00.XXX";
+if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
+    $dbh->do("CREATE INDEX items_location ON items(location)");
+    $dbh->do("CREATE INDEX items_ccode ON items(ccode)");
+    print "Upgrade to $DBversion done (items_location and items_ccode indexes added for ShelfBrowser)";
+    SetVersion($DBversion);
+}
+
 =head1 FUNCTIONS
 
 =head2 DropAllForeignKeys($table)
