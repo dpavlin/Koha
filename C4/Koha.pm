@@ -1171,7 +1171,10 @@ Returns authorised value description
 sub GetKohaAuthorisedValueLib {
   my ($category,$authorised_value,$opac) = @_;
   my $value;
-  my $data = authorised_value($category,$authorised_value);
+  my $dbh = C4::Context->dbh;
+  my $sth = $dbh->prepare("select lib, lib_opac from authorised_values where category=? and authorised_value=?");
+  $sth->execute($category,$authorised_value);
+  my $data = $sth->fetchrow_hashref;
   $value = ($opac && $$data{'lib_opac'}) ? $$data{'lib_opac'} : $$data{'lib'};
   return $value;
 }

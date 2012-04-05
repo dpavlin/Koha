@@ -37,8 +37,6 @@ use C4::Charset;
 use C4::Linker;
 use C4::OAI::Sets;
 
-use Koha::Persistant;
-
 use vars qw($VERSION @ISA @EXPORT);
 
 BEGIN {
@@ -1536,7 +1534,9 @@ sub GetAuthorisedValueDesc {
     }
 
     if ( $category ne "" ) {
-        my $data = authorised_value( $category, $value );
+        my $sth = $dbh->prepare( "SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ?" );
+        $sth->execute( $category, $value );
+        my $data = $sth->fetchrow_hashref;
         return ( $opac && $data->{'lib_opac'} ) ? $data->{'lib_opac'} : $data->{'lib'};
     } else {
         return $value;    # if nothing is found return the original value
