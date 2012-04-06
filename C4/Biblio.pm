@@ -143,6 +143,7 @@ eval {
 
         memoize_memcached( 'GetMarcStructure',
                             memcached => C4::Context->memcached);
+	# GetMarcFromKohaField
     }
 };
 
