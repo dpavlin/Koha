@@ -21,6 +21,8 @@ $ENV{MEMCACHED_SERVERS} = "localhost:11211";
 $ENV{PROFILE_PER_PAGE} = 1; # reset persistant and profile counters after each page, like CGI
 #$ENV{INTRANET} = 1; # usually passed from script
 
+#$ENV{DBI_AUTOPROXY}='dbi:Gofer:transport=null;cache=DBI::Util::CacheMemory'
+
 } # BEGIN
 
 use C4::Context;
