@@ -45,7 +45,7 @@ export INTRANET # pass to plack
 opt="$opt --server Starman -M FindBin --max-requests 50 --workers 4"
 
 # -E deployment     turn off access log on STDOUT
-opt="-E deployment"
+opt="$out -E deployment"
 
 # comment out reload in production!
 opt="$opt --reload -R $INTRANETDIR/C4 -R $INTRANETDIR/Koha"
