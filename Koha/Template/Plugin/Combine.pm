@@ -10,6 +10,9 @@ use File::Slurp;
 use Digest::MD5;
 use Data::Dump qw(dump);
 
+use CSS::Minifier::XS;
+use JavaScript::Minifier::XS;
+
 sub new {
 	my ($class, $context, @params) = @_;
 #warn "## context ",dump( $context );
@@ -18,6 +21,7 @@ sub new {
 		js  => [], # same as extension!
 		css => [],
 		inline => 1,
+		minify => 1,
 	}, $class;
 }
 
@@ -99,6 +103,17 @@ warn "## combined_files $what $attr ",dump($params);
 		}
 	}
 	my $combined_size = length($mix);
+	if ( $self->{minify} ) {
+		if ( $what eq 'js' ) {
+			$mix = JavaScript::Minifier::XS::minify( $mix );
+		} elsif ( $what eq 'css' ) {
+			$mix = CSS::Minifier::XS::minify( $mix );
+		} else {
+			die "can't minify $what";
+		}
+		my $size = length($mix);
+		warn sprintf "minify %s %d -> %d %.2f%%\n", $what, $combined_size, $size, $size * 100 / $combined_size;
+	}
 	write_file $path, $mix;
 	warn "## $path ", -s $path, "/$combined_size bytes\n";
 	return $url;
