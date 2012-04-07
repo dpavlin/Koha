@@ -1,5 +1,7 @@
+/* moved to koha-tmpl/intranet-tmpl/prog/en/includes/doc-head-close.inc
 @import url("../lib/yui/reset-fonts-grids.css");
 @import url("../lib/yui/skin.css");
+*/
 
 input:focus, textarea:focus {
     border-color:#538200;
