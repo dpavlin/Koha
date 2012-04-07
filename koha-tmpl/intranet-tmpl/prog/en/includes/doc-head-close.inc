@@ -1,42 +1,43 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+[% USE combine = Combine %]
 <link rel="shortcut icon" href="[% IF ( IntranetFavicon ) %][% IntranetFavicon %][% ELSE %][% themelang %]/includes/favicon.ico[% END %]" type="image/x-icon" />
-<link rel="stylesheet" type="text/css" href="[% themelang %]/lib/jquery/plugins/ui.tabs.css" />
-<link rel="stylesheet" type="text/css" media="print" href="[% themelang %]/css/print.css" />
+[% combine.css( href => themelang _ "/lib/jquery/plugins/ui.tabs.css" ) %]
+[% combine.css( media => "print" href => themelang _ "/css/print.css" ) %]
 [% IF ( intranetstylesheet ) %]
-    <link rel="stylesheet" type="text/css" href="[% intranetstylesheet %]" />
+    [% combine.css( href => intranetstylesheet ) %]
 [% ELSE %]
-    <link rel="stylesheet" type="text/css" href="[% themelang %]/css/staff-global.css" />
+    [% combine.css( href => themelang _ "/css/staff-global.css" ) %]
 [% END %]
 [% IF ( IntranetUserCSS ) %]<style type="text/css">[% IntranetUserCSS %]</style>[% END %]
-<script type="text/javascript" src="[% themelang %]/lib/jquery/jquery.js"></script>
-<script type="text/javascript" src="[% themelang %]/lib/jquery/plugins/ui.tabs.js"></script>
-<script type="text/javascript" src="[% themelang %]/lib/jquery/plugins/jquery.hotkeys.min.js"></script>
-<script type="text/javascript" src="[% themelang %]/lib/jquery/plugins/jquery.cookie.min.js"></script>
-<script type="text/javascript" src="[% themelang %]/lib/jquery/plugins/jquery.highlight-3.js"></script>
+[% combine.javascript( src => themelang _ "/lib/jquery/jquery.js" ) %]
+[% combine.javascript( src => themelang _ "/lib/jquery/plugins/ui.tabs.js" ) %]
+[% combine.javascript( src => themelang _ "/lib/jquery/plugins/jquery.hotkeys.min.js" ) %]
+[% combine.javascript( src => themelang _ "/lib/jquery/plugins/jquery.cookie.min.js" ) %]
+[% combine.javascript( src => themelang _ "/lib/jquery/plugins/jquery.highlight-3.js" ) %]
 [% IF ( login ) %]
-    <link rel="stylesheet" type="text/css" href="[% themelang %]/css/login.css" />
+    [% combine.css( href => themelang _ "/css/login.css" ) %]
 [% END %]
 [% IF ( wizard ) %]
-    <link rel="stylesheet" type="text/css" href="[% themelang %]/css/wizard.css" />
+    [% combine.css( href => themelang _ "/css/wizard.css" ) %]
 [% END %]
 
 <!-- local colors -->
 [% IF ( intranetcolorstylesheet ) %]
-    <link rel="stylesheet" type="text/css" href="[% themelang %]/css/[% intranetcolorstylesheet %]" />
+    [% combine.css( href => themelang _ "/css/" _ intranetcolorstylesheet ) %]
 [% END %]
 
 <!-- yui js --> 
-<script type="text/javascript" src="[% yuipath %]/utilities/utilities.js"></script> 
-<script type="text/javascript" src="[% yuipath %]/datasource/datasource-min.js"></script>
+[% combine.javascript( src => yuipath _ "/utilities/utilities.js" ) %] 
+[% combine.javascript( src => yuipath _ "/datasource/datasource-min.js" ) %]
 [% IF ( CircAutocompl ) %]
-    <script type="text/javascript" src="[% yuipath %]/autocomplete/autocomplete-min.js"></script>
+    [% combine.javascript( src => yuipath _ "/autocomplete/autocomplete-min.js" ) %]
 [% END %]
-<script type="text/javascript" src="[% yuipath %]/button/button-min.js"></script> 
-<script type="text/javascript" src="[% yuipath %]/container/container_core-min.js"></script> 
-<script type="text/javascript" src="[% yuipath %]/menu/menu-min.js"></script> 
+[% combine.javascript( src => yuipath _ "/button/button-min.js" ) %] 
+[% combine.javascript( src => yuipath _ "/container/container_core-min.js" ) %] 
+[% combine.javascript( src => yuipath _ "/menu/menu-min.js" ) %] 
 
 <!-- koha core js -->
-<script type="text/javascript" src="[% themelang %]/js/staff-global.js"></script>
+[% combine.javascript( src => themelang _ "/js/staff-global.js" ) %]
 [% IF ( intranetuserjs ) %]
     <script type="text/javascript">
     //<![CDATA[
@@ -60,10 +61,10 @@
     //]]>
     </script>
     [% IF ( virtualshelves || intranetbookbag ) %]
-        <script type="text/javascript" language="javascript" src="[% themelang %]/js/basket.js"></script>
+        [% combine.javascript( src => themelang _ "/js/basket.js" ) %]
     [% END %]
 [% IF LocalCoverImages %]
-<script type="text/javascript" language="javascript" src="[% themelang %]/js/localcovers.js"></script>
+[% combine.javascript( src => themelang _ "/js/localcovers.js" ) %]
 <script type="text/javascript" language="javascript">
 //<![CDATA[
 var NO_LOCAL_JACKET = _("No cover image available");
