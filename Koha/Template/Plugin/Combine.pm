@@ -12,6 +12,7 @@ use Data::Dump qw(dump);
 
 sub new {
 	my ($class, $context, @params) = @_;
+#warn "## context ",dump( $context );
 	bless {
 		_CONTEXT => $context,
 		js  => [], # same as extension!
@@ -33,6 +34,8 @@ sub javascript {
 	my $html = _html_params( $params );
 	if ( $self->{inline} ) {
 		return "<!-- script $html -->\n";
+	} elsif ( my $cdata = $params->{cdata} ) {
+		return qq|<script type="text/javascript" language="javascript">\n//<![CDATA[\n$cdata\n//]]>\n</script>\n|;
 	} else {
 		return "<script $html></script>\n";
 	}
@@ -60,14 +63,22 @@ sub css {
 }
 
 sub combined_files {
-	my ( $self, $what, $attr ) = @_;
-	my $key = join(' ', map { $_->{$attr} } @{ $self->{$what} } );
+	my ( $self, $what, $attr, $params ) = @_;
+warn "## combined_files $what $attr ",dump($params);
+	my $key = join(' ', map { $_->{$attr} || $_->{cdata} } @{ $self->{$what} } );
 	$key = Digest::MD5::md5_hex( $key ); # shorten filenames
 	warn "# $what $attr key = $key\n";
 	my $htdocs = C4::Context->config('intrahtdocs');
-	$htdocs =~ s{/intranet-tmpl/?}{/}; # FIXME DocumentRoot even for OPAC
-	my $path = "$htdocs/intranet-tmpl/combined/$key.$what";
-	my $url  = "/intranet-tmpl/combined/$key.$what";
+	$htdocs =~ s{/intranet-tmpl/?$}{}; # FIXME DocumentRoot even for OPAC
+
+	my ( $path, $url );
+	if ( my $prefix = $params->{prefix} ) {
+		$path = "$htdocs/$prefix/combined/$key.$what";
+		$url  = "$prefix/combined/$key.$what";
+	} else {
+		$path = "$htdocs/intranet-tmpl/combined/$key.$what";
+		$url  = "/intranet-tmpl/combined/$key.$what";
+	}
 	$path =~ s{//+}{/}; # plack is picky about paths
 	if ( -e $path ) {
 		$Koha::Persistant::stats->{combine_files}->[0]++; # hit
@@ -76,11 +87,16 @@ sub combined_files {
 	$Koha::Persistant::stats->{combine_files}->[1]++ if ! $ENV{PLACK_DEBUG}; # miss
 
 	my $mix;
-	foreach my $path ( map { $_->{$attr} } @{ $self->{$what} } ) {
-		warn "combine_files $what $attr - $path";
-		my $chunk = read_file("$htdocs/$path");
-		die "$htdocs/$path found \@import" if $what eq 'css' && $chunk =~ m'@import';
-		$mix .= "\n/* BEGIN $path */\n$chunk\n/* END $path */\n";
+	foreach my $include ( @{ $self->{$what} } ) {
+		if ( my $path = $include->{$attr} ) {
+			warn "combine_files $what $attr - $path";
+			my $chunk = read_file("$htdocs/$path");
+			die "$htdocs/$path found \@import" if $what eq 'css' && $chunk =~ m'@import';
+			$mix .= "\n/* BEGIN $path */\n$chunk\n/* END $path */\n";
+		} elsif ( my $cdata = $include->{cdata} ) {
+			warn "combine_files CDATA $cdata";
+			$mix .= "\n/* BEGIN CDATA */\n$cdata\n/* END CDATA */\n";
+		}
 	}
 	my $combined_size = length($mix);
 	write_file $path, $mix;
@@ -95,8 +111,8 @@ sub html {
 		warn "## css ",dump( $self->{css} );
 		warn "## javascript ",dump( $self->{js} );
 		my $mix;
-		my $js  = $self->combined_files( 'js'  => 'src' );
-		my $css = $self->combined_files( 'css' => 'href' );
+		my $js  = $self->combined_files( 'js'  => 'src', $params );
+		my $css = $self->combined_files( 'css' => 'href', $params );
 		return qq{
 		<!-- combined.html -->
 		<link type="text/css" href="$css" rel="stylesheet" />
