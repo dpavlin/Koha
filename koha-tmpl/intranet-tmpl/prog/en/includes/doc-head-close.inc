@@ -73,4 +73,4 @@ var NO_LOCAL_JACKET = _("No cover image available");
 //]]>
 </script>
 [% END %]
-[% combine.html %]
+[% combine.html( prefix => themelang ) %]
