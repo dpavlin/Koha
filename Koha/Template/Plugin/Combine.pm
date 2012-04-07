@@ -79,6 +79,7 @@ sub combined_files {
 	foreach my $path ( map { $_->{$attr} } @{ $self->{$what} } ) {
 		warn "combine_files $what $attr - $path";
 		my $chunk = read_file("$htdocs/$path");
+		die "$htdocs/$path found \@import" if $what eq 'css' && $chunk =~ m'@import';
 		$mix .= "\n/* BEGIN $path */\n$chunk\n/* END $path */\n";
 	}
 	my $combined_size = length($mix);
