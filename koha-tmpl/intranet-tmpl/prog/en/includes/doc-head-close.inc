@@ -6,6 +6,8 @@
 [% IF ( intranetstylesheet ) %]
     [% combine.css( href => intranetstylesheet ) %]
 [% ELSE %]
+    [% combine.css( href => yuipath _ "/reset-fonts-grids.css" ) %]
+    [% combine.css( href => yuipath _ "/skin.css" ) %]
     [% combine.css( href => themelang _ "/css/staff-global.css" ) %]
 [% END %]
 [% IF ( IntranetUserCSS ) %]<style type="text/css">[% IntranetUserCSS %]</style>[% END %]
