@@ -16,8 +16,6 @@ $ENV{PLACK_DEBUG} = 1; # toggle debugging
 $ENV{MEMCACHED_SERVERS} = "localhost:11211";
 #$ENV{MEMCACHED_DEBUG} = 0;
 
-#$ENV{PLACK_MINIFY} = 1;
-
 $ENV{PROFILE_PER_PAGE} = 1; # reset persistant and profile counters after each page, like CGI
 #$ENV{INTRANET} = 1; # usually passed from script
 
@@ -71,10 +69,6 @@ builder {
 	enable_if { $ENV{PLACK_DEBUG} } 'StackTrace';
 
 	enable_if { $ENV{INTRANETDIR} } "Plack::Middleware::Static",
-		path => qr{^/(intranet|opac)-tmpl/},
-		root => "$ENV{INTRANETDIR}/koha-tmpl/";
-
-	enable_if { $ENV{PLACK_MINIFIER} } "Plack::Middleware::Static::Minifier",
 		path => qr{^/(intranet|opac)-tmpl/},
 		root => "$ENV{INTRANETDIR}/koha-tmpl/";
 
