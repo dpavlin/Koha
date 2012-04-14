@@ -143,10 +143,13 @@ if ($fileID) {
                             $error = 'DELERR';
                         }
                         else {
-                            ( $biblionumber, $filename ) = split $delim, $line;
+                            ( $biblionumber, $filename ) = split $delim, $line, 2;
                             $biblionumber =~
                               s/[\"\r\n]//g;    # remove offensive characters
-                            $filename =~ s/[\"\r\n\s]//g;
+                            $filename =~ s/[\"\r\n]//g;
+                            $filename =~ s/^\s+//;
+                            $filename =~ s/\s+$//;
+                            warn "## $total cover image biblionumber: $biblionumber file: $filename\n";
                             my $srcimage = GD::Image->new("$dir/$filename");
                             if ( defined $srcimage ) {
                                 $total++;
