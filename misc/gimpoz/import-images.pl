@@ -61,6 +61,7 @@ while(<$find>) {
 	}
 
 	my $image = GD::Image->new($path);
+	warn "# $path ", $image->width,"x",$image->height,$/;
 	PutImage($biblionumber, $image, $replace);
 
 	print dump( $biblionumber, $student, $lokacija, $inventarni_broj ),$/;
