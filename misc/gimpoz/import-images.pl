@@ -16,23 +16,20 @@ use C4::Images;
 use C4::Biblio;
 use C4::Items;
 
-my $source_dir = '/data/gimpoz/dvd1';
-my $replace = 1;
+my $source_dir = '/data/gimpoz/import';
+my $replace = 0;
 my $frameworkcode = '';
-
-sub marc {
-	my $marc = {@_};
-	print "MARC ",dump($marc),$/;
-}
 
 my $biblionumber;
 
 open(my $find, '-|', qq{find $source_dir -iname "*.jpg" | sort});
 while(<$find>) {
 	chomp;
+#	next unless m/\s*-\s*([a-k])\s*/i ;
 	my $path = $_;
 	warn "# path $path\n";
 	s{^\Q$source_dir\E/*}{};
+	my $uri = $_;
 	my $student = $1 if s{^(.+?)/}{};
 	$student =~ s/^(\d+).*/$1/;
 	my $lokacija = $1 if s{^(.+?)/}{};
@@ -40,14 +37,22 @@ while(<$find>) {
 	my $inventarni_broj = $_;
 	$inventarni_broj =~ s/\.jpg$//i;
 
-	if ( $inventarni_broj =~ m/\s*-\s*([a-k])\s*$/i ) {
+	if ( $inventarni_broj =~ m/\s*-\s*([b-k])\s*$/i ) {
 		warn "# $biblionumber dio $1\n";
 	} else {
+		$inventarni_broj =~ m/\s*-\s*a\s*$/i; # remove first -a
 		my $record = MARC::Record->new;
 		$record->add_fields(
 			[ 245, " ", " ", a => $inventarni_broj ],
+			[ 942, " ", " ", c => "NO" ],
+			[ 952, " ", " ", a => "GIMPOZ" ],
+			[ 952, " ", " ", b => "GIMPOZ" ],
+			[ 952, " ", " ", c => uc(substr($lokacija,0,1)) ],
 			[ 952, " ", " ", t => $inventarni_broj ],
+			[ 952, " ", " ", u => $uri ], # FIXME
 		);
+
+		warn $record->as_formatted;
 
 		my $biblioitemnumber;
 		($biblionumber,$biblioitemnumber) = AddBiblio($record,$frameworkcode);
