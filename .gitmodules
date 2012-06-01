@@ -1,6 +1,6 @@
 [submodule "misc/plack/p5-plack-devel-debug-devel-size"]
 	path = misc/plack/p5-plack-devel-debug-devel-size
 	url = git://github.com/dpavlin/p5-plack-devel-debug-devel-size.git
-[submodule "misc/plack/p5-plack-middleware-profiler-nytprof"]
-	path = misc/plack/p5-plack-middleware-profiler-nytprof
-	url = git://github.com/dpavlin/p5-plack-middleware-profiler-nytprof.git
+[submodule "misc/plack/Plack-Middleware-Debug-Profiler-NYTProf"]
+	path = misc/plack/Plack-Middleware-Debug-Profiler-NYTProf
+	url = git@github.com:dpavlin/Plack-Middleware-Debug-Profiler-NYTProf.git

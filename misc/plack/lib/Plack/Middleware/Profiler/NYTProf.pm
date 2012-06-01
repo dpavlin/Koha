@@ -1,1 +1,1 @@
-../../../../p5-plack-middleware-profiler-nytprof/lib/Plack/Middleware/Profiler/NYTProf.pm
+../../../../Plack-Middleware-Debug-Profiler-NYTProf//lib/Plack/Middleware/Debug/Profiler/NYTProf.pm
