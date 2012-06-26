@@ -44,6 +44,11 @@ $.fn.selectTabByID = function (tabID) {
     if($("#header_search #catalog_search").length > 0){ shortcut.add('Alt+q',function (){ $("#header_search").selectTabByID("#catalog_search"); $("#search-form").focus(); }); } else { shortcut.add('Alt+q',function(){ location.href="/cgi-bin/koha/catalogue/search.pl"; }); }
     if($("#header_search #renew_search").length > 0){ shortcut.add('Alt+w',function (){ $("#header_search").selectTabByID("#renew_search"); $("#ren_barcode").focus(); }); } else { shortcut.add('Alt+w',function(){ location.href="/cgi-bin/koha/circ/renew.pl"; }); }
 
+	// FFZG customized shortcuts (both z and y for different keyboard mappings)
+    if($("#header_search #circ_search").length > 0){ shortcut.add('Alt+z',function (){ $("#header_search").selectTabByID("#circ_search"); $("#findborrower").focus(); }); } else { shortcut.add('Alt+z',function(){ location.href="/cgi-bin/koha/circ/circulation.pl"; }); }
+    if($("#header_search #circ_search").length > 0){ shortcut.add('Alt+y',function (){ $("#header_search").selectTabByID("#circ_search"); $("#findborrower").focus(); }); } else { shortcut.add('Alt+y',function(){ location.href="/cgi-bin/koha/circ/circulation.pl"; }); }
+    if($("#header_search #catalog_search").length > 0){ shortcut.add('Alt+k',function (){ $("#header_search").selectTabByID("#catalog_search"); $("#search-form").focus(); }); } else { shortcut.add('Alt+k',function(){ location.href="/cgi-bin/koha/catalogue/search.pl"; }); }
+
     $("#header_search > ul > li").show();
 
     $(".focus").focus();
