@@ -150,7 +150,7 @@ sub is_holiday {
     $dt->truncate( to => 'days' );
     my $day   = $dt->day;
     my $month = $dt->month;
-    if ( exists $self->{day_month_closed_days}->{$month}->{$day} ) {
+    if ( exists $self->{day_month_closed_days}->{$day}->{$month} ) {
         return 1;
     }
     if ( $self->{exception_holidays}->contains($dt) ) {
