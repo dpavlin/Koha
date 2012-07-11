@@ -49,12 +49,13 @@ sub _init {
           1;
     }
     my $special = $dbh->prepare(
-'SELECT day, month, year, title, description FROM special_holidays WHERE ( branchcode = ? ) AND (isexception = ?)'
+'SELECT day, month, year, title, description, isexception FROM special_holidays WHERE branchcode = ?'
     );
-    $special->execute( $branch, 1 );
+    $special->execute( $branch );
     my $dates = [];
-    while ( my ( $day, $month, $year, $title, $description ) =
+    while ( my ( $day, $month, $year, $title, $description, $isexception ) =
         $special->fetchrow ) {
+	# FIXME $isexception is not used since users can't enter calendar entries with it
         push @{$dates},
           DateTime->new(
             day       => $day,
@@ -63,21 +64,8 @@ sub _init {
             time_zone => C4::Context->tz()
           )->truncate( to => 'day' );
     }
-    $self->{exception_holidays} =
+    $self->{special_holidays} =
       DateTime::Set->from_datetimes( dates => $dates );
-    $special->execute( $branch, 1 );
-    $dates = [];
-    while ( my ( $day, $month, $year, $title, $description ) =
-        $special->fetchrow ) {
-        push @{$dates},
-          DateTime->new(
-            day       => $day,
-            month     => $month,
-            year      => $year,
-            time_zone => C4::Context->tz()
-          )->truncate( to => 'day' );
-    }
-    $self->{single_holidays} = DateTime::Set->from_datetimes( dates => $dates );
     $self->{days_mode} = C4::Context->preference('useDaysMode');
     return;
 }
@@ -153,10 +141,7 @@ sub is_holiday {
     if ( exists $self->{day_month_closed_days}->{$day}->{$month} ) {
         return 1;
     }
-    if ( $self->{exception_holidays}->contains($dt) ) {
-        return 1;
-    }
-    if ( $self->{single_holidays}->contains($dt) ) {
+    if ( $self->{special_holidays}->contains($dt) ) {
         return 1;
     }
 
@@ -210,7 +195,7 @@ sub _mockinit {
     $self->{weekly_closed_days} = [ 1, 0, 0, 0, 0, 0, 0 ];    # Sunday only
     $self->{day_month_closed_days} = { 6 => { 16 => 1, } };
     my $dates = [];
-    $self->{exception_holidays} =
+    $self->{special_holidays} =
       DateTime::Set->from_datetimes( dates => $dates );
     my $special = DateTime->new(
         year      => 2011,
@@ -219,7 +204,6 @@ sub _mockinit {
         time_zone => 'Europe/London',
     );
     push @{$dates}, $special;
-    $self->{single_holidays} = DateTime::Set->from_datetimes( dates => $dates );
     $self->{days_mode} = 'Calendar';
     return;
 }
