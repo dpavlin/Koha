@@ -193,10 +193,8 @@ sub hours_between {
 sub _mockinit {
     my $self = shift;
     $self->{weekly_closed_days} = [ 1, 0, 0, 0, 0, 0, 0 ];    # Sunday only
-    $self->{day_month_closed_days} = { 6 => { 16 => 1, } };
+    $self->{day_month_closed_days} = { 16 => { 6 => 1, } };
     my $dates = [];
-    $self->{special_holidays} =
-      DateTime::Set->from_datetimes( dates => $dates );
     my $special = DateTime->new(
         year      => 2011,
         month     => 6,
@@ -204,6 +202,8 @@ sub _mockinit {
         time_zone => 'Europe/London',
     );
     push @{$dates}, $special;
+    $self->{special_holidays} =
+      DateTime::Set->from_datetimes( dates => $dates );
     $self->{days_mode} = 'Calendar';
     return;
 }
