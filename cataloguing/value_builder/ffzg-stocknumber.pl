@@ -22,6 +22,7 @@ use warnings;
 use C4::Auth;
 use CGI;
 use C4::Context;
+use DateTime;
 
 =head1 DESCRIPTION
 
@@ -94,9 +95,15 @@ sub plugin {
 
 
     my $code = $input->param('code');
-	my ( $year, $num ) = split(/-/,$code);
+    my ( $year, $num ) = split(/-/,$code);
 
-    $year = (localtime)[5] + 1900 unless $year;
+    if ( ! $year ) {
+	my $now = DateTime->now;
+	$year = $now->year;
+	if ( $now->month == 1 && $now->day <= 15 ) {
+		$year--;
+	}
+    }
 
 warn "XXX plugin code = $code";
 
