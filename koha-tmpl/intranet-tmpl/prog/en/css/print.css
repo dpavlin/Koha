@@ -97,6 +97,13 @@ table {
 	width : 99%;
 }
 
+@-moz-document url-prefix() {
+    table {
+        /* tries to fix firefox 21+ shrink-to-fit */
+        page-break-inside: avoid;
+    }
+}
+
 table.list {
 	background-color : #FFFFFF;
 	border : 0;
