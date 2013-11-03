@@ -9,15 +9,6 @@
 	float: right;
 }
 
-.title {
-	font-size: 100%;
-	font-weight: normal;
-}
-
-#header {
-}
-
-
 .inv_nr a:link {
 	color: #7A7A7A;
 }
@@ -28,4 +19,22 @@
 
 .isbd1 {
 	font-size: 120%;
+}
+
+.results_summary {
+	color: black;
+	font-size: 100%;
+	font-weight: normal;
+	padding: 0.5em 0 0;
+}
+
+.results_summary.edition, .results_summary.title, .results_summary.series, .results_summary.publisher, .results_summary.description, .results_summary.type, .results_summary.isn {
+	display: inline;
+}
+
+.results_summary.type {
+	display: block;
+}
+
+.results_summary.author {
 }

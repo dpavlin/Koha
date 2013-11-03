@@ -140,13 +140,6 @@
             </xsl:call-template>
         </xsl:if>
 
-   <xsl:if test="$materialTypeCode!=''">
-        <span class="results_summary type"><span class="label">Type: </span>
-        <xsl:element name="img"><xsl:attribute name="src">/intranet-tmpl/prog/img/famfamfam/<xsl:value-of select="$materialTypeCode"/>.png</xsl:attribute><xsl:attribute name="alt"></xsl:attribute></xsl:element>
-        <xsl:text> </xsl:text>
-        <xsl:value-of select="$materialTypeLabel"/>
-        </span>
-   </xsl:if>
 
        <xsl:if test="marc:datafield[@tag=080]">
         <span class="results_summary udc"><span class="label">UDC </span>
@@ -187,8 +180,6 @@
 
         <!-- Author Statement -->
         <xsl:call-template name="showAuthor"><xsl:with-param name="authorfield" select="marc:datafield[@tag=100 or @tag=110 or @tag=111]"/><xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/></xsl:call-template>
-        <xsl:call-template name="showAuthor"><xsl:with-param name="authorfield" select="marc:datafield[@tag=700 or @tag=710 or @tag=711]"/><xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/></xsl:call-template>
-
 
         <xsl:if test="marc:datafield[@tag=245]">
         <span class="results_summary title">
@@ -415,8 +406,17 @@
         </xsl:for-each>
         </span>
         </xsl:if>
+		   <xsl:if test="$materialTypeCode!=''">
+				<span class="results_summary type"><span class="label">Type: </span>
+				<xsl:element name="img"><xsl:attribute name="src">/intranet-tmpl/prog/img/famfamfam/<xsl:value-of select="$materialTypeCode"/>.png</xsl:attribute><xsl:attribute name="alt"></xsl:attribute></xsl:element>
+				<xsl:text> </xsl:text>
+				<xsl:value-of select="$materialTypeLabel"/>
+				</span>
+		   </xsl:if>
 
-       <xsl:if test="marc:datafield[@tag=020]">
+        <xsl:call-template name="showAuthor"><xsl:with-param name="authorfield" select="marc:datafield[@tag=700 or @tag=710 or @tag=711]"/><xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/></xsl:call-template>
+
+        <xsl:if test="marc:datafield[@tag=020]">
         <span class="results_summary isbn"><span class="label">ISBN: </span>
         <xsl:for-each select="marc:datafield[@tag=020]">
         <xsl:variable name="isbn" select="marc:subfield[@code='a']"/>
@@ -946,7 +946,7 @@
 	<xsl:param name="authorfield"/>
     <xsl:param name="UseAuthoritiesForTracings"/>
 	<xsl:if test="count($authorfield)&gt;0">
-        <h5 class="author">
+        <span class="results_summary author">
         <xsl:for-each select="$authorfield">
 	<!--
         <xsl:choose>
@@ -965,7 +965,12 @@
             </xsl:otherwise>
         </xsl:choose>
 	<xsl:choose>
-          <xsl:when test="@tag=100 or @tag=700"><xsl:call-template name="nameABCDQ"/></xsl:when>
+          <xsl:when test="(@tag=100 or @tag=700) and marc:subfield[@code=9]">
+				<span style="color: green"><xsl:call-template name="nameABCDQ"/></span>
+		  </xsl:when>
+		  <xsl:otherwise><xsl:call-template name="nameABCDQ"/></xsl:otherwise>
+    </xsl:choose>
+	<xsl:choose>
           <xsl:when test="@tag=110 or @tag=710"><xsl:call-template name="nameABCDN"/></xsl:when>
           <xsl:when test="@tag=111 or @tag=711"><xsl:call-template name="nameACDEQ"/></xsl:when>
 	</xsl:choose>
@@ -985,7 +990,7 @@
           <xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><xsl:text>; </xsl:text></xsl:otherwise>
         </xsl:choose>
         </xsl:for-each>
-        </h5>
+        </span>
         </xsl:if>
     </xsl:template>
 
