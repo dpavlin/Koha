@@ -74,14 +74,11 @@ sub plugin_javascript {
 			return;
 
                 var url = '../cataloguing/plugin_launcher.pl?plugin_name=ffzg-stocknumber.pl&code=' + code.value;
-                var blurcallbackstocknumber = {
-                    success: function(o) {
-                        var field = document.getElementById('$field_number');
-                        field.value = o.responseText;
-                        return 1;
-                    }
-                }
-                var transaction = YAHOO.util.Connect.asyncRequest('GET',url, blurcallbackstocknumber, null);
+                var req = \$.get(url);
+                req.done(function(resp){
+                    code.value = resp;
+                    return 1;
+                });
             return 1;
         }
     </script>
