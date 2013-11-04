@@ -13,7 +13,7 @@ label {
 }
 
 </style>
-<script type="text/javascript" src="[% themelang %]/lib/jquery/jquery.js"></script>
+<script type="text/javascript" src="[% interface %]/lib/jquery/jquery.js"></script>
 </head>
 <body>
 <h1>Signature za zatvoreno spremište</h1>
