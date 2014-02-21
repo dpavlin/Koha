@@ -48,12 +48,10 @@ use C4::Members::AttributeTypes;
 use C4::Members::Messaging;
 
 use Text::CSV;
-# Text::CSV::Unicode, even in binary mode, fails to parse lines with these diacriticals:
-# ė
-# č
+use Encode;
+use Unicode::Normalize;
 
 use CGI;
-# use encoding 'utf8';    # don't do this
 
 my (@errors, @feedback);
 my $extended = C4::Context->preference('ExtendedPatronAttributes');
@@ -115,6 +113,7 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
 
     # use header line to construct key to column map
     my $borrowerline = <$handle>;
+    $borrowerline = NFC(decode('utf-8',$borrowerline));
     my $status = $csv->parse($borrowerline);
     ($status) or push @errors, {badheader=>1,line=>$., lineraw=>$borrowerline};
     my @csvcolumns = $csv->fields();
@@ -138,6 +137,7 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
     my $date_re = C4::Dates->new->regexp('syspref');
     my  $iso_re = C4::Dates->new->regexp('iso');
     LINE: while ( my $borrowerline = <$handle> ) {
+        $borrowerline = NFC(decode('utf-8',$borrowerline));
         my %borrower;
         my @missing_criticals;
         my $patron_attributes;
