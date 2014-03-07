@@ -38,13 +38,12 @@ In this case, a stocknumber has this form : "YEAR-0009678570".
 
 Required database changes:
 
-  create unique index item_stocknumer on items(stocknumber) ;
-
   create table ffzg_inventarna_knjiga (
 	id int not null auto_increment primary key,
 	year int not null,
 	num int not null,
 	biblionumber int not null,
+	itemnumber int,
 	last_update timestamp default current_timestamp on update current_timestamp,
 	unique index ffzg_inv_br(year,num)
   ) ;
