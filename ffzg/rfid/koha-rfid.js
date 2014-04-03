@@ -21,7 +21,6 @@ function barcode_on_screen(barcode) {
 	var found = 0;
 	$('table tr td a:contains(130)').each( function(i,o) {
 		var possible = $(o).text();
-console.debug(i,o,possible, barcode);
 		if ( possible == barcode ) found++;
 	})
 	return found;
