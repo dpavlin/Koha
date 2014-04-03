@@ -27,10 +27,11 @@ console.debug(i,o,possible, barcode);
 	return found;
 }
 
-function rfid_secure(barcode,sid,val) {
-	console.debug('rfid_secure', barcode, sid, val);
-	if ( barcode_on_screen(barcode) )
-		$.getJSON( 'http://localhost:9000/secure.js?' + sid + '=' + val + ';callback=?' )
+function rfid_secure(t,val) {
+	if ( t.security.toUpperCase() == val.toUpperCase() ) return;
+	console.debug('rfid_secure', t.content, t.sid, val);
+	if ( barcode_on_screen(t.content) )
+		$.getJSON( 'http://localhost:9000/secure.js?' + t.sid + '=' + val + ';callback=?' )
 }
 
 var rfid_reset_field = false;
@@ -67,10 +68,8 @@ function rfid_scan(data,textStatus) {
 
 				} else if ( t.content.substr(0,3) == '130' ) { // books
 
-					if ( circulation )
-						 rfid_secure( t.content, t.sid, 'D7' );
-					if ( returns )
-						 rfid_secure( t.content, t.sid, 'DA' );
+					if ( circulation ) rfid_secure( t, 'D7' );
+					if ( returns     ) rfid_secure( t, 'DA' );
 
 					var color = 'blue';
 					if ( t.security.toUpperCase() == 'DA' ) color = 'red';
@@ -90,7 +89,9 @@ function rfid_scan(data,textStatus) {
 				} else {
 					span.text( t.content ).css('color', 'blue' );
 
-					if ( url.substr(-14,14) != 'circulation.pl' || $('form[name=mainform]').size() == 0 ) {
+					if ( $('.patroninfo:contains('+t.content+')').length == 1 ) {
+						console.debug('not submitting', t.contains);
+					} else {
 						rfid_refresh = 0;
 						rfid_reset_field = 'findborrower';
 						$('input[name=findborrower]').val( t.content )
