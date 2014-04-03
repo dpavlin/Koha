@@ -26,8 +26,11 @@ function barcode_on_screen(barcode) {
 	return found;
 }
 
+var rfid_refresh = 1500; // ms
+
 function rfid_secure_json(t,val, success) {
 	if ( t.security.toUpperCase() == val.toUpperCase() ) return;
+	rfid_refresh = 0; // disable rfid pull until secure call returns
 	console.log('rfid_secure_json', t, val);
 	$.getJSON( 'http://localhost:9000/secure.js?' + t.sid + '=' + val + ';callback=?', success );
 }
@@ -42,7 +45,6 @@ function rfid_secure_check(t,val) {
 var rfid_reset_field = false;
 
 function rfid_scan(data,textStatus) {
-	var rfid_refresh = 1500; // ms
 
 	console.debug( 'rfid_scan', data, textStatus );
 
@@ -64,8 +66,9 @@ function rfid_scan(data,textStatus) {
 			if ( 1 ) { // force update of security
 
 				var script_name = document.location.pathname.split(/\//).pop();
+				var tab_active  = $("#header_search .ui-tabs-panel:not(.ui-tabs-hide)").prop('id');
 				var circulation = script_name == 'circulation.pl';
-				var returns     = script_name == 'returns.pl';
+				var returns     = script_name == 'returns.pl' || tab_active == 'checkin_search';
 
 				if ( t.content.length == 0 ) { // empty tag
 
@@ -73,31 +76,28 @@ function rfid_scan(data,textStatus) {
 
 				} else if ( t.content.substr(0,3) == '130' ) { // books
 
-					if ( circulation ) rfid_secure_check( t, 'D7' );
-					if ( returns     ) rfid_secure_check( t, 'DA' );
-
 					var color = 'blue';
 					if ( t.security.toUpperCase() == 'DA' ) color = 'red';
 					if ( t.security.toUpperCase() == 'D7' ) color = 'green';
 					span.text( t.content ).css('color', color);
 
-					if ( ! barcode_on_screen( t.content ) ) {
+					if ( ! barcode_on_screen( t.content ) || returns ) {
 						rfid_reset_field = 'barcode';
 
-						var success = function(data) {
-							console.log('success', data);
-
-							var i = $('input[name=barcode]:last');
+						// return must be first to catch change of tab to check-in
+						var afi_secure    = returns ? 'DA' : 'D7';
+						var form_selector = returns ? 'first' : 'last';
+						if ( returns || circulation ) {
+							var i = $('input[name=barcode]:'+form_selector);
 							if ( i.val() != t.content )  {
-								rfid_refresh = 0;
-								i.val( t.content )
-								.closest('form').submit();
+								rfid_secure_json( t, afi_secure, function(data) {
+									console.log('secure', afi_secure, data);
+									i.val( t.content ).closest('form').submit();
+								});
 							}
-						};
-
-						if ( circulation ) rfid_secure_json( t, 'D7', success );
-						else if ( returns     ) rfid_secure_json( t, 'DA', success );
-						else console.error('not in circulation or returns');
+						} else {
+							console.error('not in circulation or returns');
+						}
 					}
 
 				} else {
@@ -106,7 +106,7 @@ function rfid_scan(data,textStatus) {
 					if ( $('.patroninfo:contains('+t.content+')').length == 1 ) {
 						console.debug('not submitting', t.contains);
 					} else {
-						rfid_refresh = 0;
+						rfid_refresh = 0; // stop rfid scan while submitting form
 						rfid_reset_field = 'findborrower';
 						$('input[name=findborrower]').val( t.content )
 							.parent().submit();
