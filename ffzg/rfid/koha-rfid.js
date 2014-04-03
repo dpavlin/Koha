@@ -36,7 +36,9 @@ function rfid_secure(barcode,sid,val) {
 var rfid_reset_field = false;
 
 function rfid_scan(data,textStatus) {
-//	console.debug( 'rfid_scan', data, textStatus );
+	var rfid_refresh = 1500; // ms
+
+	console.debug( 'rfid_scan', data, textStatus );
 
 	var span = $('span#rfid');
 
@@ -78,15 +80,18 @@ function rfid_scan(data,textStatus) {
 					if ( ! barcode_on_screen( t.content ) ) {
 						rfid_reset_field = 'barcode';
 						var i = $('input[name=barcode]:last');
-						if ( i.val() != t.content )
+						if ( i.val() != t.content )  {
+							rfid_refresh = 0;
 							i.val( t.content )
 							.closest('form').submit();
+						}
 					}
 
 				} else {
 					span.text( t.content ).css('color', 'blue' );
 
 					if ( url.substr(-14,14) != 'circulation.pl' || $('form[name=mainform]').size() == 0 ) {
+						rfid_refresh = 0;
 						rfid_reset_field = 'findborrower';
 						$('input[name=findborrower]').val( t.content )
 							.parent().submit();
@@ -107,9 +112,13 @@ function rfid_scan(data,textStatus) {
 		}
 	}
 
-	window.setTimeout( function() {
-		$.getJSON("http://localhost:9000/scan?callback=?", rfid_scan);
-	}, 1000 ); // 1000ms
+	if (rfid_refresh > 1) {
+		window.setTimeout( function() {
+			$.getJSON("http://localhost:9000/scan?callback=?", rfid_scan);
+		}, rfid_refresh );
+	} else {
+		console.debug('rfid_refresh disabled',rfid_refresh);
+	}
 }
 
 $(document).ready( function() {
