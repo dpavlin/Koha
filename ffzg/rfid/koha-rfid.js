@@ -57,9 +57,9 @@ function rfid_scan(data,textStatus) {
 //			if ( span.text() != t.content ) {
 			if ( 1 ) { // force update of security
 
-				var url = document.location.toString();
-				var circulation = url.substr(-14,14) == 'circulation.pl';
-				var returns = url.substr(-10,10) == 'returns.pl';
+				var script_name = document.location.pathname.split(/\//).pop();
+				var circulation = script_name == 'circulation.pl';
+				var returns     = script_name == 'returns.pl';
 
 				if ( t.content.length == 0 ) { // empty tag
 
