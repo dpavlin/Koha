@@ -67,6 +67,7 @@ function rfid_scan(data,textStatus) {
 
 				var script_name = document.location.pathname.split(/\//).pop();
 				var tab_active  = $("#header_search .ui-tabs-panel:not(.ui-tabs-hide)").prop('id');
+				console.debug('tab_active', tab_active);
 				var circulation = script_name == 'circulation.pl';
 				var returns     = script_name == 'returns.pl' || tab_active == 'checkin_search';
 
@@ -80,6 +81,13 @@ function rfid_scan(data,textStatus) {
 					if ( t.security.toUpperCase() == 'DA' ) color = 'red';
 					if ( t.security.toUpperCase() == 'D7' ) color = 'green';
 					span.text( t.content ).css('color', color);
+
+
+					if ( tab_active == 'catalog_search' ) {
+						if ( $('span.term:contains(bc:'+t.content+')').length == 0 ) {
+							$('input[name=q]').val( 'bc:' + t.content ).closest('form').submit();
+						}
+					}
 
 					if ( ! barcode_on_screen( t.content ) || returns ) {
 						rfid_reset_field = 'barcode';
