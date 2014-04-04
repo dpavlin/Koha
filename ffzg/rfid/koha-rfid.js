@@ -43,10 +43,14 @@ function rfid_secure_check(t,val) {
 
 
 var rfid_reset_field = false;
+var rfid_current_sid = false;
+var rfid_blank_sid   = false;
 
 function rfid_scan(data,textStatus) {
 
 	console.debug( 'rfid_scan', data, textStatus );
+	rfid_current_sid = false;
+	rfid_blank_sid = false;
 
 	var span = $('span#rfid');
 
@@ -62,6 +66,8 @@ function rfid_scan(data,textStatus) {
 	if ( data.tags ) {
 		if ( data.tags.length === 1 ) {
 			var t = data.tags[0];
+			rfid_current_sid = t.sid;
+
 //			if ( span.text() != t.content ) {
 			if ( 1 ) { // force update of security
 
@@ -71,9 +77,10 @@ function rfid_scan(data,textStatus) {
 				var circulation = script_name == 'circulation.pl';
 				var returns     = script_name == 'returns.pl' || tab_active == 'checkin_search';
 
-				if ( t.content.length == 0 ) { // empty tag
+				if ( t.content.length == 0 || t.content == 'UUUUUUUUUUUUUUUU' ) { // blank tag (3M is UUU....)
 
-					span.text( t.sid + ' empty' ).css('color', 'red' );
+					rfid_blank_sid = t.sid;
+					span.text( t.sid + ' blank' ).css('color', 'red' );
 
 				} else if ( t.content.substr(0,3) == '130' ) { // books
 
@@ -83,7 +90,7 @@ function rfid_scan(data,textStatus) {
 					span.text( t.content ).css('color', color);
 
 
-					if ( tab_active == 'catalog_search' ) {
+					if ( tab_active == 'catalog_search' && script_name != 'moredetail.pl' ) {
 						if ( $('span.term:contains(bc:'+t.content+')').length == 0 ) {
 							$('input[name=q]').val( 'bc:' + t.content ).closest('form').submit();
 						}
@@ -146,4 +153,22 @@ function rfid_scan(data,textStatus) {
 
 $(document).ready( function() {
 	$.getJSON("http://localhost:9000/scan?callback=?", rfid_scan);
+
+	shortcut.add('F4', function() {
+		// extract barcode from window title
+		var barcode = document.title.split(/\(barcode\s+#|\)/)[1];
+		if ( barcode ) {
+			if ( ! rfid_blank_sid && rfid_current_sid && confirm('Reprogram this tag to barcode '+barcode) ) {
+				rfid_blank_sid = rfid_current_sid;
+			}
+
+			console.debug('program barcode', barcode, 'to', rfid_blank_sid);
+			$.getJSON( 'http://localhost:9000/program?' + rfid_blank_sid + '=' + barcode + ';callback=?', function(data) {
+				console.info('programmed', rfid_blank_sid, barcode, data);
+			});
+		} else {
+			console.error('no barcode in window title');
+		}
+	});
+
 });
