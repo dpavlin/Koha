@@ -82,7 +82,7 @@ function rfid_scan(data,textStatus) {
 					rfid_blank_sid = t.sid;
 					span.text( t.sid + ' blank' ).css('color', 'red' );
 
-				} else if ( t.content.substr(0,3) == '130' ) { // books
+				} else if ( t.content.substr(0,3) == '130' && t.reader == '3M810' ) { // books on 3M reader
 
 					var color = 'blue';
 					if ( t.security.toUpperCase() == 'DA' ) color = 'red';
@@ -114,6 +114,10 @@ function rfid_scan(data,textStatus) {
 							console.error('not in circulation or returns');
 						}
 					}
+
+				} else if ( t.content.substr(0,3) == '130' ) {
+
+					span.text( 'Please put book on 3M reader!' ).css( 'color', 'red' );
 
 				} else {
 					span.text( t.content ).css('color', 'blue' );
