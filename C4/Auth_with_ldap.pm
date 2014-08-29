@@ -146,7 +146,11 @@ sub checkpw_ldap {
         my $res = $db->bind( $principal_name, password => $password );
         if ( $res->code ) {
             warn "LDAP bind failed as kohauser $userid: " . description($res);
-            return -1;
+            if ( $res->code == 34 ) { # invalid DN, probably local user
+                return 0; # fallback to local auth
+            } else {
+                return -1; # invalid password
+            }
         }
         if ( !defined($userldapentry)
             && ( $config{update} or $config{replicate} ) )
