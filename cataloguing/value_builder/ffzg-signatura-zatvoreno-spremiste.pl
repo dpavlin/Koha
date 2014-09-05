@@ -107,7 +107,7 @@ sub plugin {
 	}
 
 	my ($template, $loggedinuser, $cookie)
-	= get_template_and_user({template_name => "cataloguing/value_builder/ffzg-signatura-zatvoreno-spremiste.tmpl",
+	= get_template_and_user({template_name => "cataloguing/value_builder/ffzg-signatura-zatvoreno-spremiste.tt",
 					query => $input,
 					type => "intranet",
 					authnotrequired => 0,
