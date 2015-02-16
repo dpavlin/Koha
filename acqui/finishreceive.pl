@@ -185,4 +185,60 @@ while ( my $item = $items->next )  {
     );
 }
 
+
+# XXX KRT-4338 -- create barcode and stocknumber now!
+use Data::Dump qw(dump);
+
+my @received_items = $input->param('items_to_receive');
+foreach my $itemnumber ( @received_items ) {
+
+	my $dbh = C4::Context->dbh;
+
+	$dbh->begin_work;
+
+	my $sth = $dbh->prepare("select biblionumber,barcode,stocknumber,itype from items where itemnumber = ?");
+	$sth->execute( $itemnumber );
+
+	if ( $sth->rows != 1 ) {
+		die "ERROR: itemnumber $itemnumber have ", $sth->rows, " rows";
+	}
+
+	my ( $biblionumber, $barcode, $stocknumber, $itype ) = $sth->fetchrow_array;
+	warn "YYY got ", dump( $biblionumber, $barcode, $stocknumber, $itype );
+
+	next if $itype =~ /(BAZA|PER|CLA|PRE|RZB)/;
+
+	if (! $barcode ) {
+		$sth = $dbh->prepare("select max(abs(barcode)) from items");
+		$sth->execute;
+		$barcode = $sth->fetchrow;
+		$barcode++;
+		warn "# itemnumber: $itemnumber new barcode: $barcode";
+	}
+
+	my $year = DateTime->now->year;
+
+	if (! $stocknumber) {
+
+		$sth = $dbh->prepare("select max(num) from ffzg_inventarna_knjiga where year = ?");
+		$sth->execute($year);
+
+		$stocknumber = $sth->fetchrow; # return null without any data
+		$stocknumber += 1;
+
+		$sth = $dbh->prepare("insert into ffzg_inventarna_knjiga (year,num, biblionumber, itemnumber) values (?,?,?,?)");
+		$sth->execute( $year, $stocknumber, $biblionumber, $itemnumber );
+
+		$stocknumber = "$year-$stocknumber";
+	}
+
+	warn "## itemnumber: $itemnumber barcode: $barcode stocknumber: $stocknumber\n";
+
+	$sth = $dbh->prepare("update items set barcode=?, stocknumber=? where itemnumber = ?");
+	$sth->execute( $barcode, $stocknumber, $itemnumber );
+
+	$dbh->commit;
+
+}
+
 print $input->redirect("/cgi-bin/koha/acqui/parcel.pl?invoiceid=$invoiceid&sticky_filters=1");
