@@ -417,9 +417,14 @@ sub ffzg_zs_callnumber {
 	my ($tagfield,$tagsubfield) = &GetMarcFromKohaField("items.itemcallnumber",$frameworkcode);
 	if ($record->field($tagfield)->subfield($tagsubfield) =~ m/^ZS#(\w\w)\s(\d+)-(\d+)$/ ) {
 		my ( $prefix, $min, $max ) = ( $1, $2, $3 );
-		my $sth = $dbh->prepare(qq{ select ffzg_zs_nextval(?) });
+
+		$dbh->begin_work;
+		my $sth = $dbh->prepare(qq{ update ffzg_zs_seq set current = current + 1 where name = ? });
+		$sth->execute( $prefix );
+		$sth = $dbh->prepare(qq{ select current from ffzg_zs_seq where name = ? });
 		$sth->execute( $prefix );
 		my ($itemcallnumber) = $sth->fetchrow;
+		$dbh->commit;
 
 warn "ZS: $prefix $min - $max => $itemcallnumber\n";
 

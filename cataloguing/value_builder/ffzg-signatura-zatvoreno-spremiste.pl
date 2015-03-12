@@ -7,6 +7,7 @@ use C4::Context;
 
 use C4::Search;
 use C4::Output;
+use utf8;
 
 =head1 NAME
 
