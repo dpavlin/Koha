@@ -196,15 +196,15 @@ foreach my $itemnumber ( @received_items ) {
 
 	$dbh->begin_work;
 
-	my $sth = $dbh->prepare("select biblionumber,barcode,stocknumber,itype from items where itemnumber = ?");
+	my $sth = $dbh->prepare("select biblionumber,barcode,stocknumber,itype,homebranch from items where itemnumber = ?");
 	$sth->execute( $itemnumber );
 
 	if ( $sth->rows != 1 ) {
 		die "ERROR: itemnumber $itemnumber have ", $sth->rows, " rows";
 	}
 
-	my ( $biblionumber, $barcode, $stocknumber, $itype ) = $sth->fetchrow_array;
-	warn "YYY got ", dump( $biblionumber, $barcode, $stocknumber, $itype );
+	my ( $biblionumber, $barcode, $stocknumber, $itype, $homebranch ) = $sth->fetchrow_array;
+	warn "YYY got ", dump( $biblionumber, $barcode, $stocknumber, $itype, $homebranch );
 
 	next if $itype =~ /(BAZA|PER|CLA|PRE|RZB)/;
 
@@ -218,7 +218,7 @@ foreach my $itemnumber ( @received_items ) {
 
 	my $year = DateTime->now->year;
 
-	if (! $stocknumber) {
+	if (! $stocknumber && $homebranch eq 'FFZG' ) {
 
 		$sth = $dbh->prepare("select max(num) from ffzg_inventarna_knjiga where year = ?");
 		$sth->execute($year);
