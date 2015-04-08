@@ -218,18 +218,22 @@ foreach my $itemnumber ( @received_items ) {
 
 	my $year = DateTime->now->year;
 
-	if (! $stocknumber && $homebranch eq 'FFZG' ) {
+	if (! $stocknumber && ( $homebranch eq 'FFZG' || $homebranch eq 'AKZG' ) ) {
 
-		$sth = $dbh->prepare("select max(num) from ffzg_inventarna_knjiga where year = ?");
+		my $inventarna_knjiga = lc($homebranch) . '_inventarna_knjiga';
+
+		$sth = $dbh->prepare("select max(num) from $inventarna_knjiga where year = ?");
 		$sth->execute($year);
 
 		$stocknumber = $sth->fetchrow; # return null without any data
 		$stocknumber += 1;
 
-		$sth = $dbh->prepare("insert into ffzg_inventarna_knjiga (year,num, biblionumber, itemnumber) values (?,?,?,?)");
+		$sth = $dbh->prepare("insert into $inventarna_knjiga (year,num, biblionumber, itemnumber) values (?,?,?,?)");
 		$sth->execute( $year, $stocknumber, $biblionumber, $itemnumber );
 
 		$stocknumber = "$year-$stocknumber";
+
+		$stocknumber = 'AK-' . $stocknumber if $homebranch eq 'AKZG';
 	}
 
 	warn "## itemnumber: $itemnumber barcode: $barcode stocknumber: $stocknumber\n";
