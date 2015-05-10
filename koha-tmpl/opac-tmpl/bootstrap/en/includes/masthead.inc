@@ -4,7 +4,7 @@
 [% SET OpacLangSelectorMode = Koha.Preference('OpacLangSelectorMode') %]
 <div id="wrap">
     <div id="header-region" class="noprint">
-        <div class="navbar navbar-inverse navbar-static-top">
+        <div class="navbar navbar-inverse navbar-fixed-top container">
             <div class="navbar-inner">
                 <div class="container-fluid">
                     <h1 id="logo">
