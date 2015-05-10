@@ -24,6 +24,8 @@ use CGI;
 use C4::Context;
 use DateTime;
 
+exit 0;
+
 =head1 DESCRIPTION
 
 This plugin is specific to FFZG but could be used as a base for similar operations.
