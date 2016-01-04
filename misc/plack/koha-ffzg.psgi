@@ -39,7 +39,6 @@ use lib "/srv/koha_ffzg/misc/plack/lib";
 use C4::Context;
 use C4::Languages;
 use C4::Members;
-use C4::Dates;
 use C4::Boolean;
 use C4::Letters;
 use C4::Koha;
