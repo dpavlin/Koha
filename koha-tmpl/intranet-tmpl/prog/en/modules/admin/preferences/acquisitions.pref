@@ -107,4 +107,5 @@ Acquisitions:
                   "pdfformat::layout3pages":   English 3-page
                   "pdfformat::layout3pagesfr": French 3-page
                   "pdfformat::layout2pagesde": German 2-page
+                  "pdfformat::ffzg": FFZG
             - layout when printing basket groups.
