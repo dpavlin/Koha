@@ -27,6 +27,7 @@ if ( my $ip = $query->param('local_ip') ) {
 } elsif ( -e $path ) {
 	open(my $fh, '<', $path);
 	my $ip = <$fh>;
+	chomp $ip;
 	$hash->{local_ip} = $ip;
 	close($fh);
 } else {

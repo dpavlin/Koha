@@ -55,7 +55,8 @@ function rfid_scan(data,textStatus) {
 	var span = $('span#rfid');
 
 	if ( span.size() == 0 ) // insert last in language bar on bottom
-		span = $('ul#i18nMenu').append('<li><span id=rfid>RFID reader found<span>');
+//		span = $('ul#i18nMenu').append('<li><span id=rfid>RFID reader found<span>');
+		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 0; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 10;"><span id="rfid">RFID reader</span></div>');
 
 	if ( span.size() == 0 ) // or before login on top
 		span = $('div#login').prepend('<span id=rfid>RFID reader found</span>');

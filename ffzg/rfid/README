@@ -1,0 +1,28 @@
+0. add new rfid registration vhost to apache config
+
+dpavlin@koha-dev:/srv/koha_ffzg/ffzg/rfid(koha_ffzg) $ sudo ln -sf /srv/koha_ffzg/ffzg/rfid/rfid.koha-dev.vbz.ffzg.hr.conf /etc/apache2/sites-available/
+dpavlin@koha-dev:/srv/koha_ffzg/ffzg/rfid(koha_ffzg) $ sudo a2ensite rfid.koha-dev.vbz.ffzg.hr
+Enabling site rfid.koha-dev.vbz.ffzg.hr.
+To activate the new configuration, you need to run:
+  service apache2 reload
+dpavlin@koha-dev:/srv/koha_ffzg/ffzg/rfid(koha_ffzg) $ sudo service apache2 reload
+
+
+
+1. add following to IntranetUserJS system preferences in Koha:
+
+$.getScript('http://rfid.koha-dev.vbz.ffzg.hr/register.pl?intranet-js=1');
+
+
+2. start RFID reader and point it to your koha registration:
+
+pi@rfid0 ~/Biblio-RFID $ RFID_URL=http://rfid.koha-dev.vbz.ffzg.hr KOHA_URL=http://ffzg.koha-dev.rot13.org:8080 ./scripts/RFID-JSONP-server.pl
+http://ffzg.koha-dev.rot13.org:8080 at ./scripts/RFID-JSONP-server.pl line 31.
+{ _last => "eth0", eth0 => "10.60.1.210", lo => "127.0.0.1" } at ./scripts/RFID-JSONP-server.pl line 368, <DATA> line 1.
+GET http://rfid.koha-dev.vbz.ffzg.hr/register.pl?local_ip=10.60.1.210 at ./scripts/RFID-JSONP-server.pl line 375, <DATA> line 1.
+REGISTER: { local_ip => "10.60.1.210", remote_host => "10.60.1.210" } at ./scripts/RFID-JSONP-server.pl line 380, <DATA> line 1.
+Server ./scripts/RFID-JSONP-server.pl ready at http://:9000
+
+
+3. check under /srv/koha_ffzg/ffzg/rfid/ip/ for your client IP address, which should have IP address
+of RFID reader inside it
