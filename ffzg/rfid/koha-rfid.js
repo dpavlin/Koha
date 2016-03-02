@@ -157,16 +157,16 @@ function rfid_scan(data,textStatus) {
 		}
 	}
 
-	if (rfid_refresh > 1 && $('input#rfid_active').attr('checked') == 'checked' ) {
+	if (rfid_refresh > 1 && $('input#rfid_active').attr('checked') ) {
 		window.setTimeout( function() {
-			$('#rfid_popup').css('border','3px solid #fff');
+			$('#rfid_popup').css('border','3px solid #ff0');
 			$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 		}, rfid_refresh );
 	} else {
 		console.debug('rfid_refresh disabled',rfid_refresh);
 	}
 
-	$('#rfid_popup').css('border','3px solid #ff0');
+	$('#rfid_popup').css('border','3px solid #fff');
 }
 
 function scan_tags() {
@@ -174,12 +174,25 @@ function scan_tags() {
 	$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 }
 
+function activate_scan_tags() {
+	var active = $('input#rfid_active').attr('checked');
+	if ( ! active ) {
+		$('input#rfid_active').attr('checked',true);
+		scan_tags();
+	}
+}
+
 $(document).ready( function() {
 	console.log('rfid_active', $('input#rfid_active').attr('checked') );
 
 	scan_tags();
 
-	// intranet catalogingdd
+	// circulation keyboard shortcuts (FFZG specific!)
+	shortcut.add('Alt+r', function() { activate_scan_tags(); } );
+	shortcut.add('Alt+z', function() { activate_scan_tags(); } );
+	shortcut.add('Alt+k', function() { $('input#rfid_active').attr('checked',false) } );
+
+	// intranet cataloging
 	shortcut.add('F4', function() {
 		// extract barcode from window title
 		var barcode = document.title.split(/\(barcode\s+#|\)/)[1];
