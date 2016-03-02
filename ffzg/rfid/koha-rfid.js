@@ -73,9 +73,10 @@ function rfid_scan(data,textStatus) {
 			if ( 1 ) { // force update of security
 
 				var script_name = document.location.pathname.split(/\//).pop();
-				var tab_active  = $("#header_search .ui-tabs-panel:not(.ui-tabs-hide)").prop('id');
+//				var tab_active  = $("#header_search .ui-tabs-panel:not(.ui-tabs-hide)").prop('id');
+				var tab_active  = $("#header_search li[aria-selected=true]").attr('aria-controls');
 				console.debug('tab_active', tab_active);
-				var circulation = script_name == 'circulation.pl';
+				var circulation = script_name == 'circulation.pl' || tab_active == 'circ_search' ;
 				var returns     = script_name == 'returns.pl' || tab_active == 'checkin_search';
 
 				if ( t.content.length == 0 || t.content == 'UUUUUUUUUUUUUUUU' ) { // blank tag (3M is UUU....)
