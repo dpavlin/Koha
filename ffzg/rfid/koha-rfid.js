@@ -32,7 +32,7 @@ function rfid_secure_json(t,val, success) {
 	if ( t.security.toUpperCase() == val.toUpperCase() ) return;
 	rfid_refresh = 0; // disable rfid pull until secure call returns
 	console.log('rfid_secure_json', t, val);
-	$.getJSON( 'http://localhost:9000/secure.js?' + t.sid + '=' + val + ';callback=?', success );
+	$.getJSON( '///localhost:9000/secure.js?' + t.sid + '=' + val + ';callback=?', success );
 }
 
 function rfid_secure_check(t,val) {
@@ -48,15 +48,24 @@ var rfid_blank_sid   = false;
 
 function rfid_scan(data,textStatus) {
 
-	console.debug( 'rfid_scan', data, textStatus );
+	$.cookie('rfid', 'localhost'); // set cookie
+
+	console.debug( 'rfid_scan', data, textStatus, $.cookie('rfid') );
 	rfid_current_sid = false;
 	rfid_blank_sid = false;
 
 	var span = $('span#rfid');
 
-	if ( span.size() == 0 ) // insert last in language bar on bottom
+	if ( span.size() == 0 ) {
+		// insert last in language bar on bottom
 //		span = $('ul#i18nMenu').append('<li><span id=rfid>RFID reader found<span>');
-		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 0; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 10;"><span id="rfid">RFID reader</span></div>');
+
+		// alternative pop-up version
+		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 3em; right: 1em; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 10;"><label for="rfid_active"><input type=checkbox id="rfid_active"> local_ip <span id="rfid">RFID reader</span></label></div>');
+		$('input#rfid_active').attr('checked',true);
+		$('input#rfid_active').click(scan_tags);
+	}
+
 
 	if ( span.size() == 0 ) // or before login on top
 		span = $('div#login').prepend('<span id=rfid>RFID reader found</span>');
@@ -148,18 +157,29 @@ function rfid_scan(data,textStatus) {
 		}
 	}
 
-	if (rfid_refresh > 1) {
+	if (rfid_refresh > 1 && $('input#rfid_active').attr('checked') == 'checked' ) {
 		window.setTimeout( function() {
-			$.getJSON("http://localhost:9000/scan?callback=?", rfid_scan);
+			$('#rfid_popup').css('border','3px solid #fff');
+			$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 		}, rfid_refresh );
 	} else {
 		console.debug('rfid_refresh disabled',rfid_refresh);
 	}
+
+	$('#rfid_popup').css('border','3px solid #ff0');
+}
+
+function scan_tags() {
+	console.info('scan_tags');
+	$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 }
 
 $(document).ready( function() {
-	$.getJSON("http://localhost:9000/scan?callback=?", rfid_scan);
+	console.log('rfid_active', $('input#rfid_active').attr('checked') );
 
+	scan_tags();
+
+	// intranet catalogingdd
 	shortcut.add('F4', function() {
 		// extract barcode from window title
 		var barcode = document.title.split(/\(barcode\s+#|\)/)[1];
@@ -169,7 +189,7 @@ $(document).ready( function() {
 			}
 
 			console.debug('program barcode', barcode, 'to', rfid_blank_sid);
-			$.getJSON( 'http://localhost:9000/program?' + rfid_blank_sid + '=' + barcode + ';callback=?', function(data) {
+			$.getJSON( '///localhost:9000/program?' + rfid_blank_sid + '=' + barcode + ';callback=?', function(data) {
 				console.info('programmed', rfid_blank_sid, barcode, data);
 			});
 		} else {
