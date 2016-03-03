@@ -96,9 +96,10 @@ function rfid_scan(data,textStatus) {
 				} else if ( t.content.substr(0,3) == '130' && t.reader == '3M810' ) { // books on 3M reader
 
 					var color = 'blue';
-					if ( t.security.toUpperCase() == 'DA' ) color = 'red';
-					if ( t.security.toUpperCase() == 'D7' ) color = 'green';
-					span.text( t.content ).css('color', color);
+					var icon  = '?';
+					if ( t.security.toUpperCase() == 'DA' ) { color = 'red'; icon = '&timesb;' }
+					if ( t.security.toUpperCase() == 'D7' ) { color = 'green'; icon = '&rarr;' }
+					span.html( t.content + '&nbsp;' + icon ).css('color', color);
 
 
 					if ( tab_active == 'catalog_search' && script_name != 'moredetail.pl' ) {
@@ -131,7 +132,7 @@ function rfid_scan(data,textStatus) {
 					span.text( 'Please put book on 3M reader!' ).css( 'color', 'red' );
 
 				} else {
-					span.text( t.content ).css('color', 'blue' );
+					span.html( t.content + '&nbsp;&sstarf;' ).css('color', 'blue' );
 
 					if ( $('.patroninfo:contains('+t.content+')').length == 1 ) {
 						console.debug('not submitting', t.contains);
