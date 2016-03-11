@@ -112,6 +112,7 @@ function rfid_scan(data,textStatus) {
 
 					if ( tab_active == 'catalog_search' && script_name != 'moredetail.pl' && $('input#rfid_active').attr('checked') ) {
 						if ( $('span.term:contains(bc:'+t.content+')').length == 0 ) {
+							$.cookie('rfid_count', rfid_count_timeout);
 							$('input[name=q]').val( 'bc:' + t.content ).closest('form').submit();
 						}
 					}
@@ -131,6 +132,7 @@ function rfid_scan(data,textStatus) {
 									if ( i.val() != t.content )  {
 										rfid_secure_json( t, afi_secure, function(data) {
 											console.log('secure', afi_secure, data);
+											$.cookie('rfid_count', rfid_count_timeout);
 											i.val( t.content ).closest('form').submit();
 										});
 									}
@@ -197,13 +199,23 @@ function scan_tags() {
 	$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 }
 
-function activate_scan_tags() {
-	var active = $('input#rfid_active').attr('checked');
-	if ( ! active ) {
-		$('input#rfid_active').attr('checked',true);
+function set_rfid_active(active) {
+	var input_active = $('input#rfid_active').attr('checked');
+	console.info('set_rfid_active', active);
+	if ( active ) {
 		$.cookie('rfid_count', rfid_count_timeout);
 		scan_tags();
+		if ( ! input_active ) $('input#rfid_active').attr('checked', true);
+	} else {
+		if ( input_active ) $('input#rfid_active').attr('checked', false);
+		$.cookie('rfid_count', 0);
 	}
+}
+
+function activate_scan_tags() {
+	var active = $('input#rfid_active').attr('checked');
+	console.info('activate_scan_tags', active);
+	set_rfid_active(active);
 }
 
 $(document).ready( function() {
@@ -212,9 +224,9 @@ $(document).ready( function() {
 	scan_tags();
 
 	// circulation keyboard shortcuts (FFZG specific!)
-	shortcut.add('Alt+r', function() { activate_scan_tags(); } );
-	shortcut.add('Alt+z', function() { activate_scan_tags(); } );
-	shortcut.add('Alt+k', function() { $('input#rfid_active').attr('checked',false) } );
+	shortcut.add('Alt+r', function() { set_rfid_active(true); } );
+	shortcut.add('Alt+z', function() { set_rfid_active(true); } );
+	shortcut.add('Alt+k', function() { set_rfid_active(false) } );
 
 	// intranet cataloging
 	shortcut.add('F4', function() {
