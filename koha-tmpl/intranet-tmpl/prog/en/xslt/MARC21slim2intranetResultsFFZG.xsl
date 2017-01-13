@@ -481,6 +481,38 @@
     </span>
    </xsl:if>
 
+    <xsl:if test="marc:datafield[@tag=773]">
+        <xsl:for-each select="marc:datafield[@tag=773]">
+            <xsl:if test="marc:subfield[@code='t']">
+    <span class="results_summary">
+    <span class="label">In: </span>
+		    <xsl:value-of select="marc:subfield[@code='t']"/>
+		    <xsl:if test="marc:subfield[@code='n']">
+			<xsl:text> / urednik </xsl:text>
+			<xsl:value-of select="marc:subfield[@code='n']"/>
+		    </xsl:if>
+		    <xsl:if test="marc:subfield[@code='x']">
+			<xsl:text>. - ISSN: </xsl:text>
+			<xsl:value-of select="marc:subfield[@code='x']"/>
+		    </xsl:if>
+		    <xsl:if test="marc:subfield[@code='d']">
+			<xsl:text>. - </xsl:text>
+			<xsl:value-of select="marc:subfield[@code='d']"/>
+		    </xsl:if>
+		    <xsl:if test="marc:subfield[@code='z']">
+			<xsl:text>. - ISBN: </xsl:text>
+			<xsl:value-of select="marc:subfield[@code='z']"/>
+		    </xsl:if>
+		    <xsl:if test="marc:subfield[@code='g']">
+			<xsl:text>. - </xsl:text>
+			<xsl:value-of select="marc:subfield[@code='g']"/>
+		    </xsl:if>
+    </span>
+            </xsl:if>
+        </xsl:for-each>
+    </xsl:if>
+
+
     <xsl:if test="marc:datafield[@tag=546]">
     <span class="results_summary">
     <span class="label">Language note: </span>
@@ -835,16 +867,6 @@
     </span>
     </xsl:if>
 
-    <xsl:if test="marc:datafield[@tag=773]">
-        <xsl:for-each select="marc:datafield[@tag=773]">
-            <xsl:if test="marc:subfield[@code='t']">
-    <span class="results_summary">
-    <span class="label">Source: </span>
-            <xsl:value-of select="marc:subfield[@code='t']"/>
-    </span>
-            </xsl:if>
-        </xsl:for-each>
-    </xsl:if>
 
     <!-- Other Title  Statement: Alternate Graphic Representation (MARC 880) -->
     <xsl:if test="$display880">
@@ -1068,7 +1090,7 @@
         </xsl:choose>
 	<xsl:choose>
           <xsl:when test="(@tag=100 or @tag=700) and marc:subfield[@code=9]">
-				<span style="color: green"><xsl:call-template name="nameABCDQ"/></span><img src="/intranet-tmpl/prog/img/famfamfam/silk/link.png" alt="link" title="link" />
+			<span style="color: green"><xsl:call-template name="nameABCDQ"/></span><img src="/intranet-tmpl/prog/img/famfamfam/silk/link.png" alt="link" title="link" />
 		  </xsl:when>
 		  <xsl:otherwise><xsl:call-template name="nameABCDQ"/></xsl:otherwise>
     </xsl:choose>
