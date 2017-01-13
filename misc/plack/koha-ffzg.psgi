@@ -11,67 +11,64 @@ BEGIN {
 
 } # BEGIN
 
-use CGI qw( -utf8 );
-{
-    my $old_new = \&CGI::new;
-    *CGI::new = sub {
-        warn "# override CGI->new\n";
-        my $q = $old_new->( @_ );
-		if ( ! $CGI::PARAM_UTF8 ) {
-			warn "# CGI->new -utf8 = ",$CGI::PARAM_UTF8;
-			$CGI::PARAM_UTF8 = 1;
-		}
-		C4::Context->clear_syspref_cache();
-		return $q;
-    };
-}
-
+use lib("$BASE_DIR");
+use lib("$BASE_DIR/installer");
 
 use Plack::Builder;
 use Plack::App::CGIBin;
 use Plack::App::Directory;
+use Plack::App::URLMap;
+use Plack::Request;
 
+use Mojo::Server::PSGI;
 
-use lib $BASE_DIR;
-use lib "$BASE_DIR/installer";
-use lib "/srv/koha_ffzg/misc/plack/lib";
-
-use C4::Context;
-use C4::Languages;
-use C4::Members;
+# Pre-load libraries
 use C4::Boolean;
-use C4::Letters;
 use C4::Koha;
+use C4::Languages;
+use C4::Letters;
+use C4::Members;
 use C4::XSLT;
-use C4::Branch;
-use C4::Category;
-=for preload
-use C4::Tags; # FIXME
-=cut
+use Koha::Caches;
+use Koha::Cache::Memory::Lite;
+use Koha::Database;
+use Koha::DateUtils;
 
-C4::Context->disable_syspref_cache();
+use CGI qw( -utf8 );
+{
+    no warnings 'redefine';
+    my $old_new = \&CGI::new;
+    *CGI::new = sub {
+        my $q = $old_new->( @_ );
+        $CGI::PARAM_UTF8 = 1;
+        Koha::Caches->flush_L1_caches();
+        Koha::Cache::Memory::Lite->flush();
+		return $q;
+    };
+}
 
-warn "# $0 BASE_DIR=$BASE_DIR";
+my $intranet = Plack::App::CGIBin->new(
+    root => "$BASE_DIR"
+)->to_app;
 
-my $app=Plack::App::CGIBin->new(root => "$BASE_DIR");
+my $opac = Plack::App::CGIBin->new(
+    root => "$BASE_DIR/opac"
+)->to_app;
 
-use Data::Dumper;
+my $apiv1  = builder {
+    my $server = Mojo::Server::PSGI->new;
+    $server->load_app("$BASE_DIR/api/v1/app.pl");
+    $server->to_psgi_app;
+};
 
 builder {
+    enable "ReverseProxy";
+    enable "Plack::Middleware::Static";
+    # + is required so Plack doesn't try to prefix Plack::Middleware::
+    enable "+Koha::Middleware::SetEnv";
 
-	enable sub {
-		my ( $app, $env ) = @_;
-		return sub {
-			my $env = shift;
-			C4::Context->clear_syspref_cache();
-			warn Dumper( $env );
-			$app->( $env );
-		}
-	};
-
-#	enable 'StackTrace';
-	enable 'ReverseProxy';
-
-	mount "/cgi-bin/koha" => $app;
+    mount '/opac'          => $opac;
+    mount '/intranet'      => $intranet;
+    mount '/api/v1/app.pl' => $apiv1;
 
 };
