@@ -111,7 +111,7 @@ warn "XXX freedeliveryplace = ", dump($freedeliveryplace);
 
     # print bookseller infos
 	my $y_pt = 727;
-	foreach my $line ( $bookseller->{name}, split(/[\n\r]+/, $bookseller->{postal}) ) {
+	foreach my $line ( $bookseller->name, split(/[\n\r]+/, $bookseller->postal) ) {
 	    $text->translate(336/pt, $y_pt/pt);
 		$text->text($line);
 		$y_pt -= 12;
@@ -162,10 +162,10 @@ sub print_tables {
         foreach my $order (@{$orders->{$basket->{basketno}}}) {
 #warn "XXX order = ",dump($order);
 
-			$order->{discount_value} = $order->{rrpgste} - $order->{ecostgste};
-			$basket_total->{$_} += $order->{$_} foreach (qw( totalgste totalgsti gstvalue quantity ));
-			$basket_total->{$_} += $order->{$_} * $order->{quantity} foreach (qw( rrpgste rrpgsti ecostgste discount_value ));
-			push @{$basket_total->{gstrate}}, $order->{gstrate};
+			$order->{discount_value} = $order->{rrp_tax_excluded} - $order->{ecost_tax_excluded};
+			$basket_total->{$_} += $order->{$_} foreach (qw( total_tax_excluded total_tax_included tax_value quantity ));
+			$basket_total->{$_} += $order->{$_} * $order->{quantity} foreach (qw( rrp_tax_excluded rrp_tax_included ecost_tax_excluded discount_value ));
+			push @{$basket_total->{tax_rate}}, $order->{tax_rate};
 
             $titleinfo = "";
             if ( C4::Context->preference("marcflavour") eq 'UNIMARC' ) {
@@ -192,26 +192,26 @@ sub print_tables {
 				$basket->{basketno} . ' / ' . $order->{ordernumber},
                 $titleinfo, #. ($order->{order_vendornote} ? "\n----------------\nNote for vendor : " . $order->{order_vendornote} : '' ),
                 $order->{quantity},
-                Koha::Number::Price->new( $order->{rrpgste} )->format,
-                Koha::Number::Price->new( $order->{rrpgsti} )->format,
+                Koha::Number::Price->new( $order->{rrp_tax_excluded} )->format,
+                Koha::Number::Price->new( $order->{rrp_tax_included} )->format,
                 Koha::Number::Price->new( $order->{discount} )->format . '%',
                 Koha::Number::Price->new( $order->{discount_value})->format,
-                Koha::Number::Price->new( $order->{gstrate} * 100 )->format . '%',
-                Koha::Number::Price->new( $order->{totalgste} )->format,
-                Koha::Number::Price->new( $order->{totalgsti} )->format,
+                Koha::Number::Price->new( $order->{tax_rate} * 100 )->format . '%',
+                Koha::Number::Price->new( $order->{total_tax_excluded} )->format,
+                Koha::Number::Price->new( $order->{total_tax_included} )->format,
             ];
         }
 
 		$basket_total->{$_} = $basket->{$_} foreach qw( basketname basketno );
-		$basket_total->{gstrate} = join(" ", map { Koha::Number::Price->new($_ * 100)->format . '%' } uniq @{ $basket_total->{gstrate} } );
+		$basket_total->{tax_rate} = join(" ", map { Koha::Number::Price->new($_ * 100)->format . '%' } uniq @{ $basket_total->{tax_rate} } );
 
 		push @$basket_totals, $basket_total;
 
-		$order_total->{$_} += $basket_total->{$_} foreach qw( rrpgste rrpgsti totalgste totalgsti gstvalue quantity ecostgste discount_value );
-		push @{$order_total->{gstrate}}, $basket_total->{gstrate};
+		$order_total->{$_} += $basket_total->{$_} foreach qw( rrp_tax_excluded rrp_tax_included total_tax_excluded total_tax_included tax_value quantity ecost_tax_excluded discount_value );
+		push @{$order_total->{tax_rate}}, $basket_total->{tax_rate};
     }
 
-	$order_total->{gstrate} = join(" ", uniq @{ $order_total->{gstrate} } );
+	$order_total->{tax_rate} = join(" ", uniq @{ $order_total->{tax_rate} } );
 
 warn "XXX basket_totals = ",dump( $basket_totals );
 warn "XXX order_total = ", dump( $order_total );
@@ -221,13 +221,13 @@ warn "XXX order_total = ", dump( $order_total );
 		'',
 		'Ukupno:',
 		$order_total->{quantity},
-		Koha::Number::Price->new( $order_total->{rrpgste} )->format,
-		Koha::Number::Price->new( $order_total->{rrpgsti} )->format,
+		Koha::Number::Price->new( $order_total->{rrp_tax_excluded} )->format,
+		Koha::Number::Price->new( $order_total->{rrp_tax_included} )->format,
 		'', # discount
 		Koha::Number::Price->new( $order_total->{discount_value})->format,
-		'', # gstrate
-		Koha::Number::Price->new( $order_total->{totalgste} )->format,
-		Koha::Number::Price->new( $order_total->{totalgsti} )->format,
+		'', # tax_rate
+		Koha::Number::Price->new( $order_total->{total_tax_excluded} )->format,
+		Koha::Number::Price->new( $order_total->{total_tax_included} )->format,
 	];
 
 	my $a_baskets = [[
@@ -245,29 +245,29 @@ warn "XXX order_total = ", dump( $order_total );
 		push @$a_baskets, [ map {
 				m/^basket/
 				? $basket_total->{$_}
-				: Koha::Number::Price->new($basket_total->{$_})->format . ( m/^gstrate$/ ? '%' : '' )
+				: Koha::Number::Price->new($basket_total->{$_})->format . ( m/^tax_rate$/ ? '%' : '' )
 			} qw(
 			basketno
 			basketname
-			rrpgste
-			rrpgsti
-			gstrate
-			gstvalue
+			rrp_tax_excluded
+			rrp_tax_included
+			tax_rate
+			tax_value
 			discount_value
-			totalgste
-			totalgsti
+			total_tax_excluded
+			total_tax_included
 		) ];
 	}
 	push @$a_baskets, [ '', 'Ukupno', map { Koha::Number::Price->new($order_total->{$_})->format } qw(
-		rrpgste
-		rrpgsti
-		gstrate
-		gstvalue
+		rrp_tax_excluded
+		rrp_tax_included
+		tax_rate
+		tax_value
 		discount_value
-		totalgste
-		totalgsti
+		total_tax_excluded
+		total_tax_included
 	) ];
-	$a_baskets->[-1]->[4] = ''; # remove gstreate from total
+	$a_baskets->[-1]->[4] = ''; # remove tax_rate from total
 
     $pdf->mediabox($height/mm, $width/mm);
 	my $page = $pdf->openpage(1);
