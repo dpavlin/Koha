@@ -29,8 +29,6 @@ use strict;
 use warnings;
 use utf8;
 
-use C4::Branch qw(GetBranchDetail GetBranchName);
-
 use Koha::Number::Price;
 use Koha::DateUtils;
 
@@ -84,10 +82,6 @@ sub printhead {
     # get library name
     my $libraryname = C4::Context->preference("LibraryName");
     # get branch details
-    my $billingdetails  = GetBranchDetail( $basketgroup->{billingplace} );
-warn "XXX billingdetails = ",dump($billingdetails);
-    my $deliverydetails = GetBranchDetail( $basketgroup->{deliveryplace} );
-warn "XXX deliverydetails = ", dump($deliverydetails);
     my $freedeliveryplace = $basketgroup->{freedeliveryplace};
 warn "XXX freedeliveryplace = ", dump($freedeliveryplace);
 
