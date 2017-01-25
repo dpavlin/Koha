@@ -6,7 +6,7 @@ use strict;
 my $BASE_DIR;
 BEGIN {
 
-	$ENV{'KOHA_CONF'} = "/etc/koha/sites/$ENV{SITE}/koha-conf.xml";
+	$ENV{'KOHA_CONF'} = "/etc/koha/sites/ffzg/koha-conf.xml";
 	$BASE_DIR = '/srv/koha_ffzg';
 
 } # BEGIN
