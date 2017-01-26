@@ -22,3 +22,7 @@ of RFID reader inside it
 5. assign new reader to user
 
 cp ip/10.60.1.210 user/dpavlin@ffzg.hr
+
+6. assosicate reader through url - this will force login into koha and associate reader with session
+
+https://ffzg.koha-dev.rot13.org:8443/cgi-bin/koha/ffzg/rfid/reader/10.60.0.92:9000/take.pl

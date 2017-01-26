@@ -10,15 +10,29 @@ use FindBin;
 my $query = new CGI;
 
 use Data::Dump qw(dump);
-#warn "# query ", dump( $query );
+warn "# Vars ", dump( $query->Vars );
 
 my $hash = {
 	remote_host => $query->remote_host,
 };
 
-my $dir = $FindBin::Bin;
-my $path = "$dir/ip/" . $hash->{remote_host};
+if ( my $c = $query->cookie('rfid_reader') ) {
+	warn "## RFID cookie rfid_reader = $c\n";
+	$hash->{local_ip} = $c;
+	$hash->{have_reader} = 1;
+}
 
+if ( my $session = $query->cookie("CGISESSID") ) {
+	$hash->{session} = $session;
+	warn "## RFID session $session\n";
+	my $path = "/dev/shm/rfid.$session";
+	if ( -e $path ) {
+		open(my $fh, '<', $path);
+		$hash->{local_ip} = <$fh>;
+	}
+}
+
+my $dir = $FindBin::Bin;
 
 if ( my $koha_login = $query->param('koha_login') ) {
 	my $path = "$dir/user/$koha_login";
@@ -33,20 +47,28 @@ if ( my $koha_login = $query->param('koha_login') ) {
 		#warn "# no $path";
 	}
 
-} elsif ( my $ip = $query->param('local_ip') ) {
+} elsif ( $query->param('_last') ) {
 
-	$hash->{local_ip} = $ip;
+	my $v = $query->Vars;
+	my $ip;
+	foreach ( keys %$v ) {
+		if ( $v->{$_} =~ m/^10\.60\./ ) { # FIXME our local network
+			$ip = $v->{$_};
+			last;
+		}
+	}
+
+	if ( ! $ip ) {
+		die "RFID ERROR: can't find local IP in ",dump($v);
+	}
+
+	$hash->{intranet_ip} = $ip;
+
+	my $path = "$dir/ip/$ip"; # FIXME
 	open(my $fh, '>', $path);
-	print $fh $hash->{local_ip};
+	print $fh encode_json( $v );
 	close($fh);
 	warn "RFID $path $ip ", -s $path, "\n";
-
-} elsif ( -e $path ) {
-	open(my $fh, '<', $path);
-	my $ip = <$fh>;
-	chomp $ip;
-	$hash->{local_ip} = $ip;
-	close($fh);
 
 } else {
 	warn $hash->{_error} = "ERROR: ", $hash->{remote_host}, " don't have RFID reader assigned";
@@ -71,7 +93,7 @@ if ( $query->param('intranet-js') ) {
 				open(my $js, '<', 'koha-rfid.js');
 				while(<$js>) {
 					s/local_ip/$local_ip/g;
-					s/localhost/$url/g;
+					s/localhost:9000/$url/g;
 					s{///$url}{$url}g; # relative urls
 					print;
 				}
@@ -82,6 +104,14 @@ if ( $query->param('intranet-js') ) {
 	} else {
 #		warn "## RFID doesn't have reader ",dump($hash);
 	}
+
+} elsif ( my $ip = $query->param('register_reader') ) {
+	my $url = $query->self_url;
+	$url =~ s{/koha/ffzg/rfid.*$}{/koha/mainpage.pl};
+	warn "## RFID register_rader $ip -> $url\n";
+	print "Location: $url\r\n",
+		"Cookie: rfid_reader=$ip\r\n",
+		"\r\n";
 } else {
 	print "Content-type: application/json; charset=utf-8\r\n\r\n";
 	print encode_json $hash;
