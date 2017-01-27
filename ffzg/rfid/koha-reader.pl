@@ -21,8 +21,10 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
 );
 
 my $session = $query->cookie('CGISESSID');
-my $url = $query->self_url;
-my ( $redirect, $reader_ip_port ) = ( $1 . '/mainpage.pl', $2 ) if $url =~ s{(^.+)/ffzg/rfid/reader/([^/]+)/.+$}{$1};
+my $url = $query->url;
+# hungle URL to get Koha authorization and keep our reader identification in URL
+# https://ffzg.koha-dev.rot13.org:8443/cgi-bin/koha/ffzg/rfid/reader/10.60.0.92:9000/mainpage.pl
+my ( $redirect, $reader_ip_port ) = ( $1 . $3 , $2 ) if $url =~ s{(^.+)/ffzg/rfid/reader/([^/]+)/(.+)$}{$1};
 
 warn "## $cookie $session $url";
 
@@ -30,16 +32,16 @@ open(my $fh, '>', "/dev/shm/rfid.$session");
 print $fh $reader_ip_port;
 close($fh);
 
-output_html_with_http_headers $query, $cookie, qq{
+output_html_with_http_headers $query, $cookie, join('',qq{
 <html>
 <a id="redirect" href="$redirect"">$redirect</a>
 <pre>
-$reader_ip_port
+$reader_ip_port },( IO::Socket::INET->new($reader_ip_port) && 'OK' || die "RFID ERROR $reader_ip_port : $!" ), qq{
 </pre>
 <script>
 var e = document.getElementById('redirect');
 console.log(e);
-e.click();
+//e.click();
 </script>
 </html>
-};
+});
