@@ -6,15 +6,18 @@ use warnings;
 use CGI;
 use JSON;
 use FindBin;
+use IO::Socket::INET;
 
 my $query = new CGI;
 
 use Data::Dump qw(dump);
-warn "# Vars ", dump( $query->Vars );
+my $v = $query->Vars;
+warn "# v ", dump( $v );
 
 my $hash = {
 	remote_host => $query->remote_host,
 };
+
 
 if ( my $c = $query->cookie('rfid_reader') ) {
 	warn "## RFID cookie rfid_reader = $c\n";
@@ -24,11 +27,12 @@ if ( my $c = $query->cookie('rfid_reader') ) {
 
 if ( my $session = $query->cookie("CGISESSID") ) {
 	$hash->{session} = $session;
-	warn "## RFID session $session\n";
 	my $path = "/dev/shm/rfid.$session";
+	warn "## RFID session $path\n";
 	if ( -e $path ) {
 		open(my $fh, '<', $path);
 		$hash->{local_ip} = <$fh>;
+		$hash->{have_reader} = 1;
 	}
 }
 
@@ -38,7 +42,7 @@ if ( my $koha_login = $query->param('koha_login') ) {
 	my $path = "$dir/user/$koha_login";
 	$hash->{koha_login} = $koha_login;
 	if ( -e $path ) {
-		open(my $fh, '<', $path);
+		nopen(my $fh, '<', $path);
 		$hash->{local_ip} = <$fh>;
 		$hash->{have_reader} = 1;
 		warn "RFID: $koha_login -> $hash->{local_ip}\n";
@@ -50,25 +54,23 @@ if ( my $koha_login = $query->param('koha_login') ) {
 } elsif ( $query->param('_last') ) {
 
 	my $v = $query->Vars;
-	my $ip;
-	foreach ( keys %$v ) {
-		if ( $v->{$_} =~ m/^10\.60\./ ) { # FIXME our local network
-			$ip = $v->{$_};
-			last;
-		}
-	}
+	my $ip = $v->{HTTP_LISTEN};
 
 	if ( ! $ip ) {
-		die "RFID ERROR: can't find local IP in ",dump($v);
+		die "RFID ERROR: no HTTP_LISTEN in ",dump($v);
 	}
-
-	$hash->{intranet_ip} = $ip;
 
 	my $path = "$dir/ip/$ip"; # FIXME
 	open(my $fh, '>', $path);
 	print $fh encode_json( $v );
 	close($fh);
 	warn "RFID $path $ip ", -s $path, "\n";
+
+	# XXX this place is too early to test connection, since our client is not listening yet
+	#my $sock = IO::Socket::INET->new($ip) || die "RFID $ip : $!"; # XXX
+
+	$hash->{local_ip} = $ip;
+	$hash->{have_reader} = 1;
 
 } else {
 	warn $hash->{_error} = "ERROR: ", $hash->{remote_host}, " don't have RFID reader assigned";
@@ -115,5 +117,5 @@ if ( $query->param('intranet-js') ) {
 } else {
 	print "Content-type: application/json; charset=utf-8\r\n\r\n";
 	print encode_json $hash;
-	warn "## RFID hash = ",dump($hash);
 }
+warn "## RFID hash = ",dump($hash);
