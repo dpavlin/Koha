@@ -227,6 +227,7 @@ $(document).ready( function() {
 	shortcut.add('Alt+r', function() { set_rfid_active(true); } );
 	shortcut.add('Alt+z', function() { set_rfid_active(true); } );
 	shortcut.add('Alt+k', function() { set_rfid_active(false) } );
+	shortcut.add('Alt+y', function() { set_rfid_active(true); } ); // renew
 
 	// intranet cataloging
 	shortcut.add('F4', function() {
