@@ -68,7 +68,7 @@ function rfid_scan(data,textStatus) {
 //		span = $('ul#i18nMenu').append('<li><span id=rfid>RFID reader found<span>');
 
 		// alternative pop-up version
-		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 3em; right: 1em; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 10;"><label for="rfid_active"><input type=checkbox id="rfid_active"> local_ip <span id="rfid">RFID reader</span></label></div>');
+		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 3em; right: 1em; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 1040;"><label for="rfid_active"><input type=checkbox id="rfid_active"> local_ip <span id="rfid">RFID reader</span></label></div>');
 		if ( rfid_count ) $('input#rfid_active').attr('checked',true);
 		$('input#rfid_active').click(activate_scan_tags);
 	}
