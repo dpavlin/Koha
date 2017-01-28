@@ -24,20 +24,34 @@ my $session = $query->cookie('CGISESSID');
 my $url = $query->url;
 # hungle URL to get Koha authorization and keep our reader identification in URL
 # https://ffzg.koha-dev.rot13.org:8443/cgi-bin/koha/ffzg/rfid/reader/10.60.0.92:9000/mainpage.pl
-my ( $redirect, $reader_ip_port ) = ( $1 . $3 , $2 ) if $url =~ s{(^.+)/ffzg/rfid/reader/([^/]+)/(.+)$}{$1};
+my ( $redirect, $reader_ip_port ) = ( $1 . $3 , $2 ) if $url =~ s{(^.+)/ffzg/rfid/reader/([^/]+)(/.+)$}{$1};
 
-warn "## $cookie $session $url";
+warn "## $session $reader_ip_port";
 
-open(my $fh, '>', "/dev/shm/rfid.$session");
+my $session_file = "/dev/shm/rfid.$session";
+open(my $fh, '>', $session_file) || die "$session_file: $!";
 print $fh $reader_ip_port;
 close($fh);
+
+sub check_rfid_reader {
+	my $host_port = shift;
+	if ( my $sock = IO::Socket::INET->new($reader_ip_port) ) {
+		print $sock "GET /scan HTTP/1.0\r\n\r\n";
+		local $/ = undef;
+		return "OK\n\n" . <$sock>;
+	} else {
+		return "RFID ERROR $reader_ip_port : $!";
+	}
+
+}
 
 output_html_with_http_headers $query, $cookie, join('',qq{
 <html>
 <a id="redirect" href="$redirect"">$redirect</a>
-<pre>
-$reader_ip_port },( IO::Socket::INET->new($reader_ip_port) && 'OK' || die "RFID ERROR $reader_ip_port : $!" ), qq{
-</pre>
+<ol>
+<li>Koha session: <pre>$session },(-e $session_file ? 'OK' : 'ERROR: MISSING'),qq{</pre></li>
+<li>RFID reader: <pre>$reader_ip_port }, check_rfid_reader( $reader_ip_port ), qq{</pre></li>
+</ol>
 <script>
 var e = document.getElementById('redirect');
 console.log(e);

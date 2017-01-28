@@ -70,7 +70,13 @@ if ( my $koha_login = $query->param('koha_login') ) {
 	#my $sock = IO::Socket::INET->new($ip) || die "RFID $ip : $!"; # XXX
 
 	$hash->{local_ip} = $ip;
-	$hash->{have_reader} = 1;
+
+	$path = "$dir/reader/$ip";
+	mkdir $path unless -e $path;
+	$path .= '/mainpage.pl';
+	symlink "$dir/koha-reader.pl", $path unless -e $path;
+
+	$hash->{have_reader} = -e $path;
 
 } else {
 	warn $hash->{_error} = "ERROR: ", $hash->{remote_host}, " don't have RFID reader assigned";
