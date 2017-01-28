@@ -20,29 +20,36 @@ my $remote_host = $query->remote_host;
 my $server_name = $query->server_name;
 
 sub get_port {
+		my $write = shift;
+		my $exists = 0;
 		my $path = "download/$remote_host";
 		my $port = 0;
 		if ( -e $path ) {
 			open(my $fh, '<', $path);
 			$port = <$fh>;
+			$exists = 1;
 		} else {
-			open(my $fh, '>', $path);
 
 			my @nr = glob('reader/*:*');
 			my $nr = scalar @nr;
 			warn "# nr = $nr\n";
 			$port = 9100 + $nr;
-			print $fh $port;
-			close($fh);
+
+			if ( $write ) {
+				open(my $fh, '>', $path);
+				print $fh $port;
+				close($fh);
+			}
 		}
-	return ( $port, $port - 100 );
+	return ( $port, $port - 100, $exists );
 }
 
-my ( $serial_port, $json_port ) = get_port;
+my ( $serial_port, $json_port, $exists ) = get_port;
 my $koha_url = "https://ffzg.koha-dev.rot13.org:8443/cgi-bin/koha/ffzg/rfid/reader/$server_name:$json_port/mainpage.pl";
+my $title = $remote_host . ' '. ( $exists ? 'REINSTALL' : 'INSTALL' );
 
 if ( ! $download ) {
-	print $query->header, '<html><head><title>', $remote_host, '</title></head><body>';
+	print $query->header, qq{<html><head><title>$title</title></head><body><h1>$title</h1>};
 }
 
 if ( $remote_host !~ m/^10\.60\./ ) {
@@ -59,6 +66,7 @@ if ( $remote_host !~ m/^10\.60\./ ) {
 		close($fh);
 		exit 0;
 	} elsif ( $download eq 'rfid.bat' ) {
+		( $serial_port, $json_port, $exists ) = get_port( 1 ) if ! $exists; # write port once configuration is downloaded
 		my $bat = qq{:loop\r\ncom2tcp.exe --ignore-dsr --baud 19200 \\\\.\\com2 $server_name $serial_port\r\ngoto loop\r\n};
 		print $bat;
 		warn "BAT: ",dump($bat);
@@ -69,17 +77,20 @@ if ( $remote_host !~ m/^10\.60\./ ) {
 
 } else {
 
+	print qq{<b>Using exists port $serial_port on $server_name for configuration</b>} if $exists;
+
 	print qq{
-<h1>Create rfid directory</h1>
-<h1>Download files to the rfid directory</h1>
+<h2>Create rfid directory</h2>
+<h2>Download files to the rfid directory</h2>
 <ol>
 <li><a href="?download=com2tcp.exe">com2tcp.exe</a> serial port redirector</li>
 <li><a href="?download=rfid.bat">rfid.bat</a> script to start it</li>
 </ol>
-<h1>Create shortcut to rfid.bat on desktop<h1>
-<h1>Run shortcut rfid.bat</h1>
-<h1>Chceck if readedr works</h1>
-<a href="$koha_url">$koha_url</a>
-}
+<h2>Create shortcut to rfid.bat on desktop<h2>
+<h2>Run shortcut rfid.bat</h2>
+<h2>Chceck if readedr works and create shortcut on computer to it</h2>
+<a href="$koha_url" target="koha">$koha_url</a>
+
+	};
 
 }
