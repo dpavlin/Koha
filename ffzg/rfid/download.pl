@@ -76,10 +76,11 @@ if ( $remote_host !~ m/^10\.60\./ ) {
 	}
 
 } else {
+#} elsif ( ! $exists ) {
 
-	print qq{<b>Using exists port $serial_port on $server_name for configuration</b>} if $exists;
 
 	print qq{
+
 <h2>Create rfid directory</h2>
 <h2>Download files to the rfid directory</h2>
 <ol>
@@ -88,9 +89,21 @@ if ( $remote_host !~ m/^10\.60\./ ) {
 </ol>
 <h2>Create shortcut to rfid.bat on desktop<h2>
 <h2>Run shortcut rfid.bat</h2>
+
+	};
+
+#} elsif ( $exists ) {
+	print qq{<b>Using exists port $serial_port on $server_name for configuration</b>};
+
+	if ( IO::Socket::INET->new("$server_name:$json_port") ) {
+		print qq{
+
 <h2>Chceck if readedr works and create shortcut on computer to it</h2>
 <a href="$koha_url" target="koha">$koha_url</a>
 
-	};
+		};
+	} else {
+		print qq{<form><input type=submit name="reload" value="Check connection to RFID reader"></form>};
+	}
 
 }
