@@ -26,8 +26,8 @@ function barcode_on_screen(barcode) {
 	return found;
 }
 
-var rfid_refresh = 1500; // ms
-var rfid_count_timeout = 10; // number of times to scan reader before turning off
+var rfid_refresh = 1000; // ms
+var rfid_count_timeout = 30; // number of times to scan reader before turning off
 
 function rfid_secure_json(t,val, success) {
 	if ( t.security.toUpperCase() == val.toUpperCase() ) return;
@@ -53,11 +53,8 @@ function rfid_scan(data,textStatus) {
 	if ( rfid_count === undefined ) {
 		rfid_count = rfid_count_timeout;
 	}
-	console.log('rfid_count', rfid_count);
 
-	$.cookie('rfid', 'localhost'); // set cookie
-
-	console.debug( 'rfid_scan', data, textStatus, $.cookie('rfid') );
+	console.debug( 'rfid_scan', data, 'status', textStatus, 'rfid_count', rfid_count);
 	rfid_current_sid = false;
 	rfid_blank_sid = false;
 
@@ -110,9 +107,14 @@ function rfid_scan(data,textStatus) {
 					span.html( t.content + '&nbsp;' + icon ).css('color', color);
 
 
-					if ( tab_active == 'catalog_search' && script_name != 'moredetail.pl' && $('input#rfid_active').attr('checked') ) {
+					if ( tab_active == 'catalog_search'
+						&& script_name != 'moredetail.pl'
+						&& script_name != 'detail.pl'
+						&& $('input#rfid_active').attr('checked') ) {
+
 						if ( $('span.term:contains(bc:'+t.content+')').length == 0 ) {
 							$.cookie('rfid_count', rfid_count_timeout);
+							rfid_refresh = 0;
 							$('input[name=q]').val( 'bc:' + t.content ).closest('form').submit();
 						}
 					}
@@ -133,6 +135,7 @@ function rfid_scan(data,textStatus) {
 										rfid_secure_json( t, afi_secure, function(data) {
 											console.log('secure', afi_secure, data);
 											$.cookie('rfid_count', rfid_count_timeout);
+											rfid_refresh = 0;
 											i.val( t.content ).closest('form').submit();
 										});
 									}
@@ -184,8 +187,12 @@ function rfid_scan(data,textStatus) {
 
 	if (rfid_refresh > 1 && $('input#rfid_active').attr('checked') ) {
 		window.setTimeout( function() {
-			$('#rfid_popup').css('border','3px solid #ff0');
-			$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
+			if ( rfid_refresh ) {
+				$('#rfid_popup').css('border','3px solid #ff0');
+				$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
+			} else {
+				console.error('got setTimeout but rfid_refresh', rfid_refresh, ' is not set');
+			}
 		}, rfid_refresh );
 	} else {
 		console.debug('rfid_refresh disabled',rfid_refresh);
