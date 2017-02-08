@@ -42,6 +42,7 @@ function rfid_secure_check(t,val) {
 var rfid_reset_field = false;
 var rfid_current_sid = false;
 var rfid_blank_sid   = false;
+var rfid_action = undefined;
 
 function rfid_scan(data,textStatus) {
 
@@ -63,7 +64,7 @@ function rfid_scan(data,textStatus) {
 		// alternative pop-up version
 		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 0; background: #fff; border: 0.25em solid #ff0; padding: 0.25em; opacity: 0.9; z-index: 1040; font-size: 200%"><label for="rfid_active"><input type=checkbox id="rfid_active"><!-- local_ip -->&nbsp;<span id="rfid">RFID reader</span><span id="rfid-info"></span></label></div>');
 		if ( rfid_count ) $('input#rfid_active').attr('checked',true);
-		$('input#rfid_active').click(activate_scan_tags);
+		$('input#rfid_active').click(activate_scan_tags); // FIXME don't activate actions on page load
 	}
 
 
@@ -87,9 +88,11 @@ function rfid_scan(data,textStatus) {
 				var tab_active  = $("#header_search li[aria-selected=true]").attr('aria-controls');
 				console.debug('tab_active', tab_active);
 				var action =
+					rfid_action                                                          ? rfid_action :
 					( script_name == 'circulation.pl' || tab_active == 'circ_search' )   ? 'circulation' :
 					( script_name == 'returns.pl'     || tab_active == 'checkin_search') ? 'checkin' :
-					'scan';
+                    'scan';
+				rfid_action = undefined; // one-shot
 				console.debug('script_name', script_name, 'action', action);
 				info.text(action);
 
@@ -122,17 +125,19 @@ function rfid_scan(data,textStatus) {
 						}
 					}
 
-					if ( ! barcode_on_screen( t.content ) || action == 'returns' || action == 'checkin' ) {
+					if ( ! barcode_on_screen( t.content ) || action == 'returns' || action == 'checkin' || action == 'circulation' ) {
 						rfid_reset_field = 'barcode';
 
 						// return must be first to catch change of tab to check-in
 						var afi_secure =
 							action == 'returns' ? 'DA' :
 							action == 'checkin' ? 'DA' :
-							action == 'FIXME' ? 'D7' :
+							action == 'circulation' ? 'D7' :
 							t.security;
 						var form_selector = action == 'returns' ? 'first' : 'last';
-						if ( action == 'returns' || action == 'circulation' || action == 'checkin' ) {
+
+						if (1) { // FIXME: remove one indent?
+						//if ( action == 'returns' || action == 'circulation' || action == 'checkin' ) {
 
 							if ( action == 'circulation' && $('#circ_needsconfirmation').length > 0 ) {
 								console.log("in circulation, but needs confirmation");
@@ -157,8 +162,10 @@ function rfid_scan(data,textStatus) {
 																		 '#0ff'
 												)
 												.val( t.content )
-												; //.closest('form').submit();
+												//.closest('form').submit();
 										});
+									} else {
+										i.css('background', '#fff' ); // reset field marking
 									}
 							}
 						} else {
@@ -179,7 +186,7 @@ function rfid_scan(data,textStatus) {
 						rfid_refresh = 0; // stop rfid scan while submitting form
 						rfid_reset_field = 'findborrower';
 						$('input[name=findborrower]')
-							.css('background', '#ff0')
+							.css('background', '#00f')
 							.val( t.content )
 							;//.parent().submit();
 					}
@@ -231,7 +238,8 @@ function scan_tags() {
 	$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 }
 
-function set_rfid_active(active) {
+function set_rfid_active(active,action) {
+	rfid_action = action;
 	var input_active = $('input#rfid_active').attr('checked');
 	console.info('set_rfid_active', active);
 	if ( active ) {
@@ -253,13 +261,15 @@ function activate_scan_tags() {
 $(document).ready( function() {
 	console.log('rfid_active', $('input#rfid_active').attr('checked') );
 
+
+	rfid_action = 'scan';
 	scan_tags();	// FIXME should we trigger this on page load even if rfid is not active
 
 	// circulation keyboard shortcuts (FFZG specific!)
-	shortcut.add('Alt+r', function() { set_rfid_active(true); } );
-	shortcut.add('Alt+z', function() { set_rfid_active(true); } );
-	shortcut.add('Alt+k', function() { set_rfid_active(false) } );
-	shortcut.add('Alt+y', function() { set_rfid_active(true); } ); // renew
+	shortcut.add('Alt+r', function() { set_rfid_active(true,'checkin'    )});
+	shortcut.add('Alt+z', function() { set_rfid_active(true,'circulation')});
+	shortcut.add('Alt+k', function() { set_rfid_active(true,'search?'    )});
+	shortcut.add('Alt+y', function() { set_rfid_active(true,'renew'      )}); // renew
 
 	// send RFID tag to currently focused field on screen
 	shortcut.add('Alt+s', function() {
