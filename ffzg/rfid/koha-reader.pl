@@ -55,6 +55,9 @@ $reader_url . '/ffzg/rfid/';
 
 output_html_with_http_headers $query, $cookie, join('',qq{
 <html>
+<head>
+<title>RFID reader selection</title>
+</head>
 <a id="redirect" href="$redirect"">$redirect</a>
 <ol>
 <li>Koha session: <pre>$session },(-e $session_file ? 'OK' : 'ERROR: MISSING'),qq{</pre></li>
