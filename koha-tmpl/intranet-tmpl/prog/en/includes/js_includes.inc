@@ -26,6 +26,10 @@
 [% Asset.js("js/staff-global.js") | $raw %]
 [% Asset.js("js/commons.js") | $raw %]
 
+<!-- FFZG RFID -->
+<script type="text/javascript" src="/rfid/register.pl?intranet-js=1&koha_login=[% loggedinusername %]"></script>
+
+
 [% INCLUDE 'validator-strings.inc' %]
 [% IF ( IntranetUserJS ) %]
     <script type="text/javascript">
