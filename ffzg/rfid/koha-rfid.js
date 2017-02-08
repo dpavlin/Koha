@@ -65,7 +65,7 @@ function rfid_scan(data,textStatus) {
 //		span = $('ul#i18nMenu').append('<li><span id=rfid>RFID reader found<span>');
 
 		// alternative pop-up version
-		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 3em; right: 1em; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 1040;"><label for="rfid_active"><input type=checkbox id="rfid_active"> local_ip <span id="rfid">RFID reader</span></label></div>');
+		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 1em; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 1040;"><label for="rfid_active"><input type=checkbox id="rfid_active"><!-- local_ip -->&nbsp;<span id="rfid">RFID reader</span></label></div>');
 		if ( rfid_count ) $('input#rfid_active').attr('checked',true);
 		$('input#rfid_active').click(activate_scan_tags);
 	}
@@ -115,7 +115,10 @@ function rfid_scan(data,textStatus) {
 						if ( $('span.term:contains(bc:'+t.content+')').length == 0 ) {
 							$.cookie('rfid_count', rfid_count_timeout);
 							rfid_refresh = 0;
-							$('input[name=q]').val( 'bc:' + t.content ).closest('form').submit();
+							$('input[name=q]')
+								.css('background', '#ff0')
+								.val( 'bc:' + t.content )
+								.closest('form').submit();
 						}
 					}
 
@@ -130,13 +133,27 @@ function rfid_scan(data,textStatus) {
 							if ( circulation && $('#circ_needsconfirmation').length > 0 ) {
 								console.log("in circulation, but needs confirmation");
 							} else {
-									var i = $('input[name=barcode]:'+form_selector);
+									var i = $('input[name=barcode]:focus');
+									var val = i.val();
+									if ( i ) {
+										console.debug('use focus');
+									} else {
+										console.debug('use', form_selector);
+										i = $('input[name=barcode]:'+form_selector);
+									}
 									if ( i.val() != t.content )  {
+										i.css('background', '#0ff' )
+												.val( t.content );
 										rfid_secure_json( t, afi_secure, function(data) {
 											console.log('secure', afi_secure, data);
 											$.cookie('rfid_count', rfid_count_timeout);
 											rfid_refresh = 0;
-											i.val( t.content ).closest('form').submit();
+											i.css('background',
+													afi_secure == 'DA' ? '#f00' :
+													afi_secure == 'D7' ? '#0f0' :
+																		 '#0f0'
+												)
+												.closest('form').submit();
 										});
 									}
 							}
@@ -157,7 +174,9 @@ function rfid_scan(data,textStatus) {
 					} else {
 						rfid_refresh = 0; // stop rfid scan while submitting form
 						rfid_reset_field = 'findborrower';
-						$('input[name=findborrower]').val( t.content )
+						$('input[name=findborrower]')
+							.css('background', '#ff0')
+							.val( t.content )
 							.parent().submit();
 					}
 				}
@@ -179,8 +198,9 @@ function rfid_scan(data,textStatus) {
 
 	if (rfid_count > 0) rfid_count--;
 	if (rfid_count == 0) {
-		span.text('RFID reader disabled').css('color','black');
+		//span.text('RFID reader disabled').css('color','black');
 		$('input#rfid_active').attr('checked', false)
+		console.log('RFID disabled', rfid_count);
 	}
 	$.cookie('rfid_count', rfid_count);
 
