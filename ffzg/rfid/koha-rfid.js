@@ -9,12 +9,6 @@
  *
  * to provide overlay for tags in range and emulate form fill for Koha Library System
  * which allows check-in and checkout-operations without touching html interface
- *
- * You will have to inject remote javascript in Koha intranetuserjs using:
-
-// inject JavaScript RFID support
-$.getScript('http://localhost:9000/examples/koha-rfid.js');
-
  */
 
 function barcode_on_screen(barcode) {
@@ -29,8 +23,10 @@ function barcode_on_screen(barcode) {
 var rfid_refresh = 1000; // ms
 var rfid_count_timeout = 30; // number of times to scan reader before turning off
 
+rfid_count_timeout = 0; // FIXME disable
+
 function rfid_secure_json(t,val, success) {
-	if ( t.security.toUpperCase() == val.toUpperCase() ) return;
+	if ( t.security.toUpperCase() == val.toUpperCase() ) return success();
 	rfid_refresh = 0; // disable rfid pull until secure call returns
 	console.log('rfid_secure_json', t, val);
 	$.getJSON( '///localhost:9000/secure.js?' + t.sid + '=' + val + ';callback=?', success );
@@ -65,7 +61,7 @@ function rfid_scan(data,textStatus) {
 //		span = $('ul#i18nMenu').append('<li><span id=rfid>RFID reader found<span>');
 
 		// alternative pop-up version
-		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 1em; background: #fff; border: 3px solid #ff0; padding: 1em; opacity: 0.7; z-index: 1040;"><label for="rfid_active"><input type=checkbox id="rfid_active"><!-- local_ip -->&nbsp;<span id="rfid">RFID reader</span></label></div>');
+		span = $('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 0; background: #fff; border: 0.25em solid #ff0; padding: 0.25em; opacity: 0.9; z-index: 1040; font-size: 200%"><label for="rfid_active"><input type=checkbox id="rfid_active"><!-- local_ip -->&nbsp;<span id="rfid">RFID reader</span><span id="rfid-info"></span></label></div>');
 		if ( rfid_count ) $('input#rfid_active').attr('checked',true);
 		$('input#rfid_active').click(activate_scan_tags);
 	}
@@ -75,6 +71,7 @@ function rfid_scan(data,textStatus) {
 		span = $('div#login').prepend('<span id=rfid>RFID reader found</span>');
 
 	span = $('span#rfid');
+	var info = $('span#rfid-info');
 
 
 	if ( data.tags ) {
@@ -89,9 +86,12 @@ function rfid_scan(data,textStatus) {
 //				var tab_active  = $("#header_search .ui-tabs-panel:not(.ui-tabs-hide)").prop('id');
 				var tab_active  = $("#header_search li[aria-selected=true]").attr('aria-controls');
 				console.debug('tab_active', tab_active);
-				var circulation = script_name == 'circulation.pl' || tab_active == 'circ_search' ;
-				var returns     = script_name == 'returns.pl' || tab_active == 'checkin_search';
-				console.debug('script_name', script_name, 'circulation', circulation, 'returns', returns);
+				var action =
+					( script_name == 'circulation.pl' || tab_active == 'circ_search' )   ? 'circulation' :
+					( script_name == 'returns.pl'     || tab_active == 'checkin_search') ? 'checkin' :
+					'scan';
+				console.debug('script_name', script_name, 'action', action);
+				info.text(action);
 
 				if ( t.content.length == 0 || t.content == 'UUUUUUUUUUUUUUUU' ) { // blank tag (3M is UUU....)
 
@@ -118,19 +118,23 @@ function rfid_scan(data,textStatus) {
 							$('input[name=q]')
 								.css('background', '#ff0')
 								.val( 'bc:' + t.content )
-								.closest('form').submit();
+								;//.closest('form').submit();
 						}
 					}
 
-					if ( ! barcode_on_screen( t.content ) || returns ) {
+					if ( ! barcode_on_screen( t.content ) || action == 'returns' || action == 'checkin' ) {
 						rfid_reset_field = 'barcode';
 
 						// return must be first to catch change of tab to check-in
-						var afi_secure    = returns ? 'DA' : 'D7';
-						var form_selector = returns ? 'first' : 'last';
-						if ( returns || circulation ) {
+						var afi_secure =
+							action == 'returns' ? 'DA' :
+							action == 'checkin' ? 'DA' :
+							action == 'FIXME' ? 'D7' :
+							t.security;
+						var form_selector = action == 'returns' ? 'first' : 'last';
+						if ( action == 'returns' || action == 'circulation' || action == 'checkin' ) {
 
-							if ( circulation && $('#circ_needsconfirmation').length > 0 ) {
+							if ( action == 'circulation' && $('#circ_needsconfirmation').length > 0 ) {
 								console.log("in circulation, but needs confirmation");
 							} else {
 									var i = $('input[name=barcode]:focus');
@@ -142,18 +146,18 @@ function rfid_scan(data,textStatus) {
 										i = $('input[name=barcode]:'+form_selector);
 									}
 									if ( i.val() != t.content )  {
-										i.css('background', '#0ff' )
-												.val( t.content );
+										i.css('background', '#0ff' );
 										rfid_secure_json( t, afi_secure, function(data) {
 											console.log('secure', afi_secure, data);
-											$.cookie('rfid_count', rfid_count_timeout);
+											$.cookie('rfid_count', 0); // FIXME once? to see change rfid_count_timeout);
 											rfid_refresh = 0;
 											i.css('background',
 													afi_secure == 'DA' ? '#f00' :
 													afi_secure == 'D7' ? '#0f0' :
-																		 '#0f0'
+																		 '#0ff'
 												)
-												.closest('form').submit();
+												.val( t.content )
+												; //.closest('form').submit();
 										});
 									}
 							}
@@ -177,7 +181,7 @@ function rfid_scan(data,textStatus) {
 						$('input[name=findborrower]')
 							.css('background', '#ff0')
 							.val( t.content )
-							.parent().submit();
+							;//.parent().submit();
 					}
 				}
 			}
@@ -204,7 +208,7 @@ function rfid_scan(data,textStatus) {
 	}
 	$.cookie('rfid_count', rfid_count);
 
-
+/*
 	if (rfid_refresh > 1 && $('input#rfid_active').attr('checked') ) {
 		window.setTimeout( function() {
 			if ( rfid_refresh ) {
@@ -219,6 +223,7 @@ function rfid_scan(data,textStatus) {
 	}
 
 	$('#rfid_popup').css('border','3px solid #fff');
+*/
 }
 
 function scan_tags() {
@@ -248,13 +253,21 @@ function activate_scan_tags() {
 $(document).ready( function() {
 	console.log('rfid_active', $('input#rfid_active').attr('checked') );
 
-	scan_tags();
+	scan_tags();	// FIXME should we trigger this on page load even if rfid is not active
 
 	// circulation keyboard shortcuts (FFZG specific!)
 	shortcut.add('Alt+r', function() { set_rfid_active(true); } );
 	shortcut.add('Alt+z', function() { set_rfid_active(true); } );
 	shortcut.add('Alt+k', function() { set_rfid_active(false) } );
 	shortcut.add('Alt+y', function() { set_rfid_active(true); } ); // renew
+
+	// send RFID tag to currently focused field on screen
+	shortcut.add('Alt+s', function() {
+		var el = $('input:focus');
+		var tag = $('span#rfid').text().split(/\s+/)[0];
+		console.log('send', el, tag);
+		if ( el && tag ) el.css('background', '#ff0').val( tag );
+	} );
 
 	// intranet cataloging
 	shortcut.add('F4', function() {
