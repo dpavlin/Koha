@@ -86,7 +86,7 @@ sub js_console {
 	warn "RFID: ",@_;
 	return q|
 //$(document).ready( function() {
-	console.log('|, join('', @_), qq|);
+	console.log('|, join('', @_), qq|');
 //}
 |;
 }
@@ -108,9 +108,18 @@ if ( $query->param('intranet-js') ) {
 				close($js);
 		} else {
 			warn "## RFID no local_ip for ",dump($hash);
+			print js_console('no local_ipr');
 		}
 	} else {
-#		warn "## RFID doesn't have reader ",dump($hash);
+		warn "## RFID doesn't have reader ",dump($hash);
+		print js_console('no have_reader');
+		print q|
+
+$(document).ready( function() {
+		$('#breadcrumbs').append('<div id="rfid_popup" style="position: fixed; bottom: 0; right: 0; background: #fff; border: 0.25em solid #ff0; padding: 0.25em; opacity: 0.9; z-index: 1040; font-size: 200%"><a href="https://ffzg.koha-dev.rot13.org:8443/cgi-bin/koha/ffzg/rfid/koha-reader.pl" target="select_rfid_reader">select RFID reader</a></div>');
+});
+
+|;
 	}
 
 } elsif ( my $ip = $query->param('register_reader') ) {
