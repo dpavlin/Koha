@@ -42,7 +42,7 @@ if ( my $koha_login = $query->param('koha_login') ) {
 	my $path = "$dir/user/$koha_login";
 	$hash->{koha_login} = $koha_login;
 	if ( -e $path ) {
-		nopen(my $fh, '<', $path);
+		open(my $fh, '<', $path);
 		$hash->{local_ip} = <$fh>;
 		$hash->{have_reader} = 1;
 		warn "RFID: $koha_login -> $hash->{local_ip}\n";
