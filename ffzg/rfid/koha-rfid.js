@@ -238,6 +238,10 @@ function scan_tags() {
 function set_rfid_active(active,action) {
 	rfid_action = action;
 	var input_active = $('input#rfid_active').attr('checked');
+	if ( active && input_active ) {
+		console.info('ignored set_rfid_active ', active, action);
+		return;
+	}
 	console.info('set_rfid_active', active);
 	if ( active ) {
 		$.cookie('rfid_count', rfid_count_timeout);
@@ -276,6 +280,11 @@ $(document).ready( function() {
 		if ( el && tag ) el.css('background', '#ff0').val( tag )
 			;//.closest('form').submit();
 	} );
+
+	shortcut.add('F9', function() {
+		console.log('F9');
+		set_rfid_active(true,'F9');
+	});
 
 	// intranet cataloging
 	shortcut.add('F4', function() {
