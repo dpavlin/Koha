@@ -24,6 +24,13 @@ function barcode_on_screen(barcode) {
 		var checked_out_barcode = lastchecked.split(/\(/)[1].split(/\)/)[0];
 		if ( checked_out_barcode == barcode ) found++;
 	}
+	// Not checked out message in returns.pl
+	var alert_dialog = $('div.alert p a:contains(130)').text();
+	if ( alert_dialog ) {
+		console.info('found alert dialog', alert_dialog);
+		var alert_barcode = alert_dialog.split(/:/)[0];
+		if ( alert_barcode == barcode ) found++;
+	}
 	console.debug('barcode_on_screen', barcode, found);
 	return found;
 }
