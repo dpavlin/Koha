@@ -18,10 +18,17 @@ function barcode_on_screen(barcode) {
 		var possible = $(o).text();
 		if ( possible == barcode ) found++;
 	})
+	var lastchecked = $('div.lastchecked').text();
+	if ( lastchecked ) {
+		console.info('found lastchecked div', lastchecked);
+		var checked_out_barcode = lastchecked.split(/\(/)[1].split(/\)/)[0];
+		if ( checked_out_barcode == barcode ) found++;
+	}
+	console.debug('barcode_on_screen', barcode, found);
 	return found;
 }
 
-var rfid_refresh = 200; // ms
+var rfid_refresh = 100; // ms
 var rfid_count_timeout = 1; // number of times to scan reader before turning off
 
 
@@ -38,8 +45,11 @@ var rfid_reset_field = false;
 var rfid_current_sid = false;
 var rfid_blank_sid   = false;
 var rfid_action = undefined;
+var rfid_scan_busy = false;
 
 function rfid_scan(data,textStatus) {
+
+	rfid_scan_busy = false;
 
 	var rfid_count = $.cookie('rfid_count');
 	if ( rfid_count === undefined ) {
@@ -74,11 +84,13 @@ function rfid_scan(data,textStatus) {
 		if ( data.tags.length === 1 ) {
 			var t = data.tags[0];
 			rfid_current_sid = t.sid;
+			var rfid_last_tag = $.cookie('rfid_last_tag');
 
 //			if ( span.text() != t.content ) {
 			if ( 1 ) { // force update of security
 
 				var script_name = document.location.pathname.split(/\//).pop();
+				var referrer_name = document.referrer.split(/\//).pop();
 				var tab_active  = $("#header_search li[aria-selected=true]").attr('aria-controls');
 				var focused_form = $('input:focus').first().name;
 				var action =
@@ -87,7 +99,7 @@ function rfid_scan(data,textStatus) {
 					( script_name == 'circulation.pl' || tab_active == 'circ_search' )   ? 'circulation' :
                     'scan';
 				rfid_action = undefined; // one-shot
-				console.debug('script_name', script_name, 'tab_active', tab_active, 'action', action, 'focused_form', focused_form );
+				console.debug('script_name', script_name, 'referrer_name', referrer_name, 'tab_active', tab_active, 'action', action, 'focused_form', focused_form, 'rfid_last_tag' , rfid_last_tag );
 				info.text(action);
 
 				if ( t.content.length == 0 || t.content == 'UUUUUUUUUUUUUUUU' ) { // blank tag (3M is UUU....)
@@ -119,7 +131,11 @@ function rfid_scan(data,textStatus) {
 						}
 					}
 
-					if ( action == 'returns' || action == 'checkin' || action == 'circulation' ) {
+					if (
+						( action == 'returns' || action == 'checkin' || action == 'circulation' )
+						&& ! barcode_on_screen( t.content )
+						//&& t.content != rfid_last_tag
+					) {
 						rfid_reset_field = 'barcode';
 
 						// return must be first to catch change of tab to check-in
@@ -217,7 +233,7 @@ function rfid_scan(data,textStatus) {
 		window.setTimeout( function() {
 			if ( rfid_refresh ) {
 				$('#rfid_popup').css('border','3px solid #ff0');
-				$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
+				scan_tags();
 			} else {
 				console.error('got setTimeout but rfid_refresh', rfid_refresh, ' is not set');
 			}
@@ -227,10 +243,15 @@ function rfid_scan(data,textStatus) {
 	}
 
 	$('#rfid_popup').css('border','3px solid #fff');
+	$.cookie('rfid_last_tag', t ? t.content : '--none--');
 
 }
 
 function scan_tags() {
+	if ( rfid_scan_busy ) {
+		console.error('rfid_scan_busy');
+		return;
+	}
 	console.info('scan_tags');
 	$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 }
@@ -267,10 +288,13 @@ $(document).ready( function() {
 	scan_tags();	// FIXME should we trigger this on page load even if rfid is not active
 
 	// circulation keyboard shortcuts (FFZG specific!)
-	shortcut.add('Alt+1', function() { set_rfid_active(true,'checkin'    )});
-	shortcut.add('Alt+2', function() { set_rfid_active(true,'circulation')});
+	shortcut.add('Alt+r', function() { set_rfid_active(true,'checkin'    )});
+	shortcut.add('Alt+z', function() { set_rfid_active(true,'circulation')});
+	shortcut.add('Alt+y', function() { set_rfid_active(true,'circulation')});
+/*
 	shortcut.add('Alt+3', function() { set_rfid_active(true,'search?'    )});
 	shortcut.add('Alt+4', function() { set_rfid_active(true,'renew'      )}); // renew
+*/
 
 	// send RFID tag to currently focused field on screen
 	shortcut.add('Alt+s', function() {
@@ -283,7 +307,8 @@ $(document).ready( function() {
 
 	shortcut.add('F9', function() {
 		console.log('F9');
-		set_rfid_active(true,'F9');
+		//set_rfid_active(true,'F9');
+		scan_tags();
 	});
 
 	// intranet cataloging
