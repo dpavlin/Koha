@@ -35,8 +35,8 @@ function barcode_on_screen(barcode) {
 	return found;
 }
 
-var rfid_refresh = 100; // ms
-var rfid_count_timeout = 1; // number of times to scan reader before turning off
+var rfid_refresh = 200; // ms
+var rfid_count_timeout = 50; // number of times to scan reader before turning off
 
 
 function rfid_secure_json(t,val, success) {
@@ -109,6 +109,12 @@ function rfid_scan(data,textStatus) {
 				console.debug('script_name', script_name, 'referrer_name', referrer_name, 'tab_active', tab_active, 'action', action, 'focused_form', focused_form, 'rfid_last_tag' , rfid_last_tag );
 				info.text(action);
 
+				// keep refreshing rfid reader
+				if ( referrer_name == 'circulation.pl' ) {
+					rfid_count = rfid_count_timeout;
+				}
+
+
 				if ( t.content.length == 0 || t.content == 'UUUUUUUUUUUUUUUU' ) { // blank tag (3M is UUU....)
 
 					rfid_blank_sid = t.sid;
@@ -134,7 +140,7 @@ function rfid_scan(data,textStatus) {
 							$('input[name=q]')
 								.css('background', '#ff0')
 								.val( 'bc:' + t.content )
-								;//.closest('form').submit();
+								.closest('form').submit();
 						}
 					}
 
@@ -172,10 +178,10 @@ function rfid_scan(data,textStatus) {
 
 							if ( i.val() != t.content ) { // && i.name == 'barcode' )  {
 								i.css('background', '#0ff' );
+								rfid_refresh = 0;
 								rfid_secure_json( t, afi_secure, function(data) {
 									console.log('secure', afi_secure, data);
 									$.cookie('rfid_count', 0); // FIXME once? to see change rfid_count_timeout);
-									rfid_refresh = 0;
 									i.css('background',
 											afi_secure == 'DA' ? '#f00' :
 											afi_secure == 'D7' ? '#0f0' :
@@ -210,7 +216,7 @@ function rfid_scan(data,textStatus) {
 						$('input[name=findborrower]')
 							.css('background', '#00f')
 							.val( t.content )
-							;//.parent().submit();
+							.parent().submit();
 					}
 				}
 			}
@@ -259,6 +265,7 @@ function scan_tags() {
 		console.error('rfid_scan_busy');
 		return;
 	}
+	rfid_scan_busy = true;
 	console.info('scan_tags');
 	$.getJSON("///localhost:9000/scan?callback=?", rfid_scan);
 }
@@ -267,7 +274,9 @@ function set_rfid_active(active,action) {
 	rfid_action = action;
 	var input_active = $('input#rfid_active').attr('checked');
 	if ( active && input_active ) {
+		$.cookie('rfid_count', rfid_count_timeout);
 		console.info('ignored set_rfid_active ', active, action);
+		scan_tags();
 		return;
 	}
 	console.info('set_rfid_active', active);
