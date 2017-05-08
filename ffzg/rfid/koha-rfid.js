@@ -11,6 +11,8 @@
  * which allows check-in and checkout-operations without touching html interface
  */
 
+var rainbow_colors = [ '#9400D3', '#4B0082', '#0000FF', '#00FF00', '#FFFF00', '#FF7F00', '#FF0000' ];
+
 function barcode_on_screen(barcode) {
 	// FIXME: don't work without checkbox, probably broken
 	var found = 0;
@@ -245,7 +247,9 @@ function rfid_scan(data,textStatus) {
 	if (rfid_refresh > 1 && $('input#rfid_active').attr('checked') ) {
 		window.setTimeout( function() {
 			if ( rfid_refresh ) {
-				$('#rfid_popup').css('border','3px solid #ff0');
+				var color = rainbow_colors[ rfid_count % rainbow_colors.length ];
+				console.debug('color', color);
+				$('#rfid_popup').css('border','3px solid '+color);
 				scan_tags();
 			} else {
 				console.error('got setTimeout but rfid_refresh', rfid_refresh, ' is not set');
@@ -253,9 +257,9 @@ function rfid_scan(data,textStatus) {
 		}, rfid_refresh );
 	} else {
 		console.debug('rfid_refresh disabled',rfid_refresh);
+		$('#rfid_popup').css('border','3px solid #fff');
 	}
 
-	$('#rfid_popup').css('border','3px solid #fff');
 	$.cookie('rfid_last_tag', t ? t.content : '--none--');
 
 }
