@@ -3,6 +3,7 @@ package C4::Utils::DataTables::Members;
 use Modern::Perl;
 use C4::Context;
 use C4::Utils::DataTables;
+use C4::Members::Attributes;
 use Koha::DateUtils;
 use C4::Members::Attributes qw(SearchIdMatchingAttribute );
 
