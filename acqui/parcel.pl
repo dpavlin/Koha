@@ -241,6 +241,10 @@ unless( defined $invoice->{closedate} ) {
 
         my $biblionumber = $line{'biblionumber'};
         my $biblio = Koha::Biblios->find( $biblionumber );
+		if ( ! $biblio ) {
+			use Data::Dump qw(dump);
+			warn "FATAL ERROR: biblionumber $biblionumber not found in line: ",dump( \%line );
+		}
         my $countbiblio = CountBiblioInOrders($biblionumber);
         my $ordernumber = $line{'ordernumber'};
         my $order_object = Koha::Acquisition::Orders->find($ordernumber);
