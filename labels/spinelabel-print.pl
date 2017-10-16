@@ -131,7 +131,7 @@ body {
 }
 </style>
 
-<form action="$url" method="post" autocomplete="off">
+<form action="$url" method="get" autocomplete="off">
 Enter another barcode:
 <input id=focus_barcode type=text name=barcode autofocus autocomplete="off">
 <input type=submit value="Print">
