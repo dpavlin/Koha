@@ -99,7 +99,7 @@ sub plugin {
 	my $now = DateTime->now;
 	$year = $now->year;
 	if ( $now->month == 1 && $now->day <= 15 ) {
-		$year--;
+		#$year--;
 	}
     }
 
