@@ -61,6 +61,7 @@
         <th class="hq-sendto">Send to</th>
         <th class="hq-date">Date</th>
         <th class="hq-notes">Notes</th>
+        <th class="hq-date">Timestamp</th>
     </tr>
     <tr>
         <td class="hq-title">
@@ -118,6 +119,11 @@
                 <input type="text" placeholder="Notes">
             </span>
         </td>
+        <td class="hq-date">
+            <span class="filter_column filter_text">
+                <input type="text" placeholder="Timestamp">
+            </span>
+        </td>
     </tr>
 	</thead>
      <tbody>[% FOREACH itemsloo IN itemsloop %]
@@ -167,6 +173,7 @@
             <td class="hq-sendto">[% Branches.GetName( itemsloo.pickbranch ) | html %]</td>
             <td class="hq-date"><span title="[% itemsloo.reservedate | html %]">[% itemsloo.reservedate | $KohaDates %]</span></td>
             <td class="hq-notes">[% itemsloo.notes | html %]</td>
+            <td class="hq-date"><span title="[% itemsloo.timestamp | html %]">[% itemsloo.timestamp | $KohaDates with_hours => 1 %]</span></td>
         </tr>
     [% END %]</tbody>
     </table>

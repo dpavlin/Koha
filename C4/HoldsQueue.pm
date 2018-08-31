@@ -279,7 +279,7 @@ sub GetPendingHoldRequestsForBib {
     my $dbh = C4::Context->dbh;
 
     my $request_query = "SELECT biblionumber, borrowernumber, itemnumber, priority, reserves.branchcode,
-                                reservedate, reservenotes, borrowers.branchcode AS borrowerbranch, itemtype
+                                reservedate, reservenotes, borrowers.branchcode AS borrowerbranch, itemtype, timestamp
                          FROM reserves
                          JOIN borrowers USING (borrowernumber)
                          WHERE biblionumber = ?
@@ -441,6 +441,7 @@ sub MapItemsToHoldRequests {
                               || $request->{borrowerbranch},
                             item_level   => 0,
                             reservedate  => $request->{reservedate},
+                            timestamp  => $request->{timestamp},
                             reservenotes => $request->{reservenotes},
                         };
                         $allocated_items{ $item->{itemnumber} }++;
@@ -480,6 +481,7 @@ sub MapItemsToHoldRequests {
                     pickup_branch  => $request->{branchcode} || $request->{borrowerbranch},
                     item_level     => 1,
                     reservedate    => $request->{reservedate},
+                    timestamp    => $request->{timestamp},
                     reservenotes   => $request->{reservenotes},
                 };
                 $allocated_items{ $request->{itemnumber} }++;
@@ -655,6 +657,7 @@ sub MapItemsToHoldRequests {
                 pickup_branch => $pickup_branch,
                 item_level => 0,
                 reservedate => $request->{reservedate},
+                timestamp => $request->{timestamp},
                 reservenotes => $request->{reservenotes},
             };
             $num_items_remaining--;
@@ -674,9 +677,9 @@ sub CreatePicklistFromItemMap {
 
     my $sth_load=$dbh->prepare("
         INSERT INTO tmp_holdsqueue (biblionumber,itemnumber,barcode,surname,firstname,phone,borrowernumber,
-                                    cardnumber,reservedate,title, itemcallnumber,
+                                    cardnumber,reservedate,timestamp,title, itemcallnumber,
                                     holdingbranch,pickbranch,notes, item_level_request)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ");
 
     foreach my $itemnumber  (sort keys %$item_map) {
@@ -686,6 +689,7 @@ sub CreatePicklistFromItemMap {
         my $pickbranch = $mapped_item->{pickup_branch};
         my $holdingbranch = $mapped_item->{holdingbranch};
         my $reservedate = $mapped_item->{reservedate};
+        my $timestamp = $mapped_item->{timestamp};
         my $reservenotes = $mapped_item->{reservenotes};
         my $item_level = $mapped_item->{item_level};
 
@@ -703,7 +707,7 @@ sub CreatePicklistFromItemMap {
         my $title = $biblio->title;
 
         $sth_load->execute($biblionumber, $itemnumber, $barcode, $surname, $firstname, $phone, $borrowernumber,
-                           $cardnumber, $reservedate, $title, $itemcallnumber,
+                           $cardnumber, $reservedate, $timestamp, $title, $itemcallnumber,
                            $holdingbranch, $pickbranch, $reservenotes, $item_level);
     }
 }
