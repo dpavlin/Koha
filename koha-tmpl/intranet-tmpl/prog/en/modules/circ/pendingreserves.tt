@@ -92,9 +92,9 @@
                 [% Branches.GetName ( holdingbranch ) | html %]
             [% END %]
         </td>
-        <td><p>[% reserveloo.itemcallnumber | html %]</p></td>
-        <td><p>[% reserveloo.copyno | html %]</p></td>
-        <td><p>[% reserveloo.enumchron | html %]</p></td>
+        <td><p>[% reserveloo.itemcallnumber %]</p></td>
+        <td><p>[% reserveloo.copyno %]</p></td>
+        <td><p>[% reserveloo.enumchron %]</p></td>
         <td>
         [% FOREACH itemType IN reserveloo.itemTypes %]
             [% ItemTypes.GetDescription( itemType ) | html %]
