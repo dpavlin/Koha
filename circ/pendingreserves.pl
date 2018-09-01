@@ -185,6 +185,8 @@ my $strsth =
             reserves.biblionumber,
             reserves.branchcode as l_branch,
             reserves.itemnumber,
+            reserves.timestamp,
+            reserves.reservenotes,
             items.holdingbranch,
             items.homebranch,
             GROUP_CONCAT(DISTINCT $item_type
@@ -229,7 +231,7 @@ if (C4::Context->preference('IndependentBranches')){
     $strsth .= " AND items.holdingbranch=? ";
     push @query_params, C4::Context->userenv->{'branch'};
 }
-$strsth .= " GROUP BY reserves.biblionumber ORDER BY biblio.title ";
+$strsth .= " GROUP BY reserves.biblionumber,reserves.reserve_id ORDER BY biblio.title ";
 
 my $sth = $dbh->prepare($strsth);
 $sth->execute(@query_params);
@@ -263,6 +265,8 @@ while ( my $data = $sth->fetchrow_hashref ) {
             holdingbranch   => $data->{holdingbranch},
             homebranch      => $data->{homebranch},
             itemnumber      => $data->{itemnumber},
+            timestamp       => $data->{timestamp}, # FFZG
+            reservenotes    => $data->{reservenotes}, # FFZG
         }
     );
 }
