@@ -53,6 +53,9 @@ if ( $run_report ) {
     # XXX GetHoldsQueueItems() does not support $itemtypeslimit!
     my $items = GetHoldsQueueItems($branchlimit, $itemtypeslimit);
     for my $item ( @$items ) {
+		$item->{itemcallnumber} =~ s/\s/&nbsp;/g;
+		$item->{copynumber} =~ s/\s/&nbsp;/g;
+		$item->{enumchron} =~ s/\s/&nbsp;/g;
         $item->{patron} = Koha::Patrons->find( $item->{borrowernumber} );
     }
     $template->param(

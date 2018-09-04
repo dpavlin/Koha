@@ -152,9 +152,9 @@
             </td>
             <td class="hq-collection">[% AuthorisedValues.GetByCode( 'CCODE', itemsloo.ccode ) | html %]</td>
             <td class="hq-itemtype">[% ItemTypes.GetDescription( itemsloo.itype ) | html %]</td>
-            <td class="hq-callnumber">[% IF ( itemsloo.location ) %]<em>[% AuthorisedValues.GetByCode( 'LOC', itemsloo.location ) | html %]</em> [% END %][% itemsloo.itemcallnumber | html %]</td>
-            <td class="hq-copynumber">[% itemsloo.copynumber | html %]</td>
-            <td class="hq-enumchron">[% itemsloo.enumchron | html %]</td>
+            <td class="hq-callnumber">[% IF ( itemsloo.location ) %]<em>[% AuthorisedValues.GetByCode( 'LOC', itemsloo.location ) | html %]</em> [% END %][% itemsloo.itemcallnumber %]</td>
+            <td class="hq-copynumber">[% itemsloo.copynumber %]</td>
+            <td class="hq-enumchron">[% itemsloo.enumchron %]</td>
             <td class="hq-barcode">
                 [% IF ( itemsloo.item_level_request ) %]
                     <em>Only item:</em> <strong>[% itemsloo.barcode | html %]</strong>
