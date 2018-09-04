@@ -193,11 +193,11 @@ my $strsth =
                     ORDER BY items.itemnumber SEPARATOR '|') l_item_type,
             GROUP_CONCAT(DISTINCT items.location 
                     ORDER BY items.itemnumber SEPARATOR '|') l_location,
-            GROUP_CONCAT(DISTINCT items.itemcallnumber 
+            GROUP_CONCAT(DISTINCT replace(items.itemcallnumber,' ','&nbsp;')
                     ORDER BY items.itemnumber SEPARATOR '<br/>') l_itemcallnumber,
-            GROUP_CONCAT(DISTINCT items.enumchron
+            GROUP_CONCAT(DISTINCT replace(items.enumchron,' ','&nbsp')
                     ORDER BY items.itemnumber SEPARATOR '<br/>') l_enumchron,
-            GROUP_CONCAT(DISTINCT items.copynumber
+            GROUP_CONCAT(DISTINCT replace(items.copynumber,' ','&nbsp')
                     ORDER BY items.itemnumber SEPARATOR '<br/>') l_copynumber,
             biblio.title,
             biblio.author,
