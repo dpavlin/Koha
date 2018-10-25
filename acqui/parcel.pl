@@ -125,6 +125,7 @@ my $total_tax_included = 0;
 my $subtotal_for_funds;
 for my $order ( @orders ) {
     $order->{'unitprice'} += 0;
+    $order->{'booksellerid'} = $booksellerid; # required for basket group links
 
     my $order_object = Koha::Acquisition::Orders->find($order->{ordernumber});
     if ( $bookseller->invoiceincgst ) {
