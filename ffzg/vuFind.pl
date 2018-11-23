@@ -33,14 +33,16 @@ my $sql = qq{
 	where biblionumber = ?
 };
 
-my $dbh = C4::Context->dbh;
-my $sth = $dbh->prepare($sql);
 
 if ( my $biblionumber = $query->param('biblionumber') ) {
 
 	if ( $hash = $cache->get_from_cache( "vuFind-$biblionumber" ) ) {
 		warn "# $biblionumber HIT\n";
 	} else {
+
+		my $dbh = C4::Context->dbh;
+		my $sth = $dbh->prepare($sql);
+
 		$sth->execute( $biblionumber );
 		while ( my $row = $sth->fetchrow_hashref ) {
 			push @$hash, $row;
