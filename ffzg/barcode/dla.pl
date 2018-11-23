@@ -86,6 +86,22 @@ insert ignore into ffzg_inventura (date_scanned,source_id,barcode) values (?,?,?
 				close($cache);
 				print "# created $cache_path ", -s $cache_path, " bytes\n";
 
+				my $sth_update = $dbh->prepare(qq{
+update items as a
+inner join (
+	select ffzg_inventura.barcode,items.datelastseen,max(ffzg_inventura.date_scanned) as date_scanned
+	from ffzg_inventura
+	join items on items.barcode = ffzg_inventura.barcode
+	where date_scanned = ? and source_id = ?
+	group by ffzg_inventura.barcode
+	having datelastseen < max(date_scanned)
+) as b
+on a.barcode = b.barcode
+set a.datelastseen = b.date_scanned, a.itemlost = 0 ;
+				});
+
+				$sth_update->execute( $date_scanned, $source_id );
+
 				last; # FIXME import just one on one page load
 			}
 		}
