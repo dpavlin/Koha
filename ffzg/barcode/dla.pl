@@ -7,6 +7,7 @@ use Modern::Perl;
 use C4::Context;
 use Data::Dump qw(dump);
 use CGI qw ( -utf8 );
+use C4::Auth;
 use autodie;
 
 my $q = new CGI;
@@ -17,18 +18,11 @@ print
     , $q->start_html( -title => 'DLA RFID tag import from share' )
 	;
 
-while(<DATA>) {
-	if ( m/^select/i ) {
-		print qq{<table>\n};
-		my $sth = $dbh->prepare($_);
-		$sth->execute;
-		while ( my $row = $sth->fetchrow_arrayref ) {
-			print qq{<tr><td>}, join(qq{</td><td>}, @$row), qq{</td></tr>\n};
-		}
-		print qq{</table>\n};
-	} else {
-		print "$_<br>\n";
-	}
+# Authentication
+my ($status, $cookie, $sessionId) = C4::Auth::check_api_auth($q, { tools => 'inventory' });
+if ($status ne "ok") {
+	print "This requres tools - inventory permission";
+	exit;
 }
 
 if ( $q->param('scan') ) {
@@ -106,12 +100,30 @@ set a.datelastseen = b.date_scanned, a.itemlost = 0 ;
 			}
 		}
 		print qq{</pre>};
+} else {
+
+		while(<DATA>) {
+			if ( m/^select/i ) {
+				print qq{<table>\n};
+				my $sth = $dbh->prepare($_);
+				$sth->execute;
+				while ( my $row = $sth->fetchrow_arrayref ) {
+					print qq{<tr><td>}, join(qq{</td><td>}, @$row), qq{</td></tr>\n};
+				}
+				print qq{</table>\n};
+			} else {
+				print "$_<br>\n";
+			}
+		}
+
 }
 
+print $q->start_form, $q->submit(-name => 'scan'), $q->end_form;
+
+print $q->end_html;
 
 __DATA__
 
 -- total scanned by date ranges and source_id
 select min(date_scanned),max(date_scanned),source_id,count(*) from ffzg_inventura group by source_id;
 
--- date scanned, source_id, tags seen
