@@ -57,6 +57,14 @@ if ( $op eq 'resend_notice' ) {
     my $message_id = $input->param('message_id');
     my $message = C4::Letters::GetMessage( $message_id );
     if ( $message->{borrowernumber} = $borrowernumber ) {
+	# XXX FFZG
+	if ( $message->{message_transport_type} eq 'print' ) {
+	    my $dbh = C4::Context->dbh();
+	    my $statement = 'UPDATE message_queue SET message_transport_type = ? WHERE message_id = ?';
+	    my $sth = $dbh->prepare( $statement );
+	    $sth->execute( 'email', $message_id );
+	    warn "XXX force message_transport_type $message_id";
+	}
         C4::Letters::ResendMessage( $message_id );
         # redirect to self to avoid form submission on refresh
         print $input->redirect("/cgi-bin/koha/members/notices.pl?borrowernumber=$borrowernumber");

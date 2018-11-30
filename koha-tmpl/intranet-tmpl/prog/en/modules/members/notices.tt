@@ -60,7 +60,7 @@
             [% ELSIF ( QUEUED_MESSAGE.status == 'failed' ) %]failed
             [% ELSIF ( QUEUED_MESSAGE.status == 'deleted' ) %]deleted
             [% ELSE %][% QUEUED_MESSAGE.status | html %][% END %]
-            [% IF ( QUEUED_MESSAGE.status != 'pending' ) %]
+            [% IF ( QUEUED_MESSAGE.status != 'pending' || QUEUED_MESSAGE.message_transport_type == 'print' ) %]
             <div id="resend_notice[% QUEUED_MESSAGE.message_id | html %]"  class="notice">
                 <form action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | html %]" method="POST">
                     <input type="hidden" name="op" value="resend_notice" />
