@@ -173,8 +173,10 @@
     [% END %]
 
     [% IF ( CAN_user_tools_inventory ) %]
-    <dt><a href="/cgi-bin/koha/ffzg/barcode/dla.pl">DLA import</a></dt>
+    <dt><a href="/cgi-bin/koha/ffzg/barcode/dla.pl">FFZG DLA import</a></dt>
     <dd>Import from share RFID reader dump</dd>
+    <dt><a href="/cgi-bin/koha/ffzg/barcode/inventura.pl">FFZG barcode inventura</a></dt>
+    <dd>Use Android wifi barcode reader</dd>
     <dt><a href="/cgi-bin/koha/tools/inventory.pl">Inventory</a></dt>
     <dd>Perform inventory of your catalog</dd>
     [% END %]
