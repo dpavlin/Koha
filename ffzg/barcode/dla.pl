@@ -13,6 +13,8 @@ use autodie;
 my $q = new CGI;
 my $dbh = C4::Context->dbh;
 
+$ENV{REQUEST_URI} =~ s{/intranet/}{/cgi-bin/koha/}; # fix plack rewrite
+
 print
     $q->header( -charset => 'utf-8' ),
     , $q->start_html( -title => 'DLA RFID tag import from share' )
