@@ -1770,6 +1770,14 @@ sub ItemSafeToDelete {
             $status = 1;
         }
     }
+
+	# XXX FFZG -- don't delete items with stocknumber
+	if ( $item->{'stocknumber'} =~ m/^\d+/  ) {
+		$status = "has_stocknumber";
+		use Data::Dump qw(dump);
+		warn "XXX FFZG ItemSafeToDelete status:$status item=",dump($item);
+	}
+
     return $status;
 }
 
