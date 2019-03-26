@@ -11,7 +11,7 @@ $(document).ready(function(){
 
     if( popup ){
         if( opisadd ){
-            window.close();
+            //window.close();
         }
     }
 
