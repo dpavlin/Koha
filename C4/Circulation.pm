@@ -1534,6 +1534,13 @@ Get loan length for an itemtype, a borrower type and a branch
 
 sub GetLoanLength {
     my ( $borrowertype, $itemtype, $branchcode ) = @_;
+
+		# FIXME FFZG -- submit bug to koha
+		if ( ref($branchcode) ) {
+			Carp::cluck("$branchcode");
+			$branchcode = 'FFZG';
+			warn "FIXME branchcode = $branchcode";
+		}
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(qq{
         SELECT issuelength, lengthunit, renewalperiod
