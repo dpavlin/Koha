@@ -1,0 +1,16 @@
+To make items reservable (and specailly to be able to fullfill reservation when doing checking, which is standard procedure
+when items get from closed storage to pickup desk) we modified all notforloan values which we use (like "only for work in library") to use negative values:
+
+mysql> update items set notforloan=-2 where notforloan=1 ;
+Query OK, 99196 rows affected (8.04 sec)
+Rows matched: 99196  Changed: 99196  Warnings: 0
+
+mysql> update items set notforloan=-3 where notforloan=2 ;
+Query OK, 151 rows affected (1.50 sec)
+Rows matched: 151  Changed: 151  Warnings: 0
+
+mysql> update items set notforloan=-4 where notforloan=3 ;
+Query OK, 247 rows affected (1.61 sec)
+Rows matched: 247  Changed: 247  Warnings: 0
+
+This works because of koha feature that items from acquisitions have negative notforloan.
