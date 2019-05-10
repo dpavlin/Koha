@@ -294,8 +294,11 @@ sub buildKohaItemsNamespace {
 
         if ( ( $item->{itype} && $itemtypes->{ $item->{itype} }->{notforloan} ) || $item->{notforloan} || $item->{onloan} || $item->{withdrawn} || $item->{itemlost} || $item->{damaged} ||
              (defined $transfertwhen && $transfertwhen ne '') || $item->{itemnotforloan} || (defined $reservestatus && $reservestatus eq "Waiting") ){ 
-            if ( $item->{notforloan} < 0) {
+            if ( $item->{notforloan} == -1) { # XXX FFZG was < 0
                 $status = "On order";
+            } 
+            if ( $item->{notforloan} < -1) { # XXX FFZG new, local addition
+                $status = "reference";
             } 
             if ( $item->{itemnotforloan} && $item->{itemnotforloan} > 0 || $item->{notforloan} && $item->{notforloan} > 0 || $item->{itype} && $itemtypes->{ $item->{itype} }->{notforloan} && $itemtypes->{ $item->{itype} }->{notforloan} == 1 ) {
                 $status = "reference";
