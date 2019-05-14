@@ -66,21 +66,30 @@ use Koha::Patrons;
 use Data::Dump qw(dump);
 
 my ( $help, $send_notices );
+my $interval = 'now() - interval 1 day';
+my $dedup = 1;
 GetOptions(
     'h|help' => \$help,
     'send-notices' => \$send_notices,
+    'interval=s' => \$interval,
+    'dedup!' => \$dedup,
 ) || pod2usage(1);
 
 pod2usage(0) if $help;
 
 cronlogaction();
 
-my $dbh = C4::Context->dbh();
-my $sth = $dbh->prepare( <<"END_SQL" );
+
+# XXX quote iso date correctly for insertion into SQL
+$interval = qq{'$interval'} if $interval =~ m/^\d\d\d\d-\d+-\d+$/;
+
+my $sql = <<"END_SQL";
 select
 	issues.borrowernumber,
 	reserves.biblionumber,
-	issues.itemnumber
+	issues.itemnumber,
+	reservedate,
+	issuedate
 from reserves
 join items on reserves.biblionumber=items.biblionumber
 join issues on issues.itemnumber=items.itemnumber
@@ -98,16 +107,35 @@ where (
 		) or (
 			categorycode like 'S%' and datediff(reservedate,issuedate) > 14
 		)
-) and reservedate > now() - interval 1 day
-order by reserves.biblionumber ;
+) and reservedate > $interval
+
 END_SQL
 
+$sql .= qq{
+
+and borrowers.borrowernumber not in (
+	select message_queue.borrowernumber
+	from message_queue
+	where letter_code = 'FFZG_RECALL' and time_queued >= $interval
+)
+
+} if $dedup;
+
+$sql .= qq{
+order by reservedate;
+};
+
+warn "## << SQL\n$sql\n## >> SQL\n";
+
+my $dbh = C4::Context->dbh();
+my $sth = $dbh->prepare( $sql );
 $sth->execute();
+print "$0 dedup:$dedup interval [$interval] got ",$sth->rows,$/;
 
 while ( my $row = $sth->fetchrow_hashref ) {
-	warn "# row = ",dump($row),$/;
+	print "# recall_notice = ",dump($row),$/;
 
-	if ( $send_notices ) {
+   if ( $send_notices ) {
         my $patron = Koha::Patrons->find($row->{borrowernumber});
 
         my $letter = C4::Letters::GetPreparedLetter(
