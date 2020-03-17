@@ -53,4 +53,4 @@ if ( my $biblionumber = $query->param('biblionumber') ) {
 }
 print "Content-type: application/json; charset=utf-8\r\n\r\n";
 warn $query->remote_addr, " $0 ",dump($hash);
-print encode_json $hash;
+print encode_json $hash if defined $hash;
