@@ -98,6 +98,9 @@ sub accumulate_rentalcharge {
             branchcode   => $self->library->id
         }
     );
+
+    return 0 unless $issuing_rule; ## FIXME dpavlin
+
     my $units = $issuing_rule->lengthunit;
     my $rentalcharge_increment = ( $units eq 'days' ) ? $itemtype->rentalcharge_daily : $itemtype->rentalcharge_hourly;
 
