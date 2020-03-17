@@ -205,9 +205,12 @@ sub printbasketgrouppdf{
         }
         $orders{$basket->{basketno}} = \@ba_orders;
     }
+    my $name = $basketgroup->{name} || $basketgroupid;
+    $name =~ s/\W+/_/g; # FIXME dpavlin -- remove invalid chars
+    # Response headers MUST NOT contain characters below octal . Header: Content-Disposition. Value: attachment; filename="HRVATSKI JEZIK 2020 - PRETPLATA 	.pdf" at /usr/share/perl5/Plack/Middleware/Lint.pm line 139
     print $input->header(
         -type       => 'application/pdf',
-        -attachment => ( $basketgroup->{name} || $basketgroupid ) . '.pdf'
+        -attachment => $name . '.pdf'
     );
     my $pdf = printpdf($basketgroup, $bookseller, $baskets, \%orders, $bookseller->tax_rate // C4::Context->preference("gist")) || die "pdf generation failed";
     print $pdf;
