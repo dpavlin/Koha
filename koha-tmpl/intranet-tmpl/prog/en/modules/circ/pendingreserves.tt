@@ -109,7 +109,7 @@
         </td>
         <td>
         [% FOREACH loc IN reserveloo.locations %]
-            [% AuthorisedValues.GetByCode('LOC', loc) | html %]
+            [% AuthorisedValues.GetByCode_FFZG('LOC', loc) | html %]
         [% END %]
         </td>
         <td>

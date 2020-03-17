@@ -34,6 +34,18 @@ sub GetByCode {
             : $code;
 }
 
+sub GetByCode_FFZG {
+    my ( $self, $category, $code, $opac ) = @_;
+    my $av = Koha::AuthorisedValues->search({ category => $category, authorised_value => $code });
+    my $label = $av->count
+            ? $opac
+                ? $av->next->opac_description
+                : $av->next->lib
+            : $code;
+    $label =~ s/,.+$// if $category eq 'LOC'; # XXX FFZG strip kat, description
+    return $label;
+}
+
 sub Get {
     my ( $self, $category, $selected, $opac ) = @_;
     return GetAuthorisedValues( $category, $selected, $opac );
