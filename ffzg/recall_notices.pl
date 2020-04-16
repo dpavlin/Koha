@@ -132,10 +132,18 @@ my $sth = $dbh->prepare( $sql );
 $sth->execute();
 print "$0 dedup:$dedup interval [$interval] got ",$sth->rows,$/;
 
+my $sth_check_available = $dbh->prepare(qq{
+select biblionumber from items where itemlost = 0 and notforloan = 0 and withdrawn = 0 and onloan is null and biblionumber = ?
+});
+
 while ( my $row = $sth->fetchrow_hashref ) {
+
+	$sth_check_available->execute( $row->{biblionumber} );
+	$row->{ items_available } = $sth_check_available->rows;
+
 	print "# recall_notice = ",dump($row),$/;
 
-   if ( $send_notices ) {
+   if ( $send_notices && $row->{items_available} == 0 ) {
         my $patron = Koha::Patrons->find($row->{borrowernumber});
 
         my $letter = C4::Letters::GetPreparedLetter(
