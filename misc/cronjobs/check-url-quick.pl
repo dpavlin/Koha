@@ -92,6 +92,7 @@ sub check_all_url {
             return if $count > $maxconn;
             while ( my ($biblionumber) = $sth->fetchrow ) {
                 my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+		next unless $record;
                 for my $tag (@tags) {
                     foreach my $field ( $record->field($tag) ) {
                         my $url = $field->subfield('u');
@@ -107,7 +108,7 @@ sub check_all_url {
                                 my ( undef, $hdr ) = @_;
                                 $count--;
                                 report( $hdr, $biblionumber, $url )
-                                  if $hdr->{Status} !~ /^2/ || $verbose;
+                                  if $hdr->{Status} !~ /^[23]/ || $verbose;
                             },
                         );
                     }
