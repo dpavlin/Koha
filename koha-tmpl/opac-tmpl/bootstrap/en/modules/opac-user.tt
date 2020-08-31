@@ -99,7 +99,7 @@
                                 [% IF ( userdebarred ) %]
                                     [% IF ( discharge_available ) %]
                                         <li id="discharged">
-                                            <strong>Please note:</strong> Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a>
+                                            <strong>Please note:</strong> Your account is frozen because it has been discharged. Your return certificate has been sent to the student administration office.
                                         </li>
                                     [% ELSE %]
                                         <li id="userdebarred"><strong>Please note:</strong> Your account has been frozen.
