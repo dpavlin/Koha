@@ -100,11 +100,139 @@ sub discharge {
             validated => dt_from_string,
         });
     }
+
+	# FIXME -- dpavlin - added discharge mail
+
+my $loggedinuser = C4::Context->userenv->{'number'} || 0;
+
+use Data::Dump qw(dump);
+warn "XXX discharge for $borrowernumber from logged user $loggedinuser";
+
+my $dbh = C4::Context->dbh;
+my $sth = $dbh->prepare(qq{
+select
+	firstname, surname, userid,
+	ba1.attribute as jmbag,
+	ba2.attribute as oib
+from borrowers b
+left outer join borrower_attributes ba1 on (b.borrowernumber = ba1.borrowernumber and ba1.code='JMBAG')
+left outer join borrower_attributes ba2 on (b.borrowernumber = ba2.borrowernumber and ba2.code='OIB')
+where b.borrowernumber = ?
+});
+$sth->execute( $borrowernumber );
+
+my $row = $sth->fetchrow_hashref;
+
+my $sth_ffzg = $dbh->prepare(qq{
+insert into ffzg_discharges (
+	discharge_id,
+	borrower,
+	needed,
+	validated,
+	firstname,
+	surname,
+	userid,
+	jmbag,
+	oib,
+	k_borrowernumber,
+	k_firstname,
+	k_surname,
+	k_userid
+)
+select
+	discharge_id,
+	borrower,
+	needed,
+	validated,
+	b.firstname,
+	b.surname,
+	b.userid,
+	ba1.attribute as jmbag,
+	ba2.attribute as oib,
+	kb.borrowernumber as k_borrowernumber,
+	kb.firstname as k_firstname,
+	kb.surname as k_surname,
+	kb.userid as k_userid
+from discharges
+join borrowers b on (b.borrowernumber = borrower)
+left outer join borrower_attributes ba1 on (b.borrowernumber = ba1.borrowernumber and ba1.code='JMBAG')
+left outer join borrower_attributes ba2 on (b.borrowernumber = ba2.borrowernumber and ba2.code='OIB')
+left outer join borrowers kb on (kb.borrowernumber = ?)
+where borrower = ? and validated is not null
+order by validated desc limit 1
+
+});
+$sth_ffzg->execute( $loggedinuser, $borrowernumber );
+
+warn "XXX discharge row for $borrowernumber = ", Data::Dump::dump( $row );
+
+my $dbh = C4::Context->dbh;
+my $sth = $dbh->prepare(qq{
+select *
+from ffzg_discharges
+where borrower = ?
+order by validated desc limit 1
+});
+$sth->execute( $borrowernumber );
+
+my $row = $sth->fetchrow_hashref;
+
+warn "XXX discharge mail for $borrowernumber row = ",dump( $row );
+my $substitute = {};
+$substitute-> { 'ffzg_discharges.' . $_ } = $row->{$_} foreach ( keys %$row );
+warn "YYY substitute = ", dump( $substitute );
+
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    my $letter = C4::Letters::GetPreparedLetter(
+        module      => 'members',
+        letter_code => 'DISCHARGE',
+        lang        => $patron->lang,
+        tables      => { borrowers => $borrowernumber, },
+        substitute  => $substitute, ## FIXME dpavlin -- add arbitrary params
+    );
+
+    my $today = output_pref( dt_from_string() );
+    $letter->{'title'}   =~ s/<<today>>/$today/g;
+    $letter->{'content'} =~ s/<<today>>/$today/g;
+	my $body = $letter->{content};
+	$body =~ s{</?[^>]+>}{}gs;
+
+open(my $mail, '|-', '/usr/sbin/sendmail -t -f knjiznica@ffzg.hr');
+binmode $mail, ':encoding(utf-8)';
+print $mail qq{From: Knjiznica vracene sve knjige <knjiznica\@ffzg.hr>
+To: dpavlin+koha-discharge\@ffzg.hr, mglavica+koha-discharge\@ffzg.hr
+Subject: vracene knjige OIB: $row->{oib} JMBAG: $row->{jmbag}
+
+$body
+};
+close($mail);
+
+
 }
 
 sub generate_as_pdf {
     my ($params) = @_;
     return unless $params->{borrowernumber};
+
+# FIXME dpavlin -- added new fields
+use Data::Dump qw(dump);
+
+my $borrowernumber = $params->{borrowernumber};
+my $dbh = C4::Context->dbh;
+my $sth = $dbh->prepare(qq{
+select *
+from ffzg_discharges
+where borrower = ?
+order by validated desc limit 1
+});
+$sth->execute( $borrowernumber );
+
+my $row = $sth->fetchrow_hashref;
+
+warn "XXX discharge pdf for $borrowernumber row = ",dump( $row );
+my $substitute = {};
+$substitute-> { 'ffzg_discharges.' . $_ } = $row->{$_} foreach ( keys %$row );
+warn "YYY substitute = ", dump( $substitute );
 
     my $patron = Koha::Patrons->find( $params->{borrowernumber} );
     my $letter = C4::Letters::GetPreparedLetter(
@@ -112,6 +240,7 @@ sub generate_as_pdf {
         letter_code => 'DISCHARGE',
         lang        => $patron->lang,
         tables      => { borrowers => $params->{borrowernumber}, branches => $params->{'branchcode'}, },
+        substitute  => $substitute, ## FIXME dpavlin -- add arbitrary params
     );
 
     my $today = output_pref( dt_from_string() );
