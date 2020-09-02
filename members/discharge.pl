@@ -66,8 +66,29 @@ my $can_be_discharged = Koha::Patron::Discharge::can_be_discharged({
     borrowernumber => $borrowernumber
 });
 
+my $is_discharged = Koha::Patron::Discharge::is_discharged({borrowernumber => $loggedinuser});
+
+my $pending = Koha::Patron::Discharge::count({
+    borrowernumber => $borrowernumber,
+    pending        => 1,
+});
+
+$template->param( can_be_discharged => $can_be_discharged );
+$template->param( is_discharged => $is_discharged );
+$template->param( pending => $pending );
+
+if ( ! $pending and $can_be_discharged and $input->param('request') ) {
+    my $success = Koha::Patron::Discharge::request({
+        borrowernumber => $borrowernumber,
+    });
+    if ( $success ) {
+		$template->param( pending => 1 );
+    }
+}
+
 # Generating discharge if needed
 if ( $input->param('discharge') and $can_be_discharged ) {
+
     my $is_discharged = Koha::Patron::Discharge::is_discharged({
         borrowernumber => $borrowernumber,
     });
