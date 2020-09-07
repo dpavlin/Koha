@@ -66,7 +66,7 @@ my $can_be_discharged = Koha::Patron::Discharge::can_be_discharged({
     borrowernumber => $borrowernumber
 });
 
-my $is_discharged = Koha::Patron::Discharge::is_discharged({borrowernumber => $loggedinuser});
+my $is_discharged = Koha::Patron::Discharge::is_discharged({borrowernumber => $borrowernumber});
 
 my $pending = Koha::Patron::Discharge::count({
     borrowernumber => $borrowernumber,
