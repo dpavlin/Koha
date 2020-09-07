@@ -92,11 +92,16 @@ if ( $input->param('discharge') and $can_be_discharged ) {
     my $is_discharged = Koha::Patron::Discharge::is_discharged({
         borrowernumber => $borrowernumber,
     });
-    unless ($is_discharged) {
+    if ( ! $is_discharged && $pending ) {
         Koha::Patron::Discharge::discharge({
             borrowernumber => $borrowernumber
         });
+   		print $input->redirect("/cgi-bin/koha/members/discharge.pl?borrowernumber=$borrowernumber");
+		exit;
     }
+
+=for removed-for-ffzg
+
     eval {
         my $pdf_path = Koha::Patron::Discharge::generate_as_pdf(
             { borrowernumber => $borrowernumber, branchcode => $patron->branchcode } );
@@ -117,6 +122,7 @@ if ( $input->param('discharge') and $can_be_discharged ) {
         carp $@;
         $template->param( messages => [ {type => 'error', code => 'unable_to_generate_pdf'} ] );
     }
+=cut
 }
 
 # Already generated discharges

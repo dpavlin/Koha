@@ -41,12 +41,12 @@
     <form method="post">
         [% IF pending %]
         <p>Patron has pending discharge request.</p>
+        <input type="submit" value="Generate discharge" name="discharge" />
         [% ELSIF is_discharged %]
         <p>Patron is discharged.</p>
         [% ELSIF can_be_discharged %]
         <p><input type="submit" value="Request new discharge" name="request" /></p>
         [% END %]
-        <input type="submit" value="Generate discharge" name="discharge" />
         <input type="hidden" value="[% patron.borrowernumber | html %]" name="borrowernumber" />
     </form>
 [% END %]
