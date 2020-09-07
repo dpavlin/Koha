@@ -200,7 +200,7 @@ warn "YYY substitute = ", dump( $substitute );
 open(my $mail, '|-', '/usr/sbin/sendmail -t -f knjiznica@ffzg.hr');
 binmode $mail, ':encoding(utf-8)';
 print $mail qq{From: Knjiznica vracene sve knjige <knjiznica\@ffzg.hr>
-To: dpavlin+koha-discharge\@ffzg.hr, mglavica+koha-discharge\@ffzg.hr, dilicic+vracene-knjige\@ffzg.hr
+To: koha-discharge
 Subject: vracene knjige OIB: $row->{oib} JMBAG: $row->{jmbag}
 
 $body
