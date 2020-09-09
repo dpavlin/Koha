@@ -197,7 +197,7 @@ my $strsth =
                     ORDER BY items.itemnumber SEPARATOR '<br/>') l_itemcallnumber,
             GROUP_CONCAT(DISTINCT replace(items.enumchron,' ','&nbsp')
                     ORDER BY items.itemnumber SEPARATOR '<br/>') l_enumchron,
-            GROUP_CONCAT(DISTINCT replace(items.copynumber,' ','&nbsp')
+            GROUP_CONCAT(DISTINCT concat('<tt>',items.barcode,'&nbsp',items.notforloan,'</tt>')
                     ORDER BY items.itemnumber SEPARATOR '<br/>') l_copynumber,
             biblio.title,
             biblio.author,
