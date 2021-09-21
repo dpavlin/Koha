@@ -279,7 +279,7 @@
                 <td>[% order.basketname | html %] (<a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% order.basketno | uri %]">[% order.basketno | html %]</a>)</td>
                 <td>
                   [% IF order.basketgroupid %]
-                    [% order.basketgroupname | html %] (<a href="/cgi-bin/koha/acqui/basketgroup.pl?op=add&booksellerid=[% order.booksellerid | uri %]&basketgroupid=[% loop_order.basketgroupid | html %]">[% order.basketgroupid | html %]</a>)
+                    [% order.basketgroupname | html %] (<a href="/cgi-bin/koha/acqui/basketgroup.pl?op=add&booksellerid=[% order.booksellerid | uri %]&basketgroupid=[% order.basketgroupid | html %]">[% order.basketgroupid | html %]</a>)
                   [% ELSE %]
                     No basket group
                   [% END %]
