@@ -74,7 +74,7 @@ sub _new_schema {
     $tz = q{} if ( $tz eq 'local' );
     if ( $db_driver eq 'mysql' ) {
         %encoding_attr = ( mysql_enable_utf8 => 1 );
-        $encoding_query = "set NAMES 'utf8mb4'";
+        $encoding_query = "set NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
         $tz_query = qq(SET time_zone = "$tz") if $tz;
         if ( ( exists $ENV{_} && $ENV{_} =~ m|prove| ) or C4::Context->config('strict_sql_modes') ) {
             $sql_mode_query = q{SET sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'};
